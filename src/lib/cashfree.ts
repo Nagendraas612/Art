@@ -1,8 +1,14 @@
-import { Cashfree } from "cashfree-pg";
+// Lazily import cashfree-pg to avoid build-time static analysis issues on Vercel.
+// The SDK is only loaded at runtime when actually needed.
 
-let cashfreeInstance: Cashfree | null = null;
+let cashfreeInstance: any = null;
 
-export function getCashfree(): Cashfree | null {
+async function loadCashfreeSDK() {
+  const { Cashfree, CFEnvironment } = await import("cashfree-pg");
+  return { Cashfree, CFEnvironment };
+}
+
+export async function getCashfree(): Promise<any> {
   if (cashfreeInstance) return cashfreeInstance;
 
   const appId = process.env.CASHFREE_APP_ID;
@@ -14,11 +20,9 @@ export function getCashfree(): Cashfree | null {
   }
 
   try {
-    const CashfreeAny = Cashfree as any;
+    const { Cashfree, CFEnvironment } = await loadCashfreeSDK();
     const environment =
-      env === "PRODUCTION"
-        ? (CashfreeAny.Environment?.PRODUCTION || "PRODUCTION")
-        : (CashfreeAny.Environment?.SANDBOX || "SANDBOX");
+      env === "PRODUCTION" ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
     cashfreeInstance = new Cashfree(environment, appId, clientSecret);
   } catch (err) {
     console.error("[Cashfree] Initialization error:", err);
@@ -28,16 +32,13 @@ export function getCashfree(): Cashfree | null {
 }
 
 export const cashfree = {
-  get instance() {
-    return getCashfree();
-  },
-  PGVerifyWebhookSignature(signature: string, rawBody: string, timestamp: string) {
-    const cf = getCashfree();
+  async PGVerifyWebhookSignature(signature: string, rawBody: string, timestamp: string) {
+    const cf = await getCashfree();
     if (!cf) throw new Error("Cashfree is not configured");
     return cf.PGVerifyWebhookSignature(signature, rawBody, timestamp);
   },
   async PGCreateOrder(orderRequest: any) {
-    const cf = getCashfree();
+    const cf = await getCashfree();
     if (!cf) throw new Error("Cashfree is not configured");
     return cf.PGCreateOrder(orderRequest);
   },

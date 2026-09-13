@@ -335,7 +335,7 @@ export async function processCheckout(input: CheckoutInput) {
         },
       };
 
-      const response = await cashfree!.PGCreateOrder(orderRequest as any);
+      const response = await cashfree.PGCreateOrder(orderRequest as any);
       
       return {
         success: true,

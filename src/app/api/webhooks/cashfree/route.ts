@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      cashfree!.PGVerifyWebhookSignature(signature, rawBody, timestamp);
+      await cashfree.PGVerifyWebhookSignature(signature, rawBody, timestamp);
     } catch (err: any) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
