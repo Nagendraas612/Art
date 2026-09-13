@@ -1,0 +1,112 @@
+.main {
+  min-height: 100vh;
+  background: var(--paper);
+  padding-bottom: var(--sp-9);
+}
+
+.header {
+  padding: var(--sp-8) 0 var(--sp-6) 0;
+  border-bottom: 1px solid var(--paper-deep);
+  background: linear-gradient(to bottom, var(--paper-deep) 0%, var(--paper) 100%);
+}
+
+.kicker {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--moss);
+  margin-bottom: var(--sp-2);
+}
+
+.title {
+  font-family: var(--serif);
+  font-size: clamp(32px, 4.5vw, 56px);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 0 0 var(--sp-3) 0;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: var(--charcoal);
+  max-width: 680px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.gridSection {
+  padding-top: var(--sp-7);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 32px;
+  margin-bottom: var(--sp-8);
+}
+
+.joinBanner {
+  background: var(--paper-deep);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-6) var(--sp-7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-6);
+  flex-wrap: wrap;
+}
+
+.joinContent {
+  max-width: 600px;
+}
+
+.joinTitle {
+  font-family: var(--serif);
+  font-size: 26px;
+  color: var(--ink);
+  margin: 0 0 var(--sp-2) 0;
+  font-weight: 440;
+}
+
+.joinText {
+  font-size: 15px;
+  color: var(--charcoal);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.joinBtn {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--paper);
+  background: var(--clay);
+  padding: 14px 28px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.joinBtn:hover {
+  background: #8b4323;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .joinBanner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--sp-5);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}

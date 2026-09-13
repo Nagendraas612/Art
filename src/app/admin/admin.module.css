@@ -1,0 +1,229 @@
+/* ==========================================================================
+   Admin Operations Hub — Global Admin Layout & Shared Styles
+   ========================================================================== */
+
+.adminWrapper {
+  display: flex;
+  min-height: 100vh;
+  background: var(--paper, #fbfaf8);
+  color: var(--ink, #1f1e1d);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 270px;
+  background: #141312;
+  color: #f7f5f0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 40;
+}
+
+.brandArea {
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brandLink {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brandName {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 20px;
+  font-weight: 500;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.badgeAdmin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans, sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #d4af37;
+  background: rgba(212, 175, 55, 0.12);
+  padding: 3px 8px;
+  border-radius: 999px;
+  width: fit-content;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.badgeAdmin::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d4af37;
+  box-shadow: 0 0 6px rgba(212, 175, 55, 0.8);
+}
+
+.navSection {
+  flex: 1;
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.sectionHeading {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #888277;
+  padding: 12px 12px 6px;
+  font-weight: 600;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  border-radius: 8px;
+  color: #c7c1b5;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.navLinkLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navLink:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+.navLinkActive {
+  background: rgba(212, 175, 55, 0.15) !important;
+  color: #f7df8b !important;
+  font-weight: 600;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.sidebarFooter {
+  padding: 18px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.returnLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #a49e91;
+  text-decoration: none;
+  transition: color 0.18s;
+}
+
+.returnLink:hover {
+  color: #ffffff;
+}
+
+/* Main Content Area */
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--paper, #fbfaf8);
+}
+
+/* Topbar */
+.topbar {
+  height: 64px;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e4db;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 36px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.topbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.breadcrumbs {
+  font-size: 13.5px;
+  color: #7a7469;
+  font-weight: 500;
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.adminProfilePill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f7f5f0;
+  border: 1px solid #e6e0d4;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink, #1f1e1d);
+}
+
+.avatarDot {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+/* Content Container */
+.pageBody {
+  padding: 36px;
+  max-width: 1360px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 1024px) {
+  .adminWrapper {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+  }
+  .pageBody {
+    padding: 20px;
+  }
+}

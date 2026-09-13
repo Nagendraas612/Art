@@ -1,0 +1,131 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.currentBadge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--color-surface, #fdfbf7);
+  border: 1px solid var(--color-border, #e6ded5);
+  color: var(--color-foreground, #1e1b18);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.successNote {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #276738;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prepBtn,
+.shipBtn,
+.deliverBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.prepBtn {
+  background: var(--color-surface-tint, #f4eee7);
+  color: var(--color-primary, #b85d38);
+  border-color: #dfd4c5;
+}
+
+.prepBtn:hover:not(:disabled) {
+  background: #eae0d2;
+}
+
+.shipBtn {
+  background: var(--color-primary, #b85d38);
+  color: #ffffff;
+}
+
+.shipBtn:hover {
+  background: #a24f2d;
+}
+
+.deliverBtn {
+  background: #eaf5eb;
+  color: #276738;
+  border-color: #bce0c3;
+}
+
+.deliverBtn:hover:not(:disabled) {
+  background: #d8edd9;
+}
+
+.dispatchBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-surface, #fdfbf7);
+  border: 1px solid var(--color-border, #e6ded5);
+  border-radius: var(--radius-sm, 6px);
+  padding: 12px;
+}
+
+.input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border, #e6ded5);
+  border-radius: 4px;
+  font-size: 0.82rem;
+  background: #ffffff;
+}
+
+.dispatchActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.confirmShipBtn {
+  flex: 1;
+  background: var(--color-primary, #b85d38);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirmShipBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-muted, #7c7267);
+  font-size: 0.8rem;
+  cursor: pointer;
+}

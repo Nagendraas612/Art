@@ -1,0 +1,141 @@
+.container {
+  position: relative;
+  display: inline-block;
+}
+
+.avatarBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  padding: 4px 8px 4px 4px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.avatarBtn:hover {
+  background: rgba(44, 36, 24, 0.04);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--ink, #2c2418);
+  color: var(--paper, #faf8f5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--sans);
+  text-transform: uppercase;
+}
+
+.chevron {
+  color: var(--charcoal, #6b6560);
+  transition: transform 0.2s;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 260px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--stone, #d4cfc9);
+  border-radius: var(--radius-sm, 8px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  overflow: hidden;
+  animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(44, 36, 24, 0.02);
+  border-bottom: 1px solid var(--stone, #d4cfc9);
+}
+
+.headerAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--charcoal, #6b6560);
+  color: var(--paper, #faf8f5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: var(--sans);
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.userName {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink, #2c2418);
+}
+
+.viewProfile {
+  font-size: 13px;
+  color: var(--text-secondary, #6b6560);
+}
+
+.menuList {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: var(--ink, #2c2418);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: var(--sans);
+  text-align: left;
+}
+
+.menuItem:hover {
+  background: rgba(44, 36, 24, 0.04);
+}
+
+.menuItem svg {
+  color: var(--charcoal, #6b6560);
+}
+
+.divider {
+  height: 1px;
+  background: var(--stone, #d4cfc9);
+  margin: 8px 0;
+}

@@ -1,0 +1,125 @@
+.main {
+  min-height: calc(100vh - 64px);
+  padding: 4rem 0;
+  background-color: var(--surface-primary);
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.card {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-light);
+  padding: 3rem;
+  max-width: 600px;
+}
+
+.profileSection {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.avatarLarge {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  color: var(--surface-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.userName {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  color: var(--text-primary);
+}
+
+.userEmail {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.roleBadge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-light);
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  width: fit-content;
+  margin-top: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 2rem;
+}
+
+.btnSecondary {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btnSecondary:hover {
+  background: var(--surface-primary);
+  border-color: var(--text-primary);
+}
+
+.dangerZone {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.btnDanger {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #ff4444;
+  background: transparent;
+  color: #ff4444;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnDanger:hover {
+  background: #ff4444;
+  color: white;
+}

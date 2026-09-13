@@ -1,0 +1,30 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.title {
+  font-family: var(--font-fraunces, serif);
+  font-size: 2.2rem;
+  color: var(--color-foreground, #1e1b18);
+  margin: 0 0 6px 0;
+}
+
+.subtitle {
+  color: var(--color-muted, #7c7267);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.empty {
+  text-align: center;
+  padding: 60px 0;
+  color: var(--color-muted, #7c7267);
+}

@@ -1,0 +1,124 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .buttonGroup {
+    flex-direction: row;
+  }
+}
+
+.buyButton {
+  flex: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-primary, #b85d38);
+  color: #ffffff;
+  padding: 16px 24px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(184, 93, 56, 0.2);
+}
+
+.buyButton:hover {
+  background: #a24f2d;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(184, 93, 56, 0.3);
+}
+
+.cartButton {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-surface, #f4eee7);
+  color: var(--color-foreground, #1e1b18);
+  padding: 16px 20px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border, #e6ded5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cartButton:hover:not(:disabled) {
+  background: #eae2d8;
+  border-color: #d8cebf;
+}
+
+.cartButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cartButtonSuccess {
+  background: #eaf5eb !important;
+  color: #276738 !important;
+  border-color: #bce0c3 !important;
+}
+
+.soldOutButton {
+  width: 100%;
+  background: var(--color-border, #e6ded5);
+  color: var(--color-muted, #7c7267);
+  padding: 16px 24px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: not-allowed;
+}
+
+.auxLinks {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.inquireButton {
+  display: inline-block;
+  color: var(--color-muted, #7c7267);
+  font-size: 0.88rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.inquireButton:hover {
+  color: var(--color-foreground, #1e1b18);
+}
+
+.viewCartLink {
+  color: var(--color-primary, #b85d38);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.viewCartLink:hover {
+  text-decoration: underline;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}

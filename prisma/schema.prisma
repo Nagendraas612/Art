@@ -1,0 +1,975 @@
+// ============================================================================
+// Art & Handmade Marketplace — Database Schema
+// Companion to ARCHITECTURE.md
+//
+// Conventions:
+//  - All monetary fields use Decimal(12,2) — never Float.
+//  - JSONB (`specifications`) holds craft-specific flexible attributes.
+//  - Every sellable/orderable row carries an explicit creatorId for
+//    multi-creator isolation, even where it's derivable via a join,
+//    because it must be trivially indexable and queryable on its own.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  CREATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum CreatorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ArtworkProductType {
+  ORIGINAL
+  LIMITED_EDITION
+  OPEN_EDITION
+  MADE_TO_ORDER
+  CUSTOM
+  DIGITAL
+}
+
+enum ArtworkStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  PUBLISHED
+  REJECTED
+  NEEDS_CHANGES
+  ARCHIVED
+}
+
+enum StockStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  OUT_OF_STOCK
+}
+
+enum ReservationStatus {
+  ACTIVE
+  COMMITTED
+  RELEASED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAYMENT_CONFIRMED
+  ORDER_CONFIRMED
+  PREPARING
+  PACKED
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  PAYMENT_FAILED
+  REFUND_REQUESTED
+  REFUNDED
+  RETURN_REQUESTED
+  RETURNED
+  DISPUTED
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  ON_HOLD
+}
+
+enum ShipmentStatus {
+  PENDING
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+  RETURNED
+}
+
+enum CustomRequestStatus {
+  SUBMITTED
+  CREATOR_REVIEWING
+  PROPOSAL_SENT
+  ACCEPTED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  ESCALATED
+  CLOSED
+}
+
+enum ReportStatus {
+  OPEN
+  ACTIONED
+  DISMISSED
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// USERS & PROFILES
+// ─────────────────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  emailVerified     Boolean   @default(false)
+  emailVerifiedAt   DateTime?
+  passwordHash      String? // null for OAuth-only accounts
+  name              String
+  image             String?
+  avatarUrl         String?
+  phone             String?
+  phoneVerifiedAt   DateTime?
+  role              Role      @default(CUSTOMER)
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  sessions          Session[]
+  accounts          Account[]
+
+  customerProfile   CustomerProfile?
+  creatorProfile    CreatorProfile?
+
+  addresses         Address[]
+  cart              Cart?
+  wishlist          Wishlist?
+  orders            Order[]           @relation("CustomerOrders")
+  reviews           Review[]
+  artistReviews     ArtistReview[]
+  follows           Follow[]          @relation("FollowerUser")
+  conversationsA    Conversation[]    @relation("ConversationCustomer")
+  messagesSent      Message[]         @relation("MessageSender")
+  customRequests    CustomRequest[]   @relation("CustomerRequests")
+  notifications     Notification[]
+  auditLogsAsActor  AuditLog[]        @relation("AuditActor")
+  reportsFiled      Report[]          @relation("ReportedBy")
+
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+}
+
+model CustomerProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CreatorProfile {
+  id                 String        @id @default(cuid())
+  userId             String        @unique
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle             String        @unique // used in /@handle URLs
+  storeName          String
+  tagline            String?
+  bio                String?
+  coverImageUrl      String?
+  profileImageUrl    String?
+  disciplines        String[] // e.g. ["Mandala Artist", "Painter"]
+  socialLinks        Json? // { instagram, website, ... }
+  status             CreatorStatus @default(PENDING)
+  acceptsCustomOrders Boolean      @default(false)
+  rejectionReason    String?
+  approvedAt         DateTime?
+  suspendedAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  artworks           Artwork[]
+  followers          Follow[]           @relation("FollowedCreator")
+  conversations      Conversation[]     @relation("ConversationCreator")
+  customRequests     CustomRequest[]    @relation("CreatorRequests")
+  earnings           CreatorEarning[]
+  payouts            Payout[]
+  artistReviews      ArtistReview[]
+  commissionOverride PlatformCommission[]
+  orderItems         OrderItem[]
+
+  @@index([status])
+}
+
+model Address {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label        String? // "Home", "Work"
+  fullName     String
+  phone        String
+  line1        String
+  line2        String?
+  city         String
+  state        String
+  postalCode   String
+  country      String
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  orders       Order[]
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CATEGORIES / TAGS / COLLECTIONS
+// ─────────────────────────────────────────────────────────────────────────
+
+model ArtworkCategory {
+  id            String            @id @default(cuid())
+  name          String
+  slug          String            @unique
+  parentId      String?
+  parent        ArtworkCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children      ArtworkCategory[] @relation("CategoryTree")
+  description   String?
+  sortOrder     Int               @default(0)
+  isActive      Boolean           @default(true)
+
+  artworks      Artwork[]
+
+  @@index([parentId])
+}
+
+model ArtworkTag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  artworks  ArtworkTagOnArtwork[]
+}
+
+model ArtworkTagOnArtwork {
+  artworkId String
+  artwork   Artwork    @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       ArtworkTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([artworkId, tagId])
+  @@index([tagId])
+}
+
+model ArtworkCollection {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  description String?
+  coverImageUrl String?
+  isFeatured  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  artworks    ArtworkCollectionItem[]
+}
+
+model ArtworkCollectionItem {
+  collectionId String
+  collection   ArtworkCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  artworkId    String
+  artwork      Artwork           @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  sortOrder    Int               @default(0)
+
+  @@id([collectionId, artworkId])
+  @@index([artworkId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ARTWORK / PRODUCT
+// ─────────────────────────────────────────────────────────────────────────
+
+model Artwork {
+  id              String             @id @default(cuid())
+  creatorId       String
+  creator         CreatorProfile     @relation(fields: [creatorId], references: [id])
+
+  title           String
+  slug            String             @unique
+  description     String
+  categoryId      String
+  category        ArtworkCategory    @relation(fields: [categoryId], references: [id])
+
+  productType     ArtworkProductType
+  status          ArtworkStatus      @default(DRAFT)
+  rejectionReason String?
+
+  price           Decimal            @db.Decimal(12, 2)
+  currency        String             @default("INR")
+
+  // Inventory (meaning varies by productType; see ARCHITECTURE.md §6)
+  stock           Int                @default(1)
+  stockStatus     StockStatus        @default(AVAILABLE)
+
+  // Limited edition tracking
+  editionSize     Int?
+  editionSold     Int?               @default(0)
+
+  // Flexible, craft-specific attributes — NOT queried/indexed at scale.
+  // e.g. { "medium": "Acrylic", "surface": "Canvas", "framed": true }
+  specifications  Json
+
+  // Physical details (kept relational: used in shipping calculations/filters)
+  widthCm         Decimal?           @db.Decimal(8, 2)
+  heightCm        Decimal?           @db.Decimal(8, 2)
+  depthCm         Decimal?           @db.Decimal(8, 2)
+  weightGrams     Int?
+
+  // Authenticity
+  isSigned        Boolean            @default(false)
+  hasCertificate  Boolean            @default(false)
+  provenanceNote  String?
+
+  // Shipping
+  processingDays  Int?               @default(3)
+  isFragile       Boolean            @default(false)
+  localPickup     Boolean            @default(false)
+
+  viewCount       Int                @default(0)
+  likeCount       Int                @default(0)
+
+  publishedAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  images          ArtworkImage[]
+  editions        ArtworkEditionUnit[]
+  certificate     Certificate?
+  tags            ArtworkTagOnArtwork[]
+  collections     ArtworkCollectionItem[]
+  wishlistItems   WishlistItem[]
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  reservations    StockReservation[]
+  reviews         Review[]
+  digitalAsset    DigitalAsset?
+
+  @@index([creatorId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([productType])
+  // Full-text search — generated column populated via migration/trigger,
+  // e.g.: ALTER TABLE "Artwork" ADD COLUMN search_vector tsvector
+  //       GENERATED ALWAYS AS (to_tsvector('english', title || ' ' || description)) STORED;
+  //       CREATE INDEX artwork_search_idx ON "Artwork" USING GIN (search_vector);
+}
+
+model ArtworkImage {
+  id           String   @id @default(cuid())
+  artworkId    String
+  artwork      Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  publicId     String // Cloudinary public ID
+  url          String
+  altText      String?
+  kind         String   @default("gallery") // main | gallery | detail | framed_preview
+  isWatermarked Boolean @default(false)
+  width        Int?
+  height       Int?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([artworkId])
+}
+
+// For LIMITED_EDITION: one row per numbered print, so "17/100 sold" is a real count, not a guess.
+model ArtworkEditionUnit {
+  id            String    @id @default(cuid())
+  artworkId     String
+  artwork       Artwork   @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  editionNumber Int
+  status        StockStatus @default(AVAILABLE)
+  orderItemId   String?   @unique
+  orderItem     OrderItem? @relation(fields: [orderItemId], references: [id])
+
+  @@unique([artworkId, editionNumber])
+}
+
+model Certificate {
+  id              String   @id @default(cuid())
+  artworkId       String   @unique
+  artwork         Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  certificateNumber String @unique
+  pdfUrl          String?
+  issuedAt        DateTime @default(now())
+}
+
+// Access control for downloadable DIGITAL artwork type.
+model DigitalAsset {
+  id              String   @id @default(cuid())
+  artworkId       String   @unique
+  artwork         Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  fileUrl         String // private storage location, never public
+  maxDownloads    Int      @default(3)
+  licenseTerms    String?
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// INVENTORY RESERVATION
+// ─────────────────────────────────────────────────────────────────────────
+
+model StockReservation {
+  id        String            @id @default(cuid())
+  artworkId String
+  artwork   Artwork           @relation(fields: [artworkId], references: [id])
+  orderId   String?
+  order     Order?            @relation(fields: [orderId], references: [id])
+  quantity  Int               @default(1)
+  status    ReservationStatus @default(ACTIVE)
+  expiresAt DateTime
+  createdAt DateTime          @default(now())
+
+  @@index([artworkId, status])
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CART / WISHLIST
+// ─────────────────────────────────────────────────────────────────────────
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id         String   @id @default(cuid())
+  cartId     String
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  artworkId  String
+  artwork    Artwork  @relation(fields: [artworkId], references: [id])
+  quantity   Int      @default(1)
+  addedAt    DateTime @default(now())
+
+  @@unique([cartId, artworkId])
+}
+
+model Wishlist {
+  id     String         @id @default(cuid())
+  userId String         @unique
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  WishlistItem[]
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  wishlistId String
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  artworkId  String
+  artwork    Artwork  @relation(fields: [artworkId], references: [id])
+  addedAt    DateTime @default(now())
+
+  @@unique([wishlistId, artworkId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ORDERS
+// ─────────────────────────────────────────────────────────────────────────
+
+model Order {
+  id             String      @id @default(cuid())
+  orderNumber    String      @unique // human-friendly, e.g. ORD-2026-00013
+  customerId     String
+  customer       User        @relation("CustomerOrders", fields: [customerId], references: [id])
+  addressId      String
+  address        Address     @relation(fields: [addressId], references: [id])
+
+  status         OrderStatus @default(PENDING_PAYMENT)
+
+  subtotal       Decimal     @db.Decimal(12, 2)
+  shippingTotal  Decimal     @db.Decimal(12, 2) @default(0)
+  taxTotal       Decimal     @db.Decimal(12, 2) @default(0)
+  discountTotal  Decimal     @db.Decimal(12, 2) @default(0)
+  grandTotal     Decimal     @db.Decimal(12, 2)
+  currency       String      @default("INR")
+
+  couponId       String?
+  coupon         Coupon?     @relation(fields: [couponId], references: [id])
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  items          OrderItem[]
+  reservations   StockReservation[]
+  payment        Payment?
+  shipments      Shipment[]
+  refunds        Refund[]
+  disputes       Dispute[]
+  statusHistory  OrderStatusEvent[]
+  customRequest  CustomRequest?
+
+  @@index([customerId])
+  @@index([status])
+}
+
+// Audit trail of every status transition, powering the customer-facing timeline (§21 of brief).
+model OrderStatusEvent {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([orderId])
+}
+
+model OrderItem {
+  id                 String   @id @default(cuid())
+  orderId            String
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  artworkId          String
+  artwork            Artwork  @relation(fields: [artworkId], references: [id])
+  creatorId          String // denormalized for fast per-creator queries; see ARCHITECTURE.md §36
+  creator            CreatorProfile @relation(fields: [creatorId], references: [id])
+
+  titleSnapshot      String // artwork title at time of purchase (artwork may change later)
+  unitPrice          Decimal  @db.Decimal(12, 2)
+  quantity           Int      @default(1)
+  lineTotal          Decimal  @db.Decimal(12, 2)
+
+  platformCommission Decimal  @db.Decimal(12, 2) @default(0)
+  creatorAmount      Decimal  @db.Decimal(12, 2)
+
+  editionUnit        ArtworkEditionUnit?
+
+  review             Review?
+
+  @@index([orderId])
+  @@index([creatorId])
+  @@index([artworkId])
+}
+
+model Coupon {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  description   String?
+  discountType  String // "PERCENT" | "FIXED"
+  discountValue Decimal  @db.Decimal(12, 2)
+  isActive      Boolean  @default(true)
+  startsAt      DateTime?
+  expiresAt     DateTime?
+  usageLimit    Int?
+  usedCount     Int      @default(0)
+
+  orders        Order[]
+}
+
+model Promotion {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        String // "FEATURED_ARTWORK" | "FEATURED_CREATOR" | "HOMEPAGE_COLLECTION"
+  refId       String // id of the artwork/creator/collection promoted
+  startsAt    DateTime?
+  endsAt      DateTime?
+  isActive    Boolean  @default(true)
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// PAYMENTS
+// ─────────────────────────────────────────────────────────────────────────
+
+model Payment {
+  id           String   @id @default(cuid())
+  orderId      String   @unique
+  order        Order    @relation(fields: [orderId], references: [id])
+  status       PaymentStatus @default(INITIATED)
+  gateway      String   @default("CASHFREE")
+  gatewayAmount Decimal @db.Decimal(12, 2)
+  gatewayFee   Decimal? @db.Decimal(12, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions PaymentTransaction[]
+}
+
+// One row per gateway interaction/webhook event — full audit trail, and the
+// natural place to enforce webhook idempotency (unique gatewayEventId).
+model PaymentTransaction {
+  id               String        @id @default(cuid())
+  paymentId        String
+  payment          Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  gatewayOrderId   String
+  gatewayPaymentId String?
+  gatewayEventId   String?       @unique // idempotency key from webhook payload
+  status           PaymentStatus
+  rawPayload       Json?
+  createdAt        DateTime      @default(now())
+
+  @@index([paymentId])
+  @@index([gatewayOrderId])
+}
+
+model Refund {
+  id              String       @id @default(cuid())
+  orderId         String
+  order           Order        @relation(fields: [orderId], references: [id])
+  amount          Decimal      @db.Decimal(12, 2)
+  reason          String?
+  status          RefundStatus @default(REQUESTED)
+  gatewayRefundId String?
+  requestedAt     DateTime     @default(now())
+  processedAt     DateTime?
+
+  @@index([orderId])
+}
+
+// Commission rule, versioned by effective date — see ARCHITECTURE.md §5.4.
+model PlatformCommission {
+  id            String          @id @default(cuid())
+  creatorId     String? // null = global default rule
+  creator       CreatorProfile? @relation(fields: [creatorId], references: [id])
+  categoryId    String? // optional category-specific override
+  percentage    Decimal         @db.Decimal(5, 2) @default(0.00)
+  effectiveFrom DateTime        @default(now())
+  effectiveTo   DateTime?
+
+  @@index([creatorId])
+}
+
+model CreatorEarning {
+  id          String   @id @default(cuid())
+  creatorId   String
+  creator     CreatorProfile @relation(fields: [creatorId], references: [id])
+  orderItemId String   @unique
+  amount      Decimal  @db.Decimal(12, 2)
+  isPaidOut   Boolean  @default(false)
+  payoutId    String?
+  payout      Payout?  @relation(fields: [payoutId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([creatorId, isPaidOut])
+}
+
+model Payout {
+  id                  String       @id @default(cuid())
+  creatorId           String
+  creator             CreatorProfile @relation(fields: [creatorId], references: [id])
+  amount              Decimal      @db.Decimal(12, 2)
+  status              PayoutStatus @default(PENDING)
+  periodStart         DateTime
+  periodEnd           DateTime
+  settlementReference String?
+  processedAt         DateTime?
+  createdAt           DateTime     @default(now())
+
+  earnings            CreatorEarning[]
+
+  @@index([creatorId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SHIPPING
+// ─────────────────────────────────────────────────────────────────────────
+
+model Shipment {
+  id             String         @id @default(cuid())
+  orderId        String
+  order          Order          @relation(fields: [orderId], references: [id])
+  status         ShipmentStatus @default(PENDING)
+  carrier        String?
+  trackingNumber String?
+  isLocalPickup  Boolean        @default(false)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  trackingEvents ShipmentTracking[]
+
+  @@index([orderId])
+}
+
+model ShipmentTracking {
+  id         String   @id @default(cuid())
+  shipmentId String
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  status     ShipmentStatus
+  location   String?
+  note       String?
+  occurredAt DateTime @default(now())
+
+  @@index([shipmentId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// REVIEWS
+// ─────────────────────────────────────────────────────────────────────────
+
+model Review {
+  id                String   @id @default(cuid())
+  orderItemId       String   @unique // ties review to a completed purchase
+  orderItem         OrderItem @relation(fields: [orderItemId], references: [id])
+  artworkId         String
+  artwork           Artwork  @relation(fields: [artworkId], references: [id])
+  authorId          String
+  author            User     @relation(fields: [authorId], references: [id])
+  rating            Int // 1-5
+  text              String?
+  imageUrl          String?
+  isVerifiedPurchase Boolean @default(true) // always true given orderItem linkage
+  isHidden          Boolean  @default(false)
+  isFlagged         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  @@index([artworkId])
+  @@index([authorId])
+}
+
+model ArtistReview {
+  id         String   @id @default(cuid())
+  creatorId  String
+  creator    CreatorProfile @relation(fields: [creatorId], references: [id])
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  rating     Int
+  text       String?
+  isHidden   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([creatorId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// FOLLOWS / MESSAGING
+// ─────────────────────────────────────────────────────────────────────────
+
+model Follow {
+  id         String         @id @default(cuid())
+  followerId String
+  follower   User           @relation("FollowerUser", fields: [followerId], references: [id], onDelete: Cascade)
+  creatorId  String
+  creator    CreatorProfile @relation("FollowedCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@unique([followerId, creatorId])
+  @@index([creatorId])
+}
+
+model Conversation {
+  id          String    @id @default(cuid())
+  customerId  String
+  customer    User      @relation("ConversationCustomer", fields: [customerId], references: [id])
+  creatorId   String
+  creator     CreatorProfile @relation("ConversationCreator", fields: [creatorId], references: [id])
+  orderRefId  String? // optional linked order for context
+  createdAt   DateTime  @default(now())
+
+  messages    Message[]
+
+  @@unique([customerId, creatorId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User     @relation("MessageSender", fields: [senderId], references: [id])
+  body           String
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  attachments    MessageAttachment[]
+
+  @@index([conversationId])
+}
+
+model MessageAttachment {
+  id        String  @id @default(cuid())
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  url       String
+  kind      String  @default("image")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CUSTOM ORDERS
+// ─────────────────────────────────────────────────────────────────────────
+
+model CustomRequest {
+  id                String              @id @default(cuid())
+  customerId        String
+  customer          User                @relation("CustomerRequests", fields: [customerId], references: [id])
+  creatorId         String
+  creator           CreatorProfile      @relation("CreatorRequests", fields: [creatorId], references: [id])
+
+  description       String
+  referenceImageUrl String?
+  preferredSize     String?
+  preferredMedium   String?
+  budget            Decimal?            @db.Decimal(12, 2)
+  deadline          DateTime?
+
+  status            CustomRequestStatus @default(SUBMITTED)
+  proposedPrice     Decimal?            @db.Decimal(12, 2)
+  estimatedDays     Int?
+  creatorNotes      String?
+
+  resultingOrderId  String?             @unique
+  resultingOrder    Order?              @relation(fields: [resultingOrderId], references: [id])
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([customerId])
+  @@index([creatorId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   NotificationChannel @default(IN_APP)
+  type      String // "ORDER_CONFIRMED" | "ARTWORK_APPROVED" | "NEW_MESSAGE" | ...
+  title     String
+  body      String?
+  refType   String? // "ORDER" | "ARTWORK" | "MESSAGE" | ...
+  refId     String?
+  isRead    Boolean             @default(false)
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([userId, isRead])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ADMIN / TRUST & SAFETY
+// ─────────────────────────────────────────────────────────────────────────
+
+model Dispute {
+  id          String        @id @default(cuid())
+  orderId     String
+  order       Order         @relation(fields: [orderId], references: [id])
+  raisedBy    String // userId
+  reason      String
+  status      DisputeStatus @default(OPEN)
+  resolution  String?
+  createdAt   DateTime      @default(now())
+  resolvedAt  DateTime?
+
+  @@index([orderId])
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reporterId  String
+  reporter    User         @relation("ReportedBy", fields: [reporterId], references: [id])
+  targetType  String // "ARTWORK" | "REVIEW" | "MESSAGE" | "CREATOR"
+  targetId    String
+  reason      String
+  status      ReportStatus @default(OPEN)
+  createdAt   DateTime     @default(now())
+  resolvedAt  DateTime?
+
+  @@index([targetType, targetId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actor      User     @relation("AuditActor", fields: [actorId], references: [id])
+  action     String // "ARTWORK_APPROVED", "CREATOR_SUSPENDED", "REFUND_ISSUED", ...
+  targetType String
+  targetId   String
+  metadata   Json? // before/after diff where feasible
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+}

@@ -1,0 +1,307 @@
+/* ==========================================================================
+   Creator Applications & Moderation Page Styles
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.title {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--ink, #1f1e1d);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 14.5px;
+  color: #6b665c;
+  max-width: 600px;
+  margin-top: 4px;
+}
+
+/* Filter Tabs */
+.filterTabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e8e4db;
+  padding-bottom: 8px;
+  overflow-x: auto;
+}
+
+.tabBtn {
+  background: transparent;
+  border: none;
+  font-family: var(--sans, sans-serif);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #7a7469;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tabBtn:hover {
+  background: #f0ece1;
+  color: var(--ink, #1f1e1d);
+}
+
+.tabBtnActive {
+  background: #1f1e1d !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.tabCount {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.tabBtnActive .tabCount {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* Cards Grid */
+.creatorsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 24px;
+}
+
+.creatorCard {
+  background: #ffffff;
+  border: 1px solid #e8e4db;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+}
+
+.creatorCard:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+.coverContainer {
+  height: 90px;
+  background: #2a2825;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.cardBody {
+  padding: 0 20px 20px;
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.avatarOverlap {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  background: #e6e0d4;
+  margin-top: -27px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #4a453d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-size: cover;
+  background-position: center;
+}
+
+.statusTag {
+  position: absolute;
+  top: 14px;
+  right: 20px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.statusPending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.statusApproved {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.statusRejected {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.statusSuspended {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.cardInfo {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.storeTitle {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink, #1f1e1d);
+}
+
+.handle {
+  font-size: 13px;
+  color: #b38029;
+  font-weight: 500;
+}
+
+.applicant {
+  font-size: 12.5px;
+  color: #7a7469;
+}
+
+.bio {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #4a453d;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.disciplinesList {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.disciplinePill {
+  font-size: 11.5px;
+  background: #f5f2eb;
+  border: 1px solid #e8e3d8;
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: #575147;
+  font-weight: 500;
+}
+
+.rejectionBanner {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fff1f2;
+  border: 1px solid #ffe4e6;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #9f1239;
+}
+
+.cardFooter {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f0ece1;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* Button styles */
+.btnApprove {
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnApprove:hover {
+  background: #047857;
+}
+
+.btnReject {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.btnReject:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+
+.btnSuspend {
+  background: #ffffff;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.btnSuspend:hover {
+  background: #f9fafb;
+}
+
+.emptyState {
+  padding: 60px 20px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px dashed #ded8cc;
+  border-radius: 12px;
+  color: #7a7469;
+}

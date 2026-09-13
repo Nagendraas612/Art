@@ -1,0 +1,135 @@
+.hero {
+  position: relative;
+  min-height: 82vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-bottom: 1px solid var(--stone);
+}
+
+.heroArt {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.floatPiece {
+  position: absolute;
+  border: 1px solid var(--stone);
+  opacity: 0;
+  transform: translateY(28px) scale(0.97);
+  animation: settle 0.8s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes settle {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.p1 {
+  width: 260px;
+  height: 330px;
+  right: 8%;
+  top: 6%;
+  background: radial-gradient(
+    circle at 42% 35%,
+    #d98a5a,
+    #a6532e 50%,
+    #5c2c17 100%
+  );
+  animation-delay: 0.05s;
+}
+
+.p2 {
+  width: 170px;
+  height: 170px;
+  right: 34%;
+  top: 52%;
+  background: conic-gradient(from 90deg, #59613f, #8b9469, #3f4630, #59613f);
+  border-radius: 50%;
+  animation-delay: 0.22s;
+}
+
+.p3 {
+  width: 150px;
+  height: 200px;
+  right: 4%;
+  bottom: 6%;
+  background: linear-gradient(160deg, #e8dfc9, #b8af9b 60%, #8f8874);
+  animation-delay: 0.4s;
+}
+
+@media (max-width: 900px) {
+  .heroArt {
+    opacity: 0.35;
+  }
+  .hero {
+    min-height: 70vh;
+  }
+}
+
+.heroCopy {
+  position: relative;
+  z-index: 2;
+  max-width: 600px;
+}
+
+.headline {
+  font-family: var(--serif);
+  font-weight: 370;
+  font-size: clamp(42px, 6.4vw, 92px);
+  line-height: 1.01;
+  margin: 0 0 24px;
+  letter-spacing: -0.01em;
+}
+
+.subline {
+  font-size: 18px;
+  color: var(--charcoal);
+  max-width: 420px;
+  margin: 0 0 32px;
+}
+
+.ctas {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px 22px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  text-decoration: none;
+  transition: background 0.18s;
+  display: inline-block;
+}
+
+.btnPrimary:hover {
+  background: #3a3325;
+}
+
+.btnSecondary {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px 22px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  text-decoration: none;
+  transition: background 0.18s;
+  display: inline-block;
+}
+
+.btnSecondary:hover {
+  background: var(--paper-deep);
+}

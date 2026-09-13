@@ -1,0 +1,347 @@
+.main {
+  min-height: 100vh;
+  background: var(--paper);
+  padding-bottom: var(--sp-9);
+}
+
+.header {
+  padding: var(--sp-8) 0 var(--sp-6) 0;
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.kicker {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--clay);
+  margin-bottom: var(--sp-2);
+}
+
+.title {
+  font-family: var(--serif);
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 420;
+  line-height: 1.15;
+  color: var(--ink);
+  margin: 0 0 var(--sp-3) 0;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: var(--charcoal);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.formContainer {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.form {
+  background: var(--paper-0);
+  border: 1px solid var(--paper-deep);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  box-shadow: 0 4px 20px rgba(33, 29, 22, 0.04);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  border-bottom: 1px solid var(--paper);
+  padding-bottom: var(--sp-6);
+}
+
+.section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.sectionHeading {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 440;
+  color: var(--ink);
+  margin: 0;
+}
+
+.sectionHint {
+  font-size: 14px;
+  color: var(--charcoal);
+  margin: -8px 0 0 0;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.input,
+.textarea {
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--clay);
+  background: var(--paper-0);
+}
+
+.handleInputWrap {
+  display: flex;
+  align-items: center;
+  background: var(--paper);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.handleInputWrap:focus-within {
+  border-color: var(--clay);
+  background: var(--paper-0);
+}
+
+.handlePrefix {
+  padding-left: 12px;
+  color: var(--charcoal);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.handleInput {
+  flex-grow: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 10px 10px 4px;
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--charcoal);
+  opacity: 0.8;
+}
+
+.tagsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tagButton {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--charcoal);
+  background: var(--paper);
+  border: 1px solid var(--paper-deep);
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tagButton:hover {
+  border-color: var(--stone);
+}
+
+.tagButtonActive {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.checkboxField {
+  margin-top: var(--sp-2);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--clay);
+  cursor: pointer;
+}
+
+.submitRow {
+  padding-top: var(--sp-2);
+}
+
+.applicationNotice {
+  background-color: var(--surface);
+  border: 1px solid var(--clay);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: var(--sp-4);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.submitBtn {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--paper);
+  background: var(--clay);
+  border: none;
+  padding: 16px 24px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #8b4323;
+  transform: translateY(-2px);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.errorBox {
+  background: #f7dede;
+  border: 1px solid #e0b4b4;
+  color: #a62e2e;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+.authNotice {
+  background: var(--paper-0);
+  border: 1px solid var(--paper-deep);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-8);
+  text-align: center;
+}
+
+.noticeTitle {
+  font-family: var(--serif);
+  font-size: 24px;
+  color: var(--ink);
+  margin: 0 0 var(--sp-2) 0;
+}
+
+.successIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--clay);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 auto var(--sp-4) auto;
+}
+
+.waitingText {
+  font-size: 15px;
+  color: var(--clay);
+  font-weight: 600;
+  margin: var(--sp-2) 0 var(--sp-5) 0;
+}
+
+.noticeText {
+  font-size: 15px;
+  color: var(--charcoal);
+  margin: 0 0 var(--sp-6) 0;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.authActions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btnPrimary {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--paper);
+  background: var(--ink);
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.btnPrimary:hover {
+  background: var(--clay);
+}
+
+.btnSecondary {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--paper-deep);
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.btnSecondary:hover {
+  background: var(--stone);
+}
+
+@media (max-width: 768px) {
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .form {
+    padding: var(--sp-5);
+  }
+}

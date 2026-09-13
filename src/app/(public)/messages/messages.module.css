@@ -1,0 +1,21 @@
+.main {
+  padding: 32px 0 60px;
+  min-height: calc(100vh - 80px);
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.title {
+  font-family: var(--font-fraunces, serif);
+  font-size: 2rem;
+  color: var(--color-foreground, #1e1b18);
+  margin: 0 0 6px 0;
+}
+
+.subtitle {
+  color: var(--color-muted, #7c7267);
+  font-size: 0.95rem;
+  margin: 0;
+}

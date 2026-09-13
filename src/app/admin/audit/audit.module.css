@@ -1,0 +1,206 @@
+/* ==========================================================================
+   Audit Trail Page Styles
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.title {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--ink, #1f1e1d);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 14.5px;
+  color: #6b665c;
+  max-width: 600px;
+  margin-top: 4px;
+}
+
+/* Timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 28px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: #e8e4db;
+  border-radius: 1px;
+}
+
+.timelineItem {
+  position: relative;
+  display: flex;
+  gap: 20px;
+  padding: 16px 24px;
+  background: #ffffff;
+  border: 1px solid #e8e4db;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.timelineItem:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transform: translateX(2px);
+}
+
+.timelineItem::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 22px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d4af37;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 2px #e8e4db;
+  z-index: 1;
+}
+
+.itemLeft {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.actionBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: #f0ece1;
+  color: #4a453d;
+}
+
+.actionApprove {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.actionReject {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.actionSuspend {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.actionFinance {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.actionTrust {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.itemDescription {
+  font-size: 14px;
+  color: var(--ink, #1f1e1d);
+  line-height: 1.4;
+}
+
+.itemActorBold {
+  font-weight: 600;
+}
+
+.itemTarget {
+  color: #b38029;
+  font-weight: 500;
+}
+
+.itemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.itemTimestamp {
+  font-size: 12px;
+  color: #8c867a;
+  white-space: nowrap;
+}
+
+.itemActorRole {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #999387;
+  font-weight: 600;
+}
+
+/* Metadata Expander */
+.metadataToggle {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  color: #b38029;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.metadataToggle:hover {
+  color: #8c6320;
+}
+
+.metadataBox {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #faf8f5;
+  border: 1px solid #ede9e0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  color: #575147;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.emptyState {
+  padding: 60px 20px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px dashed #ded8cc;
+  border-radius: 12px;
+  color: #7a7469;
+}

@@ -1,0 +1,287 @@
+/* ==========================================================================
+   Artwork Curation & Moderation Page Styles
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.title {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--ink, #1f1e1d);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 14.5px;
+  color: #6b665c;
+  max-width: 600px;
+  margin-top: 4px;
+}
+
+/* Filter Tabs */
+.filterTabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e8e4db;
+  padding-bottom: 8px;
+  overflow-x: auto;
+}
+
+.tabBtn {
+  background: transparent;
+  border: none;
+  font-family: var(--sans, sans-serif);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #7a7469;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tabBtn:hover {
+  background: #f0ece1;
+  color: var(--ink, #1f1e1d);
+}
+
+.tabBtnActive {
+  background: #1f1e1d !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.tabCount {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.tabBtnActive .tabCount {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* Artworks Grid */
+.artworksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
+}
+
+.artworkCard {
+  background: #ffffff;
+  border: 1px solid #e8e4db;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+}
+
+.artworkCard:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+.imagePreviewArea {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: #2a2825;
+  overflow: hidden;
+}
+
+.artworkImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.artworkCard:hover .artworkImg {
+  transform: scale(1.03);
+}
+
+.statusPill {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(8px);
+}
+
+.statusPending {
+  background: rgba(254, 243, 199, 0.95);
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.statusPublished {
+  background: rgba(209, 250, 229, 0.95);
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.statusRejected {
+  background: rgba(254, 226, 226, 0.95);
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.statusArchived {
+  background: rgba(243, 244, 246, 0.95);
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.cardBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.categoryTag {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #b38029;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.artworkTitle {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink, #1f1e1d);
+  line-height: 1.25;
+}
+
+.creatorMeta {
+  font-size: 13px;
+  color: #7a7469;
+  margin-top: 4px;
+}
+
+.priceTag {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink, #1f1e1d);
+  margin-top: 10px;
+}
+
+.specsContainer {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: #fbfaf8;
+  border: 1px solid #ede9e0;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #575147;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rejectionNote {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fff1f2;
+  border: 1px solid #ffe4e6;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #9f1239;
+}
+
+.cardFooter {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f0ece1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.btnApprove {
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnApprove:hover {
+  background: #047857;
+}
+
+.btnReject {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.btnReject:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+
+.btnArchive {
+  background: transparent;
+  border: none;
+  color: #7a7469;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btnArchive:hover {
+  color: var(--ink, #1f1e1d);
+}
+
+.emptyState {
+  padding: 60px 20px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px dashed #ded8cc;
+  border-radius: 12px;
+  color: #7a7469;
+}

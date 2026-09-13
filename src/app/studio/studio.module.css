@@ -1,0 +1,201 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-background, #fdfbf7);
+}
+
+.sidebar {
+  width: 280px;
+  background: #ffffff;
+  border-right: 1px solid var(--color-border, #e6ded5);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 28px 20px;
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    display: none;
+  }
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.brandMark {
+  font-family: var(--font-fraunces, serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-foreground, #1e1b18);
+  text-decoration: none;
+}
+
+.studioTag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--color-surface-tint, #f4eee7);
+  color: var(--color-primary, #b85d38);
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.creatorProfileCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--color-surface, #fdfbf7);
+  border: 1px solid var(--color-border, #e6ded5);
+  border-radius: var(--radius-sm, 8px);
+  margin-bottom: 28px;
+}
+
+.avatarWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e6ded5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarLetter {
+  font-family: var(--font-fraunces, serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-primary, #b85d38);
+}
+
+.profileMeta {
+  min-width: 0;
+}
+
+.storeName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-foreground, #1e1b18);
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.handle {
+  font-size: 0.8rem;
+  color: var(--color-muted, #7c7267);
+  margin: 0;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+}
+
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navGroupTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted, #7c7267);
+  margin-bottom: 8px;
+  padding-left: 12px;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--color-foreground, #1e1b18);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.navLink:hover {
+  background: var(--color-surface, #fdfbf7);
+  color: var(--color-primary, #b85d38);
+}
+
+.navLinkHighlight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-primary, #b85d38);
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  margin: 4px 0;
+}
+
+.navLinkHighlight:hover {
+  background: #a24f2d;
+}
+
+.sidebarFooter {
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border, #e6ded5);
+}
+
+.partnerBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #276738;
+}
+
+.badgeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #276738;
+}
+
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  padding: 40px;
+  max-width: 1300px;
+}
+
+@media (max-width: 640px) {
+  .mainContent {
+    padding: 24px 16px;
+  }
+}

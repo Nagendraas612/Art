@@ -1,0 +1,168 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.title {
+  font-family: var(--font-fraunces, serif);
+  font-size: 2.2rem;
+  color: var(--color-foreground, #1e1b18);
+  margin: 0 0 6px 0;
+}
+
+.subtitle {
+  color: var(--color-muted, #7c7267);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.metricCard {
+  background: #ffffff;
+  border: 1px solid var(--color-border, #e6ded5);
+  border-radius: var(--radius-md, 12px);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metricLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted, #7c7267);
+  margin-bottom: 8px;
+}
+
+.metricValue {
+  font-family: var(--font-fraunces, serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--color-foreground, #1e1b18);
+  margin-bottom: 4px;
+}
+
+.pendingVal {
+  color: var(--color-primary, #b85d38);
+}
+
+.paidVal {
+  color: #276738;
+}
+
+.metricSub {
+  font-size: 0.78rem;
+  color: var(--color-muted, #7c7267);
+}
+
+.ledgerCard {
+  background: #ffffff;
+  border: 1px solid var(--color-border, #e6ded5);
+  border-radius: var(--radius-md, 12px);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: var(--color-surface, #fdfbf7);
+  border-bottom: 1px solid var(--color-border, #e6ded5);
+}
+
+.cardTitle {
+  font-family: var(--font-fraunces, serif);
+  font-size: 1.25rem;
+  color: var(--color-foreground, #1e1b18);
+  margin: 0;
+}
+
+.ledgerCount {
+  font-size: 0.85rem;
+  color: var(--color-muted, #7c7267);
+}
+
+.emptyTable {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-muted, #7c7267);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.table th {
+  padding: 14px 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted, #7c7267);
+  border-bottom: 1px solid var(--color-border, #e6ded5);
+}
+
+.table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border, #e6ded5);
+  vertical-align: middle;
+}
+
+.tr:hover td {
+  background: #fdfaf6;
+}
+
+.orderRefCol {
+  display: flex;
+  flex-direction: column;
+}
+
+.orderRefCol strong {
+  font-family: monospace;
+  font-size: 0.95rem;
+  color: var(--color-primary, #b85d38);
+}
+
+.itemTitle {
+  font-size: 0.8rem;
+  color: var(--color-muted, #7c7267);
+}
+
+.feeCell {
+  color: #c93b2b;
+}
+
+.netCell {
+  color: #276738;
+}
+
+.statusPending {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #fef8eb;
+  color: #b45309;
+}

@@ -1,0 +1,77 @@
+/* Shared styles for sign-in and sign-up pages */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5);
+  background: var(--paper);
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--paper-0);
+  border: 1px solid var(--stone);
+  padding: var(--sp-7);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--sp-6);
+}
+
+.mark {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: var(--sp-5);
+}
+
+.title {
+  font-family: var(--serif);
+  font-weight: 440;
+  font-size: 28px;
+  line-height: 1.15;
+  margin: 0 0 var(--sp-2);
+  color: var(--ink);
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--charcoal);
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.alert {
+  background: var(--clay-tint);
+  color: #6b3520;
+  font-size: 14px;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--clay);
+}
+
+.footer {
+  text-align: center;
+  font-size: 14px;
+  color: var(--charcoal);
+  margin: var(--sp-5) 0 0;
+}
+
+.link {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

@@ -1,0 +1,176 @@
+/* ==========================================================================
+   Art & Handmade Marketplace — Global CSS
+   Design System tokens extracted from DESIGN_SYSTEM.md
+   ========================================================================== */
+
+/* ---------- Google Fonts (loaded via next/font in layout.tsx) ---------- */
+
+:root {
+  /* Color tokens */
+  --paper: #F2ECDD;
+  --paper-deep: #E8DFC9;
+  --paper-0: #FFFFFF;
+  --ink: #211D16;
+  --charcoal: #4A4438;
+  --stone: #B8AF9B;
+  --clay: #A6532E;
+  --clay-tint: #EBD9CE;
+  --moss: #59613F;
+  --moss-tint: #DEE3D3;
+
+  /* Typography */
+  --serif: var(--font-fraunces), serif;
+  --sans: var(--font-instrument-sans), sans-serif;
+
+  /* Spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --sp-9: 96px;
+  --sp-10: 128px;
+
+  /* Radii */
+  --radius-sm: 3px;
+  --radius-pill: 999px;
+
+  /* Transitions */
+  --ease-default: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ---------- Reset & base ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Focus ring ---------- */
+
+:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+
+/* ---------- Layout utilities ---------- */
+
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+@media (max-width: 720px) {
+  .wrap {
+    padding: 0 20px;
+  }
+}
+
+/* ---------- Typography ---------- */
+
+.t-display {
+  font-family: var(--serif);
+  font-weight: 380;
+  font-size: clamp(42px, 6.4vw, 88px);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+}
+
+.t-h1 {
+  font-family: var(--serif);
+  font-weight: 420;
+  font-size: 48px;
+  line-height: 1.08;
+}
+
+.t-h2 {
+  font-family: var(--serif);
+  font-weight: 440;
+  font-size: 30px;
+  line-height: 1.15;
+}
+
+.t-h3 {
+  font-family: var(--sans);
+  font-weight: 560;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.t-body {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.t-body-sm {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.t-label {
+  font-family: var(--sans);
+  font-weight: 560;
+  font-size: 13px;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+}
+
+.t-price {
+  font-family: var(--sans);
+  font-weight: 560;
+  font-size: 16px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
