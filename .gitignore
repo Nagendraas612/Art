@@ -43,3 +43,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local reference documentation
+AGENTS.md
+ARCHITECTURE.md
+CLAUDE.md
+DESIGN_SYSTEM.md
+PRODUCT_SPEC.md
+
