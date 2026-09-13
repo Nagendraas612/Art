@@ -12,7 +12,11 @@ interface SendEmailParams {
 
 export async function sendEmail({ to, subject, html, text }: SendEmailParams) {
   const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.EMAIL_FROM || "Atelier & Co. <concierge@atelier.co>";
+  // If using default unverified domain in Resend, use onboarding@resend.dev
+  let fromEmail = process.env.EMAIL_FROM || "Atelier & Co. <onboarding@resend.dev>";
+  if (fromEmail.includes("@gmail.com") || fromEmail.includes("@yahoo.com")) {
+    fromEmail = "Atelier & Co. <onboarding@resend.dev>";
+  }
 
   if (apiKey) {
     try {
