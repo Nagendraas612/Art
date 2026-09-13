@@ -4,6 +4,9 @@ import { cashfree } from "@/lib/cashfree";
 import { OrderStatus, PaymentStatus, StockStatus, ArtworkProductType } from "@prisma/client";
 import { sendEmail, generateOrderConfirmationEmail } from "@/lib/email";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
   try {
     const rawBody = await req.text();
