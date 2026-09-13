@@ -23,6 +23,8 @@ export const metadata: Metadata = {
 };
 
 import { Providers } from "@/components/Providers";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export default function RootLayout({
   children,
@@ -33,6 +35,8 @@ export default function RootLayout({
     <html lang="en" className={`${fraunces.variable} ${instrumentSans.variable}`}>
       <body>
         <Providers>{children}</Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
