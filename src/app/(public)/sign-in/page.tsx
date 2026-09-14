@@ -6,6 +6,7 @@ import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { SocialAuthButtons } from "@/components/ui/SocialAuthButtons";
 import styles from "../auth.module.css";
 
 export default function SignInPage() {
@@ -56,7 +57,7 @@ export default function SignInPage() {
           {error && <div className={styles.alert}>{error}</div>}
 
           <Input
-            label="Email"
+            label="Email address"
             type="email"
             placeholder="you@example.com"
             value={email}
@@ -75,10 +76,27 @@ export default function SignInPage() {
             autoComplete="current-password"
           />
 
+          <div className={styles.checkboxRow}>
+            <input type="checkbox" id="staySignedIn" defaultChecked />
+            <label htmlFor="staySignedIn">Stay signed in</label>
+          </div>
+
           <Button type="submit" variant="primary" fullWidth disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}
           </Button>
         </form>
+
+        <div className={styles.divider}>
+          <span>or</span>
+        </div>
+
+        <SocialAuthButtons onError={(msg) => setError(msg)} />
+
+        <p className={styles.termsNotice}>
+          By continuing, you agree to Atelier &amp; Co.&apos;s{" "}
+          <Link href="/terms">Terms of Use</Link> and{" "}
+          <Link href="/privacy">Privacy Policy</Link>.
+        </p>
 
         <p className={styles.footer}>
           Don&apos;t have an account?{" "}

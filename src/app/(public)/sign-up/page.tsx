@@ -6,6 +6,7 @@ import Link from "next/link";
 import { signUp } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { SocialAuthButtons } from "@/components/ui/SocialAuthButtons";
 import styles from "../auth.module.css";
 
 export default function SignUpPage() {
@@ -56,7 +57,7 @@ export default function SignUpPage() {
           </Link>
           <h1 className={styles.title}>Create your account</h1>
           <p className={styles.subtitle}>
-            Join a community of independent artists and creators.
+            Join a community of independent artists and collectors.
           </p>
         </div>
 
@@ -74,7 +75,7 @@ export default function SignUpPage() {
           />
 
           <Input
-            label="Email"
+            label="Email address"
             type="email"
             placeholder="you@example.com"
             value={email}
@@ -98,6 +99,18 @@ export default function SignUpPage() {
             {loading ? "Creating account…" : "Create account"}
           </Button>
         </form>
+
+        <div className={styles.divider}>
+          <span>or</span>
+        </div>
+
+        <SocialAuthButtons onError={(msg) => setError(msg)} />
+
+        <p className={styles.termsNotice}>
+          By registering, you agree to Atelier &amp; Co.&apos;s{" "}
+          <Link href="/terms">Terms of Use</Link> and{" "}
+          <Link href="/privacy">Privacy Policy</Link>.
+        </p>
 
         <p className={styles.footer}>
           Already have an account?{" "}
