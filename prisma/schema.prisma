@@ -973,3 +973,25 @@ model AuditLog {
   @@index([actorId])
   @@index([targetType, targetId])
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// 19. EMAIL LOGS (Transactional Dispatch History & Templates)
+// ─────────────────────────────────────────────────────────────────────────
+
+model EmailLog {
+  id           String   @id @default(cuid())
+  to           String
+  from         String
+  subject      String
+  templateType String   // "ORDER_CONFIRMATION", "CREATOR_NEW_ORDER", "ARTWORK_APPROVED", "INQUIRY_ALERT", etc.
+  status       String   // "DELIVERED", "FAILED", "SIMULATED"
+  provider     String   // "GMAIL_SMTP", "RESEND", "CONSOLE_DEV"
+  messageId    String?
+  errorDetails String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([to])
+  @@index([templateType])
+  @@index([createdAt])
+}

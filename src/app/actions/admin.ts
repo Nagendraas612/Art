@@ -524,7 +524,7 @@ export async function moderateArtworkAction(params: {
       },
     });
 
-    // Notify Creator
+    // Notify Creator via in-app notification
     await prisma.notification.create({
       data: {
         userId: artwork.creator.userId,
@@ -537,6 +537,31 @@ export async function moderateArtworkAction(params: {
         refId: artwork.id,
       },
     });
+
+    // Notify Creator via Email
+    try {
+      const { generateArtworkCurationResultEmail } = await import("@/lib/email");
+      if (artwork.creator.user?.email) {
+        sendEmail({
+          to: artwork.creator.user.email,
+          subject: action === "APPROVE" 
+            ? `🏛 Atelier & Co. — Your artwork "${artwork.title}" has been approved!`
+            : `🎨 Atelier & Co. — Curation update for "${artwork.title}"`,
+          html: generateArtworkCurationResultEmail({
+            creatorName: artwork.creator.user.name || artwork.creator.storeName,
+            artworkTitle: artwork.title,
+            isApproved: action === "APPROVE",
+            rejectionReason: reason,
+            artworkUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://art-two-green.vercel.app"}/artwork/${artwork.id}`,
+            studioUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://art-two-green.vercel.app"}/studio/artworks`,
+          }),
+          templateType: action === "APPROVE" ? "ARTWORK_APPROVED" : "ARTWORK_REJECTED",
+          metadata: { artworkId: artwork.id, creatorId: artwork.creator.id },
+        }).catch((e) => console.error("[Email Curation Result Error]", e));
+      }
+    } catch (e) {
+      console.error("[Email Curation Import Error]", e);
+    }
 
     revalidatePath("/admin/artworks");
     revalidatePath("/admin");

@@ -86,7 +86,7 @@ export async function createArtworkAction(data: ArtworkFormData) {
         description: data.description,
         categoryId: data.categoryId,
         productType: data.productType || ArtworkProductType.ORIGINAL,
-        status: ArtworkStatus.PUBLISHED,
+        status: ArtworkStatus.SUBMITTED,
         price: new Prisma.Decimal(data.price.toFixed(2)),
         currency: "INR",
         stock: data.productType === ArtworkProductType.ORIGINAL ? 1 : data.stock || 1,
@@ -102,7 +102,6 @@ export async function createArtworkAction(data: ArtworkFormData) {
         provenanceNote: data.provenanceNote || null,
         isFragile: data.isFragile ?? false,
         processingDays: data.processingDays || 3,
-        publishedAt: new Date(),
         images: {
           create: [
             {
@@ -122,6 +121,10 @@ export async function createArtworkAction(data: ArtworkFormData) {
           ],
         },
       },
+      include: {
+        category: true,
+        creator: { include: { user: true } },
+      },
     });
 
     if (data.hasCertificate) {
@@ -133,11 +136,58 @@ export async function createArtworkAction(data: ArtworkFormData) {
       });
     }
 
-    revalidatePath("/explore");
+    // Notify all Admins about the new piece awaiting curation review
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: "ADMIN" },
+        select: { id: true, email: true },
+      });
+
+      const { sendEmail, generateArtworkSubmittedAdminEmail } = await import("@/lib/email");
+
+      for (const admin of admins) {
+        // In-app notification
+        await prisma.notification.create({
+          data: {
+            userId: admin.id,
+            type: "SYSTEM_ALERT",
+            title: "🎨 Artwork Submitted for Curation",
+            body: `"${data.title}" by ${creator.storeName} is waiting for curation review.`,
+            refType: "ARTWORK",
+            refId: artwork.id,
+          },
+        }).catch(() => {});
+
+        // Admin Email Alert
+        sendEmail({
+          to: admin.email,
+          subject: `🎨 Curation Alert: "${data.title}" Submitted by ${creator.storeName}`,
+          html: generateArtworkSubmittedAdminEmail({
+            artworkTitle: data.title,
+            creatorName: creator.user.name || "Artisan",
+            storeName: creator.storeName,
+            price: data.price,
+            category: artwork.category?.name || "Original Work",
+            reviewUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://art-two-green.vercel.app"}/admin/artworks`,
+          }),
+          templateType: "ARTWORK_SUBMITTED_ADMIN_ALERT",
+          metadata: { artworkId: artwork.id, creatorId: creator.id },
+        }).catch(() => {});
+      }
+    } catch (notifyErr) {
+      console.error("[Curation Alert Notify Error]", notifyErr);
+    }
+
+    revalidatePath("/admin/artworks");
     revalidatePath("/studio/artworks");
     revalidatePath(`/creators/${creator.handle}`);
 
-    return { success: true, artworkId: artwork.id, slug: artwork.slug };
+    return {
+      success: true,
+      artworkId: artwork.id,
+      slug: artwork.slug,
+      message: "Piece submitted successfully! It will go live once reviewed and approved by the curation board.",
+    };
   } catch (error: any) {
     console.error("createArtworkAction error:", error);
     return { error: error.message || "Failed to create artwork." };

@@ -52,7 +52,11 @@ export async function processCheckout(input: CheckoutInput) {
         status: ArtworkStatus.PUBLISHED,
       },
       include: {
-        creator: true,
+        creator: {
+          include: {
+            user: true,
+          },
+        },
         images: { orderBy: { sortOrder: "asc" } },
       },
     });
@@ -252,11 +256,17 @@ export async function processCheckout(input: CheckoutInput) {
     // 6b. Dispatch Transactional Order Confirmation Email, In-App Notifications & Admin Alert
     if (isSandbox) {
       try {
-        const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const emailHtml = generateOrderConfirmationEmail({
+        const domain = process.env.NEXT_PUBLIC_APP_URL || "https://art-two-green.vercel.app";
+        const shippingAddressFormatted = `${shippingAddress.line1}${shippingAddress.line2 ? ", " + shippingAddress.line2 : ""}, ${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.postalCode}`;
+
+        const { generateOrderConfirmationEmail, generateCreatorNewOrderEmail } = await import("@/lib/email");
+
+        const buyerEmailHtml = generateOrderConfirmationEmail({
           customerName: customer.fullName,
           orderNumber: createdOrder.orderNumber,
           grandTotal: grandTotalNum,
+          subtotal: validatedItems.reduce((acc, i) => acc + i.lineTotal, 0),
+          shippingAddress: shippingAddressFormatted,
           items: validatedItems.map((item) => ({
             title: item.artwork.title,
             quantity: item.quantity,
@@ -266,12 +276,14 @@ export async function processCheckout(input: CheckoutInput) {
           trackingUrl: `${domain}/orders/${createdOrder.orderNumber}`,
         });
 
-        // 1. Send customer email
+        // 1. Send customer confirmation email
         sendEmail({
           to: customer.email,
-          subject: `Order Confirmed: #${createdOrder.orderNumber} — Atelier & Co.`,
-          html: emailHtml,
-        }).catch((err) => console.error("Async email dispatch error:", err));
+          subject: `🎨 Atelier & Co. — Order Confirmed (#${createdOrder.orderNumber})`,
+          html: buyerEmailHtml,
+          templateType: "ORDER_CONFIRMATION",
+          metadata: { orderId: createdOrder.id, orderNumber: createdOrder.orderNumber, grandTotal: grandTotalNum },
+        }).catch((err) => console.error("Async customer email dispatch error:", err));
 
         // 2. Create customer In-App Notification if user is logged in
         if (userId) {
@@ -287,20 +299,43 @@ export async function processCheckout(input: CheckoutInput) {
           }).catch((err) => console.error("Async customer notification error:", err));
         }
 
-        // 3. Create Creator Notifications for each item
-        const uniqueCreatorIds = Array.from(new Set(validatedItems.map(item => item.artwork.creator.userId)));
-        for (const creatorUserId of uniqueCreatorIds) {
-          if (creatorUserId) {
+        // 3. Create Creator Notifications & Send Creator Emails for each unique artisan
+        for (const item of validatedItems) {
+          const creator = item.artwork.creator;
+          const creatorAmount = Math.round(item.lineTotal * 0.9); // 90% payout to creator
+
+          // In-app notification for creator
+          if (creator.userId) {
             prisma.notification.create({
               data: {
-                userId: creatorUserId,
+                userId: creator.userId,
                 type: "NEW_ORDER",
-                title: "New Artwork Sold!",
-                body: `An order (#${createdOrder.orderNumber}) was placed containing items from your studio.`,
+                title: "🎉 New Artwork Sold!",
+                body: `An order (#${createdOrder.orderNumber}) was placed for "${item.artwork.title}" (Qty: ${item.quantity}).`,
                 refType: "ORDER",
                 refId: createdOrder.id,
               },
             }).catch((err) => console.error("Async creator notification error:", err));
+
+            // Email to creator
+            if (creator.user?.email) {
+              sendEmail({
+                to: creator.user.email,
+                subject: `🎉 Atelier Studio: New Order for "${item.artwork.title}" (#${createdOrder.orderNumber})`,
+                html: generateCreatorNewOrderEmail({
+                  creatorName: creator.user.name || creator.storeName,
+                  orderNumber: createdOrder.orderNumber,
+                  itemTitle: item.artwork.title,
+                  quantity: item.quantity,
+                  creatorPayout: creatorAmount,
+                  customerName: customer.fullName,
+                  shippingAddress: shippingAddressFormatted,
+                  studioUrl: `${domain}/studio/orders`,
+                }),
+                templateType: "CREATOR_NEW_ORDER",
+                metadata: { orderId: createdOrder.id, creatorId: creator.id },
+              }).catch((err) => console.error("Async creator email dispatch error:", err));
+            }
           }
         }
 
