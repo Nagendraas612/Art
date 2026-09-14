@@ -1,0 +1,80 @@
+.page {
+  min-height: 100vh;
+  background: var(--paper);
+  padding: var(--sp-9) var(--sp-5);
+  display: flex;
+  justify-content: center;
+}
+
+.container {
+  max-width: 760px;
+  width: 100%;
+  background: var(--paper-0);
+  border: 1px solid var(--stone);
+  padding: var(--sp-8) var(--sp-8);
+}
+
+.header {
+  border-bottom: 1px solid var(--stone);
+  padding-bottom: var(--sp-6);
+  margin-bottom: var(--sp-7);
+}
+
+.kicker {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--charcoal);
+  margin-bottom: var(--sp-2);
+}
+
+.title {
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0 0 var(--sp-3);
+  line-height: 1.2;
+}
+
+.meta {
+  font-size: 14px;
+  color: #78716c;
+}
+
+.content {
+  line-height: 1.75;
+  font-size: 15px;
+  color: #292524;
+}
+
+.content h2 {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+}
+
+.content p {
+  margin-bottom: var(--sp-4);
+}
+
+.content ul {
+  padding-left: 24px;
+  margin-bottom: var(--sp-4);
+}
+
+.content li {
+  margin-bottom: 8px;
+}
+
+.backLink {
+  display: inline-block;
+  margin-top: var(--sp-8);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
