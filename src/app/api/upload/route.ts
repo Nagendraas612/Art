@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,11 +21,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate size (max 15MB)
-    const MAX_SIZE = 15 * 1024 * 1024;
+    // Validate size (max 8MB for serverless payload)
+    const MAX_SIZE = 8 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: "Image size exceeds 15MB limit." },
+        { error: "Image size exceeds 8MB limit. Please upload a smaller image." },
         { status: 400 }
       );
     }
@@ -35,31 +33,60 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Target upload directory in public/uploads/artworks
-    const uploadDir = join(process.cwd(), "public", "uploads", "artworks");
-    await mkdir(uploadDir, { recursive: true });
+    // Optional Cloudinary Upload if credentials exist
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
-    // Generate unique safe filename
-    const ext = file.name.split(".").pop() || "jpg";
-    const filename = `artwork_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const filePath = join(uploadDir, filename);
+    if (cloudName && apiKey && apiSecret) {
+      try {
+        const uploadFormData = new FormData();
+        const base64Data = `data:${file.type};base64,${buffer.toString("base64")}`;
+        uploadFormData.append("file", base64Data);
+        uploadFormData.append("upload_preset", process.env.CLOUDINARY_UPLOAD_PRESET || "atelier_uploads");
 
-    await writeFile(filePath, buffer);
+        const cloudRes = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+          {
+            method: "POST",
+            body: uploadFormData,
+          }
+        );
 
-    const publicUrl = `/uploads/artworks/${filename}`;
+        if (cloudRes.ok) {
+          const cloudData = await cloudRes.json();
+          if (cloudData.secure_url) {
+            return NextResponse.json({
+              success: true,
+              url: cloudData.secure_url,
+              filename: file.name,
+              size: file.size,
+              mimeType: file.type,
+            });
+          }
+        }
+      } catch (cloudErr) {
+        console.warn("[Upload API] Cloudinary upload fallback to Data URI:", cloudErr);
+      }
+    }
+
+    // Universal Serverless Storage: Return self-contained Data URI
+    // Works 100% on Vercel Serverless, neon Postgres, without local disk writes
+    const dataUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      filename,
+      url: dataUrl,
+      filename: file.name,
       size: file.size,
       mimeType: file.type,
     });
   } catch (error: any) {
-    console.error("[Upload API] Error saving file:", error);
+    console.error("[Upload API] Error processing upload:", error);
     return NextResponse.json(
       { error: error.message || "Failed to process image upload" },
       { status: 500 }
     );
   }
 }
+

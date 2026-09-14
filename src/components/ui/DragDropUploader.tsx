@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
-import Image from "next/image";
+import { useState, useRef, useEffect } from "react";
 import styles from "./DragDropUploader.module.css";
 
 interface DragDropUploaderProps {
@@ -14,7 +13,15 @@ export function DragDropUploader({ label, value, onChange }: DragDropUploaderPro
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync external value
+  useEffect(() => {
+    if (value) {
+      setLocalPreview(null);
+    }
+  }, [value]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -44,10 +51,18 @@ export function DragDropUploader({ label, value, onChange }: DragDropUploaderPro
   const handleUpload = async (file: File) => {
     setError(null);
     if (!file.type.startsWith("image/")) {
-      setError("Please select an image file.");
+      setError("Please select an image file (JPEG, PNG, WebP).");
       return;
     }
 
+    if (file.size > 8 * 1024 * 1024) {
+      setError("Image size exceeds 8MB limit. Please choose a smaller photo.");
+      return;
+    }
+
+    // Instant local preview for immediate visual feedback
+    const previewUrl = URL.createObjectURL(file);
+    setLocalPreview(previewUrl);
     setIsUploading(true);
 
     const formData = new FormData();
@@ -70,10 +85,13 @@ export function DragDropUploader({ label, value, onChange }: DragDropUploaderPro
       }
     } catch (err: any) {
       setError(err.message || "An error occurred during upload.");
+      setLocalPreview(null);
     } finally {
       setIsUploading(false);
     }
   };
+
+  const displayImage = localPreview || value;
 
   return (
     <div className={styles.container}>
@@ -94,22 +112,30 @@ export function DragDropUploader({ label, value, onChange }: DragDropUploaderPro
           className={styles.fileInput}
         />
         
-        {value ? (
+        {displayImage ? (
           <div className={styles.previewContainer}>
-            <Image src={value} alt="Preview" fill className={styles.previewImage} />
+            {/* Standard responsive img for flawless Base64 / CDN display */}
+            <img
+              src={displayImage}
+              alt={label}
+              className={styles.previewImage}
+              onError={() => {
+                setLocalPreview(null);
+              }}
+            />
             <div className={styles.previewOverlay}>
-              <span>{isUploading ? "Uploading..." : "Click or drag to replace"}</span>
+              <span>{isUploading ? "Uploading image..." : "Click or drag to replace"}</span>
             </div>
           </div>
         ) : (
           <div className={styles.placeholder}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={styles.icon}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={styles.icon}>
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
               <circle cx="8.5" cy="8.5" r="1.5"></circle>
               <polyline points="21 15 16 10 5 21"></polyline>
             </svg>
             <p className={styles.placeholderText}>
-              {isUploading ? "Uploading..." : "Drag & drop an image here, or click to browse"}
+              {isUploading ? "Uploading image..." : "Drag & drop an image here, or click to browse"}
             </p>
           </div>
         )}
@@ -118,3 +144,4 @@ export function DragDropUploader({ label, value, onChange }: DragDropUploaderPro
     </div>
   );
 }
+
