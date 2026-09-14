@@ -168,7 +168,7 @@ export async function createArtworkAction(data: ArtworkFormData) {
             storeName: creator.storeName,
             price: data.price,
             category: artwork.category?.name || "Original Work",
-            reviewUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://art-two-green.vercel.app"}/admin/artworks`,
+            reviewUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://ateliernco.vercel.app"}/admin/artworks`,
           }),
           templateType: "ARTWORK_SUBMITTED_ADMIN_ALERT",
           metadata: { artworkId: artwork.id, creatorId: creator.id },

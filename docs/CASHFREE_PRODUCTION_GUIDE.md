@@ -7,7 +7,7 @@ This document provides complete, step-by-step instructions for switching **Cashf
 ## 1. Prerequisites Checklist
 - [ ] Registered business or individual merchant account on [Cashfree Payments](https://www.cashfree.com).
 - [ ] Completed merchant **KYC & Bank Account Verification** on the Cashfree dashboard.
-- [ ] Active Vercel deployment with HTTPS (`https://art-two-green.vercel.app` or your custom domain).
+- [ ] Active Vercel deployment with HTTPS (`https://ateliernco.vercel.app` or your custom domain).
 
 ---
 
@@ -38,7 +38,7 @@ Webhooks allow Cashfree to automatically notify your application when a customer
 1. In Cashfree Dashboard, navigate to:
    **Payment Gateway** → **Developers** → **Webhooks**.
 2. Click **Add Webhook Endpoint**:
-   - **Endpoint URL**: `https://art-two-green.vercel.app/api/webhooks/cashfree`
+   - **Endpoint URL**: `https://ateliernco.vercel.app/api/webhooks/cashfree`
    - **Events to Select**:
      - `ORDER.PAID` (Payment Success)
      - `PAYMENT.FAILED` (Payment Failure)
@@ -71,7 +71,7 @@ Update/Add these variables for the **Production** environment:
 | `CASHFREE_ENVIRONMENT` | `PRODUCTION` | Switches SDK from sandbox to live banking gateways |
 | `CASHFREE_APP_ID` | `<Your Live Cashfree App ID>` | Production merchant App ID |
 | `CASHFREE_SECRET_KEY` | `<Your Live Cashfree Secret Key>` | Production secret key |
-| `NEXT_PUBLIC_APP_URL` | `https://art-two-green.vercel.app` | Production root URL for return callbacks |
+| `NEXT_PUBLIC_APP_URL` | `https://ateliernco.vercel.app` | Production root URL for return callbacks |
 
 ---
 

@@ -256,7 +256,7 @@ export async function processCheckout(input: CheckoutInput) {
     // 6b. Dispatch Transactional Order Confirmation Email, In-App Notifications & Admin Alert
     if (isSandbox) {
       try {
-        const domain = process.env.NEXT_PUBLIC_APP_URL || "https://art-two-green.vercel.app";
+        const domain = process.env.NEXT_PUBLIC_APP_URL || "https://ateliernco.vercel.app";
         const shippingAddressFormatted = `${shippingAddress.line1}${shippingAddress.line2 ? ", " + shippingAddress.line2 : ""}, ${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.postalCode}`;
 
         const { generateOrderConfirmationEmail, generateCreatorNewOrderEmail } = await import("@/lib/email");
