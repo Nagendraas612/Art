@@ -57,10 +57,68 @@
   border-color: var(--ink);
 }
 
+.hamburgerBtn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (max-width: 900px) {
+  .hamburgerBtn {
+    display: flex;
+  }
+
   .links {
     display: none;
   }
+}
+
+.mobileDrawer {
+  background: var(--paper-0);
+  border-bottom: 1px solid var(--paper-deep);
+  padding: var(--sp-4) var(--sp-6);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobileLinks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.mobileLinks a {
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  display: block;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--paper);
+}
+
+.mobileLinks a:hover {
+  color: var(--clay);
 }
 
 .actions {

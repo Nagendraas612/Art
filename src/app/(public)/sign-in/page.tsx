@@ -76,9 +76,14 @@ export default function SignInPage() {
             autoComplete="current-password"
           />
 
-          <div className={styles.checkboxRow}>
-            <input type="checkbox" id="staySignedIn" defaultChecked />
-            <label htmlFor="staySignedIn">Stay signed in</label>
+          <div className={styles.checkboxRow} style={{ justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <input type="checkbox" id="staySignedIn" defaultChecked />
+              <label htmlFor="staySignedIn">Stay signed in</label>
+            </div>
+            <Link href="/forgot-password" className={styles.link} style={{ fontSize: "0.85rem" }}>
+              Forgot password?
+            </Link>
           </div>
 
           <Button type="submit" variant="primary" fullWidth disabled={loading}>

@@ -5,24 +5,11 @@ import { getSession } from "@/modules/auth/guards";
 import { revalidatePath } from "next/cache";
 
 /**
- * Get or create a demo user for unauthenticated wishlist actions.
+ * Get the current session user ID or null if unauthenticated.
  */
-async function resolveUserId(): Promise<string> {
+async function resolveUserId(): Promise<string | null> {
   const session = await getSession();
-  if (session?.user?.id) return session.user.id;
-
-  const email = "collector@example.com";
-  let user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email,
-        name: "Art Collector",
-        emailVerified: true,
-      },
-    });
-  }
-  return user.id;
+  return session?.user?.id || null;
 }
 
 /**
@@ -31,6 +18,9 @@ async function resolveUserId(): Promise<string> {
 export async function toggleWishlistAction(artworkId: string) {
   try {
     const userId = await resolveUserId();
+    if (!userId) {
+      return { error: "Please sign in to save artworks to your wishlist." };
+    }
 
     // Upsert the wishlist
     let wishlist = await prisma.wishlist.findUnique({ where: { userId } });
@@ -76,6 +66,7 @@ export async function toggleWishlistAction(artworkId: string) {
 export async function getWishlistAction(): Promise<string[]> {
   try {
     const userId = await resolveUserId();
+    if (!userId) return [];
     const wishlist = await prisma.wishlist.findUnique({
       where: { userId },
       include: {
@@ -94,6 +85,7 @@ export async function getWishlistAction(): Promise<string[]> {
 export async function getWishlistItemsAction() {
   try {
     const userId = await resolveUserId();
+    if (!userId) return [];
     const wishlist = await prisma.wishlist.findUnique({
       where: { userId },
       include: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toggleWishlistAction } from "@/app/actions/wishlist";
 import styles from "./WishlistButton.module.css";
 
@@ -17,6 +18,7 @@ export function WishlistButton({
   size = "sm",
   className = "",
 }: WishlistButtonProps) {
+  const router = useRouter();
   const [wishlisted, setWishlisted] = useState(initialWishlisted);
   const [animating, setAnimating] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -36,6 +38,9 @@ export function WishlistButton({
       if ("error" in result) {
         // Revert on error
         setWishlisted((prev) => !prev);
+        if (result.error?.includes("sign in")) {
+          router.push("/sign-in");
+        }
       } else {
         setWishlisted(result.wishlisted);
       }

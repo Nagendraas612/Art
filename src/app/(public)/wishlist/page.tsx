@@ -15,11 +15,7 @@ export const metadata = {
 
 async function resolveUserId(): Promise<string | null> {
   const session = await getSession();
-  if (session?.user?.id) return session.user.id;
-
-  const email = "collector@example.com";
-  const user = await prisma.user.findUnique({ where: { email } });
-  return user?.id || null;
+  return session?.user?.id || null;
 }
 
 export default async function WishlistPage() {

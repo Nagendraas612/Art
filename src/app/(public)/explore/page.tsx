@@ -14,6 +14,7 @@ interface ExplorePageProps {
     q?: string;
     minPrice?: string;
     maxPrice?: string;
+    page?: string;
   }>;
 }
 
@@ -32,6 +33,8 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const searchQuery = params.q?.trim();
   const minPriceNum = params.minPrice ? parseFloat(params.minPrice) : undefined;
   const maxPriceNum = params.maxPrice ? parseFloat(params.maxPrice) : undefined;
+  const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
+  const PAGE_SIZE = 24;
 
   // 1. Fetch all active categories
   const categories = await prisma.artworkCategory.findMany({
@@ -79,10 +82,15 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     orderBy = { price: "desc" };
   }
 
-  // 4. Fetch artworks with images, creator, and category
+  // 4. Count total items and fetch paginated artworks
+  const totalCount = await prisma.artwork.count({ where });
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
+
   const artworks = await prisma.artwork.findMany({
     where,
     orderBy,
+    take: PAGE_SIZE,
+    skip: (currentPage - 1) * PAGE_SIZE,
     include: {
       images: {
         orderBy: { sortOrder: "asc" },
@@ -96,14 +104,10 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     },
   });
 
-  // 5. Fetch user's wishlist for heart states
+  // 5. Fetch user's wishlist for heart states (authenticated users only)
   const session = await getSession();
   let userWishlistIds = new Set<string>();
-  let userId = session?.user?.id;
-  if (!userId) {
-    const demo = await prisma.user.findUnique({ where: { email: "collector@example.com" } });
-    userId = demo?.id;
-  }
+  const userId = session?.user?.id;
   if (userId) {
     const wishlistItems = await prisma.wishlistItem.findMany({
       where: { wishlist: { userId } },
@@ -262,6 +266,43 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
                   />
                 );
               })}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              <Link
+                href={`/explore?${new URLSearchParams({
+                  ...(currentCategorySlug && { category: currentCategorySlug }),
+                  ...(currentType && { type: currentType }),
+                  ...(searchQuery && { q: searchQuery }),
+                  ...(currentSort !== "newest" && { sort: currentSort }),
+                  page: (currentPage - 1).toString(),
+                }).toString()}`}
+                className={`${styles.paginationBtn} ${currentPage <= 1 ? styles.disabledBtn : ""}`}
+                tabIndex={currentPage <= 1 ? -1 : undefined}
+              >
+                &larr; Previous
+              </Link>
+
+              <span className={styles.paginationInfo}>
+                Page {currentPage} of {totalPages} ({totalCount} total pieces)
+              </span>
+
+              <Link
+                href={`/explore?${new URLSearchParams({
+                  ...(currentCategorySlug && { category: currentCategorySlug }),
+                  ...(currentType && { type: currentType }),
+                  ...(searchQuery && { q: searchQuery }),
+                  ...(currentSort !== "newest" && { sort: currentSort }),
+                  page: (currentPage + 1).toString(),
+                }).toString()}`}
+                className={`${styles.paginationBtn} ${currentPage >= totalPages ? styles.disabledBtn : ""}`}
+                tabIndex={currentPage >= totalPages ? -1 : undefined}
+              >
+                Next &rarr;
+              </Link>
             </div>
           )}
         </section>

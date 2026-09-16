@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "@/lib/auth-client";
 import { CartNavButton } from "@/components/ui/CartNavButton";
@@ -10,11 +11,27 @@ import styles from "./Nav.module.css";
 
 export function Nav() {
   const { data: session } = useSession();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const user = session?.user as { id: string; name: string; email: string; image?: string | null; role?: string } | undefined;
+
   return (
     <nav className={styles.nav}>
       <div className={styles.inner}>
         <div className={styles.brandGroup}>
+          <button
+            className={styles.hamburgerBtn}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle Navigation Menu"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {mobileMenuOpen ? (
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+              ) : (
+                <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" strokeLinejoin="round" />
+              )}
+            </svg>
+          </button>
+
           <Link href="/" className={styles.mark}>
             Atelier &amp; Co.
           </Link>
@@ -80,6 +97,63 @@ export function Nav() {
           )}
         </div>
       </div>
+
+      {mobileMenuOpen && (
+        <div className={styles.mobileDrawer}>
+          <ul className={styles.mobileLinks}>
+            <li>
+              <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>
+                Explore Gallery
+              </Link>
+            </li>
+            <li>
+              <Link href="/creators" onClick={() => setMobileMenuOpen(false)}>
+                Master Creators
+              </Link>
+            </li>
+            <li>
+              <Link href="/orders" onClick={() => setMobileMenuOpen(false)}>
+                Order History
+              </Link>
+            </li>
+            {user ? (
+              <>
+                <li>
+                  <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)}>
+                    Saved Collection
+                  </Link>
+                </li>
+                {user.role === "CREATOR" || user.role === "ADMIN" ? (
+                  <li>
+                    <Link href="/studio/artworks" onClick={() => setMobileMenuOpen(false)}>
+                      Studio Portal
+                    </Link>
+                  </li>
+                ) : (
+                  <li>
+                    <Link href="/become-a-creator" onClick={() => setMobileMenuOpen(false)}>
+                      Become a Creator
+                    </Link>
+                  </li>
+                )}
+              </>
+            ) : (
+              <>
+                <li>
+                  <Link href="/become-a-creator" onClick={() => setMobileMenuOpen(false)}>
+                    Become a Creator
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)}>
+                    Sign In
+                  </Link>
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
+      )}
     </nav>
   );
 }

@@ -66,6 +66,26 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.skipToContent {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  background: var(--ink);
+  color: var(--paper-0);
+  padding: 12px 20px;
+  z-index: 9999;
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skipToContent:focus {
+  top: 16px;
+}
+
 a {
   color: inherit;
   text-decoration: none;

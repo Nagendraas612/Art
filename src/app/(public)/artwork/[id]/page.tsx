@@ -23,14 +23,28 @@ export async function generateMetadata({ params }: ArtworkDetailPageProps) {
     },
     include: {
       creator: { include: { user: true } },
+      images: { orderBy: { sortOrder: "asc" }, take: 1 },
     },
   });
 
   if (!artwork) return { title: "Piece Not Found" };
 
+  const firstImg = artwork.images[0]?.url;
+
   return {
-    title: `${artwork.title} — ${artwork.creator.user.name} | Atelier & Co.`,
+    title: `${artwork.title} — ${artwork.creator.user.name}`,
     description: artwork.description.substring(0, 160),
+    openGraph: {
+      title: `${artwork.title} by ${artwork.creator.user.name}`,
+      description: artwork.description.substring(0, 160),
+      ...(firstImg && { images: [{ url: firstImg }] }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${artwork.title} by ${artwork.creator.user.name}`,
+      description: artwork.description.substring(0, 160),
+      ...(firstImg && { images: [firstImg] }),
+    },
   };
 }
 
@@ -77,9 +91,42 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
 
   const mainImage = artwork.images[0]?.url || "";
   const detailImages = artwork.images.slice(1);
+  const isAvailable = artwork.stockStatus === StockStatus.AVAILABLE;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": artwork.title,
+    "image": artwork.images.map((img) => img.url),
+    "description": artwork.description,
+    "sku": artwork.id,
+    "brand": {
+      "@type": "Brand",
+      "name": artwork.creator.storeName,
+    },
+    "creator": {
+      "@type": "Person",
+      "name": artwork.creator.user.name,
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": `https://ateliernco.vercel.app/artwork/${artwork.slug || artwork.id}`,
+      "priceCurrency": artwork.currency,
+      "price": artwork.price.toString(),
+      "availability": isAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "seller": {
+        "@type": "Organization",
+        "name": "Atelier & Co.",
+      },
+    },
+  };
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Nav />
       <main className={styles.main}>
         <div className="wrap">

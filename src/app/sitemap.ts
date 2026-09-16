@@ -1,8 +1,9 @@
 import { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { ArtworkStatus, CreatorStatus } from "@prisma/client";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://atelier.co";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://ateliernco.vercel.app";
 
   // Static routes
   const routes: MetadataRoute.Sitemap = [
@@ -33,17 +34,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    // Dynamic artworks
+    // Dynamic artworks (using slugs)
     const artworks = await prisma.artwork.findMany({
-      where: { status: "PUBLISHED" },
-      select: { id: true, updatedAt: true },
+      where: { status: ArtworkStatus.PUBLISHED },
+      select: { id: true, slug: true, updatedAt: true },
       take: 1000,
     });
 
     for (const art of artworks) {
       routes.push({
-        url: `${baseUrl}/artwork/${art.id}`,
-        lastModified: art.updatedAt,
+        url: `${baseUrl}/artwork/${art.slug || art.id}`,
+        lastModified: art.updatedAt || new Date(),
         changeFrequency: "weekly",
         priority: 0.8,
       });
@@ -51,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Dynamic creators
     const creators = await prisma.creatorProfile.findMany({
-      where: { status: "APPROVED" },
+      where: { status: CreatorStatus.APPROVED },
       select: { handle: true, updatedAt: true },
       take: 500,
     });
@@ -59,7 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const c of creators) {
       routes.push({
         url: `${baseUrl}/creators/${c.handle}`,
-        lastModified: c.updatedAt,
+        lastModified: c.updatedAt || new Date(),
         changeFrequency: "weekly",
         priority: 0.7,
       });

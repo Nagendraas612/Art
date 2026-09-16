@@ -1,0 +1,134 @@
+.footer {
+  background: var(--ink);
+  color: var(--paper-deep);
+  padding: var(--sp-8) 0 var(--sp-6);
+  margin-top: var(--sp-9);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--sp-4);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: var(--sp-7);
+  padding-bottom: var(--sp-7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-6);
+  }
+
+  .brandCol {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--sp-5);
+  }
+}
+
+.logo {
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--paper);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: var(--sp-3);
+  letter-spacing: -0.01em;
+}
+
+.tagline {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  color: var(--stone);
+  line-height: 1.6;
+  max-width: 360px;
+  margin-bottom: var(--sp-4);
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  color: var(--paper-deep);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.dot {
+  color: var(--clay-tint);
+}
+
+.colTitle {
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper);
+  margin-bottom: var(--sp-4);
+}
+
+.linkList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.linkList a {
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  color: var(--stone);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.linkList a:hover {
+  color: var(--paper);
+}
+
+.bottomBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--sp-5);
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  color: var(--stone);
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+.copyright {
+  margin: 0;
+}
+
+.legalLinks {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.trustBadge {
+  font-size: 0.78rem;
+  color: var(--moss-tint);
+  opacity: 0.9;
+}
