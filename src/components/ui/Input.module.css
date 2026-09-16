@@ -34,6 +34,36 @@
   border-color: var(--ink);
 }
 
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.inputWithToggle {
+  padding-right: 44px;
+}
+
+.toggleBtn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #78716c;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.toggleBtn:hover {
+  color: var(--ink);
+}
+
 .inputError {
   border-color: var(--clay);
 }
@@ -43,3 +73,4 @@
   color: var(--clay);
   margin: 0;
 }
+
