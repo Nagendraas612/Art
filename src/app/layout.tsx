@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Instrument_Sans } from "next/font/google";
+import { Fraunces, Instrument_Sans, Yatra_One } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -16,26 +16,43 @@ const instrumentSans = Instrument_Sans({
   weight: ["400", "500", "600"],
 });
 
+const yatraOne = Yatra_One({
+  subsets: ["latin", "devanagari"],
+  variable: "--font-yatra",
+  display: "swap",
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   title: {
-    default: "Atelier & Co. — Fine Art & Artisanal Marketplace",
-    template: "%s | Atelier & Co.",
+    default: "Kaala Bhadra — Fine Art & Artisanal Marketplace",
+    template: "%s | Kaala Bhadra",
   },
   description:
     "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://ateliernco.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kaalabhadra.vercel.app"),
   openGraph: {
-    title: "Atelier & Co. — Fine Art & Artisanal Marketplace",
+    title: "Kaala Bhadra — Fine Art & Artisanal Marketplace",
     description: "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
-    url: "https://ateliernco.vercel.app",
-    siteName: "Atelier & Co.",
+    url: "https://kaalabhadra.vercel.app",
+    siteName: "Kaala Bhadra",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Atelier & Co. — Fine Art & Artisanal Marketplace",
+    title: "Kaala Bhadra — Fine Art & Artisanal Marketplace",
     description: "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 
@@ -50,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${instrumentSans.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${instrumentSans.variable} ${yatraOne.variable}`}>
       <body>
         <a href="#main-content" className="skipToContent">
           Skip to main content

@@ -3,7 +3,7 @@ import { getCurrentCreator } from "@/lib/studio-auth";
 import styles from "./studio.module.css";
 
 export const metadata = {
-  title: "Creator Studio — Atelier & Co.",
+  title: "Creator Studio — Kaala Bhadra",
   description: "Artisan and Creator Studio Management Dashboard",
 };
 
@@ -20,7 +20,7 @@ export default async function StudioLayout({
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <Link href="/" className={styles.brandMark}>
-            Atelier &amp; Co.
+            Kaala Bhadra
           </Link>
           <span className={styles.studioTag}>Creator Studio</span>
         </div>
@@ -134,7 +134,7 @@ export default async function StudioLayout({
         <div className={styles.sidebarFooter}>
           <div className={styles.partnerBadge}>
             <span className={styles.badgeDot} />
-            <span>Verified Atelier Partner</span>
+            <span>Verified Kaala Bhadra Partner</span>
           </div>
         </div>
       </aside>

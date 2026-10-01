@@ -6,8 +6,8 @@ import { CreatorStatus, ArtworkStatus } from "@prisma/client";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Artisans & Creators — Atelier & Co.",
-  description: "Meet the master ceramists, painters, weavers, printmakers, and woodworkers showcasing their crafts on Atelier.",
+  title: "Artisans & Creators — Kaala Bhadra",
+  description: "Meet the master ceramists, painters, weavers, printmakers, and woodworkers showcasing their crafts on Kaala Bhadra.",
 };
 
 export default async function CreatorsPage() {
@@ -40,7 +40,7 @@ export default async function CreatorsPage() {
             <span className={styles.kicker}>The Artisans</span>
             <h1 className={styles.title}>Meet Our Creators</h1>
             <p className={styles.subtitle}>
-              Every creator on Atelier is an independent maker dedicated to authentic materials,
+              Every creator on Kaala Bhadra is an independent maker dedicated to authentic materials,
               traditional crafts, and intentional design.
             </p>
           </div>
@@ -76,7 +76,7 @@ export default async function CreatorsPage() {
               </p>
             </div>
             <Link href="/become-a-creator" className={styles.joinBtn}>
-              Apply to Join the Atelier &rarr;
+              Apply to Join Kaala Bhadra &rarr;
             </Link>
           </div>
         </section>

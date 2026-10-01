@@ -15,6 +15,36 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("🌱 Starting seed...");
 
+  console.log("🧹 Cleaning old seed data...");
+  await prisma.artworkImage.deleteMany({});
+  await prisma.wishlistItem.deleteMany({});
+  await prisma.orderItem.deleteMany({});
+  await prisma.payment.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.message.deleteMany({});
+  await prisma.conversation.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.customRequest.deleteMany({});
+  await prisma.review.deleteMany({});
+  await prisma.artistReview.deleteMany({});
+  await prisma.creatorEarning.deleteMany({});
+  await prisma.payout.deleteMany({});
+  await prisma.platformCommission.deleteMany({});
+  await prisma.follow.deleteMany({});
+  await prisma.artwork.deleteMany({});
+  await prisma.creatorProfile.deleteMany({});
+  await prisma.user.deleteMany({
+    where: {
+      OR: [
+        { email: { endsWith: "@atelier.local" } },
+        { email: { endsWith: "@kaalabhadra.local" } },
+        { email: "admin@atelier.co" },
+        { email: "admin@kaalabhadra.com" },
+      ],
+    },
+  });
+  console.log("✓ Database cleaned successfully");
+
   // 1. Seed Categories
   const categoriesData = [
     {
@@ -63,7 +93,7 @@ async function main() {
   // 2. Seed Creators & Users
   const creatorsData = [
     {
-      email: "elena.rostova@atelier.local",
+      email: "elena.rostova@kaalabhadra.local",
       name: "Elena Rostova",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
       handle: "elena-rostova",
@@ -75,7 +105,7 @@ async function main() {
       acceptsCustomOrders: true,
     },
     {
-      email: "kaelen.vance@atelier.local",
+      email: "kaelen.vance@kaalabhadra.local",
       name: "Kaelen Vance",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
       handle: "kaelen-vance",
@@ -87,7 +117,7 @@ async function main() {
       acceptsCustomOrders: true,
     },
     {
-      email: "aria.chen@atelier.local",
+      email: "aria.chen@kaalabhadra.local",
       name: "Aria Chen",
       avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
       handle: "aria-chen",
@@ -99,11 +129,11 @@ async function main() {
       acceptsCustomOrders: false,
     },
     {
-      email: "marcus.thorne@atelier.local",
+      email: "marcus.thorne@kaalabhadra.local",
       name: "Marcus Thorne",
       avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
       handle: "marcus-thorne",
-      storeName: "Thorne Atelier",
+      storeName: "Thorne Print Studio",
       tagline: "Hand-pulled multi-block relief prints and nocturnal botanical linocuts",
       bio: "Marcus documents vanishing alpine flora and nocturnal landscapes using meticulous hand-carved lino blocks on handmade Japanese washi paper.",
       disciplines: ["Linocut", "Relief Printmaking", "Botanical Illustration"],
@@ -111,7 +141,7 @@ async function main() {
       acceptsCustomOrders: true,
     },
     {
-      email: "maya.patel@atelier.local",
+      email: "maya.patel@kaalabhadra.local",
       name: "Maya Patel",
       avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
       handle: "maya-patel",
@@ -178,6 +208,19 @@ async function main() {
     creators[c.handle] = creatorProfile;
   }
   console.log(`✓ Seeded ${Object.keys(creators).length} verified creator profiles`);
+
+  // Seed default Admin User
+  await prisma.user.upsert({
+    where: { email: "admin@kaalabhadra.com" },
+    update: { role: Role.ADMIN },
+    create: {
+      email: "admin@kaalabhadra.com",
+      name: "Kaala Bhadra Operations",
+      role: Role.ADMIN,
+      emailVerified: true,
+    },
+  });
+  console.log("✓ Seeded default admin (admin@kaalabhadra.com)");
 
   // 3. Seed Artworks (20 curated pieces)
   const artworksData = [

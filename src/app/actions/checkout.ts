@@ -245,7 +245,7 @@ export async function processCheckout(input: CheckoutInput) {
           orderId: order.id,
           status: isSandbox ? OrderStatus.ORDER_CONFIRMED : OrderStatus.PENDING_PAYMENT,
           note: isSandbox
-            ? "Payment verified via Atelier Sandbox Simulator. Order placed with studio."
+            ? "Payment verified via Kaala Bhadra Sandbox Simulator. Order placed with studio."
             : "Awaiting payment via Stripe.",
         },
       });
@@ -256,7 +256,7 @@ export async function processCheckout(input: CheckoutInput) {
     // 6b. Dispatch Transactional Order Confirmation Email, In-App Notifications & Admin Alert
     if (isSandbox) {
       try {
-        const domain = process.env.NEXT_PUBLIC_APP_URL || "https://ateliernco.vercel.app";
+        const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
         const shippingAddressFormatted = `${shippingAddress.line1}${shippingAddress.line2 ? ", " + shippingAddress.line2 : ""}, ${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.postalCode}`;
 
         const { generateOrderConfirmationEmail, generateCreatorNewOrderEmail } = await import("@/lib/email");
@@ -279,7 +279,7 @@ export async function processCheckout(input: CheckoutInput) {
         // 1. Send customer confirmation email
         sendEmail({
           to: customer.email,
-          subject: `🎨 Atelier & Co. — Order Confirmed (#${createdOrder.orderNumber})`,
+          subject: `🎨 Kaala Bhadra — Order Confirmed (#${createdOrder.orderNumber})`,
           html: buyerEmailHtml,
           templateType: "ORDER_CONFIRMATION",
           metadata: { orderId: createdOrder.id, orderNumber: createdOrder.orderNumber, grandTotal: grandTotalNum },
@@ -321,7 +321,7 @@ export async function processCheckout(input: CheckoutInput) {
             if (creator.user?.email) {
               sendEmail({
                 to: creator.user.email,
-                subject: `🎉 Atelier Studio: New Order for "${item.artwork.title}" (#${createdOrder.orderNumber})`,
+                subject: `🎉 Kaala Bhadra Studio: New Order for "${item.artwork.title}" (#${createdOrder.orderNumber})`,
                 html: generateCreatorNewOrderEmail({
                   creatorName: creator.user.name || creator.storeName,
                   orderNumber: createdOrder.orderNumber,

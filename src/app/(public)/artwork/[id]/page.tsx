@@ -116,7 +116,7 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
       "availability": isAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       "seller": {
         "@type": "Organization",
-        "name": "Atelier & Co.",
+        "name": "Kaala Bhadra",
       },
     },
   };

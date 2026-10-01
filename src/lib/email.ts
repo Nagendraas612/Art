@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
 /**
- * Transactional Email Dispatcher for Atelier & Co.
+ * Transactional Email Dispatcher for Kaala Bhadra.
  * Supports:
  * 1. Gmail SMTP (via Nodemailer) - Send from your personal @gmail.com without needing a domain!
  * 2. Resend REST API - For custom verified domains.
@@ -29,7 +29,7 @@ export async function sendEmail({
   const gmailUser = process.env.GMAIL_USER || process.env.SMTP_USER;
   const gmailPass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS;
   const resendApiKey = process.env.RESEND_API_KEY;
-  let fromEmail = process.env.EMAIL_FROM || (gmailUser ? `Atelier & Co. <${gmailUser}>` : "Atelier & Co. <onboarding@resend.dev>");
+  let fromEmail = process.env.EMAIL_FROM || (gmailUser ? `Kaala Bhadra <${gmailUser}>` : "Kaala Bhadra <onboarding@resend.dev>");
 
   const jsonMetadata = metadata ? (metadata as Prisma.InputJsonValue) : Prisma.JsonNull;
 
@@ -93,7 +93,7 @@ export async function sendEmail({
   // 2. RESEND REST API DISPATCH
   if (resendApiKey) {
     if (fromEmail.includes("@gmail.com") || fromEmail.includes("@yahoo.com")) {
-      fromEmail = "Atelier & Co. <onboarding@resend.dev>";
+      fromEmail = "Kaala Bhadra <onboarding@resend.dev>";
     }
 
     try {
@@ -264,13 +264,13 @@ export function generateOrderConfirmationEmail(params: {
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
         <div style="${headerStyles}">
-          <h1 style="margin: 0; font-family: serif; font-size: 26px; letter-spacing: 0.05em;">ATELIER & CO.</h1>
+          <h1 style="margin: 0; font-family: serif; font-size: 26px; letter-spacing: 0.05em;">KAALA BHADRA</h1>
           <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.1em;">Order Confirmed</p>
         </div>
         
         <div style="${bodyStyles}">
           <p>Dear ${params.customerName},</p>
-          <p>Thank you for acquiring original artisanal pieces through Atelier & Co. The artisan studios have received your order details and are preparing your pieces with protective collector-grade packaging.</p>
+          <p>Thank you for acquiring original artisanal pieces through Kaala Bhadra. The artisan studios have received your order details and are preparing your pieces with protective collector-grade packaging.</p>
           
           <div style="background: #fafaf9; border-radius: 8px; padding: 16px; margin: 24px 0;">
             <table style="width: 100%; border-collapse: collapse;">
@@ -316,7 +316,7 @@ export function generateOrderConfirmationEmail(params: {
 
         <div style="${footerStyles}">
           <p style="margin: 0 0 6px;">Questions regarding your acquisition? Contact our curator team.</p>
-          <p style="margin: 0;">© ${new Date().getFullYear()} Atelier & Co. All rights reserved.</p>
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kaala Bhadra. All rights reserved.</p>
         </div>
       </div>
     </div>
@@ -338,7 +338,7 @@ export function generateCreatorNewOrderEmail(params: {
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
         <div style="${headerStyles}">
-          <h1 style="margin: 0; font-family: serif; font-size: 26px;">ATELIER STUDIO</h1>
+          <h1 style="margin: 0; font-family: serif; font-size: 26px;">KAALA BHADRA STUDIO</h1>
           <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase;">New Collector Order</p>
         </div>
         
@@ -375,7 +375,7 @@ export function generateCreatorNewOrderEmail(params: {
         </div>
 
         <div style="${footerStyles}">
-          <p style="margin: 0;">© ${new Date().getFullYear()} Atelier & Co. Creator Desk</p>
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kaala Bhadra Creator Desk</p>
         </div>
       </div>
     </div>
@@ -429,7 +429,7 @@ export function generateArtworkSubmittedAdminEmail(params: {
         </div>
 
         <div style="${footerStyles}">
-          <p style="margin: 0;">Automated Curation Dispatch · Atelier & Co.</p>
+          <p style="margin: 0;">Automated Curation Dispatch · Kaala Bhadra</p>
         </div>
       </div>
     </div>
@@ -449,7 +449,7 @@ export function generateArtworkCurationResultEmail(params: {
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
         <div style="${headerStyles}">
-          <h1 style="margin: 0; font-family: serif; font-size: 26px;">ATELIER & CO.</h1>
+          <h1 style="margin: 0; font-family: serif; font-size: 26px;">KAALA BHADRA</h1>
           <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase;">Curation Status Update</p>
         </div>
         
@@ -459,7 +459,7 @@ export function generateArtworkCurationResultEmail(params: {
           ${
             params.isApproved
               ? `
-            <p>Congratulations! Your artwork <strong>"${params.artworkTitle}"</strong> has been approved by our curation board and is now <strong>Live in the Atelier Collection</strong>.</p>
+            <p>Congratulations! Your artwork <strong>"${params.artworkTitle}"</strong> has been approved by our curation board and is now <strong>Live in the Kaala Bhadra Collection</strong>.</p>
             <p>Collectors can now discover, bookmark, and acquire this piece directly from your storefront.</p>
             <div style="text-align: center; margin: 28px 0;">
               <a href="${params.artworkUrl || params.studioUrl}" style="${buttonStyles}">View Live Piece</a>
@@ -482,7 +482,7 @@ export function generateArtworkCurationResultEmail(params: {
         </div>
 
         <div style="${footerStyles}">
-          <p style="margin: 0;">© ${new Date().getFullYear()} Atelier & Co. Curation Board</p>
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kaala Bhadra Curation Board</p>
         </div>
       </div>
     </div>
@@ -503,7 +503,7 @@ export function generateCreatorStatusEmail(params: {
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
         <div style="${headerStyles}">
-          <h1 style="margin: 0; font-family: serif; font-size: 26px;">ATELIER & CO.</h1>
+          <h1 style="margin: 0; font-family: serif; font-size: 26px;">KAALA BHADRA</h1>
           <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase;">Studio Application</p>
         </div>
         
@@ -529,7 +529,7 @@ export function generateCreatorStatusEmail(params: {
         </div>
 
         <div style="${footerStyles}">
-          <p style="margin: 0;">© ${new Date().getFullYear()} Atelier & Co. Artisan Curation Board</p>
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kaala Bhadra Artisan Curation Board</p>
         </div>
       </div>
     </div>
@@ -547,7 +547,7 @@ export function generateNewMessageEmail(params: {
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
         <div style="${headerStyles}">
-          <h1 style="margin: 0; font-family: serif; font-size: 26px;">ATELIER & CO.</h1>
+          <h1 style="margin: 0; font-family: serif; font-size: 26px;">KAALA BHADRA</h1>
           <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase;">New Message</p>
         </div>
         
@@ -565,7 +565,7 @@ export function generateNewMessageEmail(params: {
         </div>
 
         <div style="${footerStyles}">
-          <p style="margin: 0;">© ${new Date().getFullYear()} Atelier & Co. Direct Messaging</p>
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kaala Bhadra Direct Messaging</p>
         </div>
       </div>
     </div>
@@ -581,13 +581,13 @@ export function generatePasswordResetEmail(params: {
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
         <div style="${headerStyles}">
-          <h1 style="margin: 0; font-family: serif; font-size: 26px;">ATELIER & CO.</h1>
+          <h1 style="margin: 0; font-family: serif; font-size: 26px;">KAALA BHADRA</h1>
           <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase;">Account Security</p>
         </div>
         
         <div style="${bodyStyles}">
           <p>Hello ${params.userName},</p>
-          <p>We received a request to reset the password for your Atelier & Co. account.</p>
+          <p>We received a request to reset the password for your Kaala Bhadra account.</p>
           <p>If you made this request, please click the button below to securely set a new password:</p>
           
           <div style="text-align: center; margin-top: 28px;">
@@ -598,7 +598,7 @@ export function generatePasswordResetEmail(params: {
         </div>
 
         <div style="${footerStyles}">
-          <p style="margin: 0;">© ${new Date().getFullYear()} Atelier & Co. Security Team</p>
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kaala Bhadra Security Team</p>
         </div>
       </div>
     </div>
@@ -617,7 +617,7 @@ export function generateOrderStatusEmail(params: {
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
         <div style="${headerStyles}">
-          <h1 style="margin: 0; font-family: serif; font-size: 26px;">ATELIER & CO.</h1>
+          <h1 style="margin: 0; font-family: serif; font-size: 26px;">KAALA BHADRA</h1>
           <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase;">Order Update</p>
         </div>
         
@@ -638,7 +638,7 @@ export function generateOrderStatusEmail(params: {
         </div>
 
         <div style="${footerStyles}">
-          <p style="margin: 0;">© ${new Date().getFullYear()} Atelier & Co. All rights reserved.</p>
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kaala Bhadra. All rights reserved.</p>
         </div>
       </div>
     </div>

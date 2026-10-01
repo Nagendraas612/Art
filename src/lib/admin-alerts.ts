@@ -56,7 +56,7 @@ export async function dispatchAdminAlert({
         // Fire and forget
         sendEmail({
           to: admin.email,
-          subject: `[Admin Alert] ${type.replace(/_/g, " ")} — Atelier & Co.`,
+          subject: `[Admin Alert] ${type.replace(/_/g, " ")} — Kaala Bhadra`,
           html: emailHtml,
           templateType: `ADMIN_ALERT_${type}`,
           metadata: { type, refType, refId },
@@ -85,7 +85,7 @@ function generateAdminAlertEmail(params: {
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1c1917; background-color: #fafaf9; margin: 0; padding: 40px 20px;">
       <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e7e5e4; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
         <div style="padding: 32px 32px 24px; background: #1c1917; color: #f5f5f4; text-align: center;">
-          <h1 style="margin: 0; font-family: serif; font-size: 26px; letter-spacing: 0.05em;">ATELIER ADMIN</h1>
+          <h1 style="margin: 0; font-family: serif; font-size: 26px; letter-spacing: 0.05em;">KAALA BHADRA ADMIN</h1>
           <p style="margin: 6px 0 0; font-size: 13px; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.1em;">Platform Alert</p>
         </div>
         
@@ -103,7 +103,7 @@ function generateAdminAlertEmail(params: {
         </div>
 
         <div style="padding: 24px 32px; background: #fafaf9; border-top: 1px solid #e7e5e4; font-size: 12px; color: #78716c; text-align: center;">
-          <p style="margin: 0;">Automated Admin Alert · © ${new Date().getFullYear()} Atelier & Co.</p>
+          <p style="margin: 0;">Automated Admin Alert · © ${new Date().getFullYear()} Kaala Bhadra.</p>
         </div>
       </div>
     </div>

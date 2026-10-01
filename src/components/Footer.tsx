@@ -9,7 +9,7 @@ export function Footer() {
           {/* Brand Column */}
           <div className={styles.brandCol}>
             <Link href="/" className={styles.logo}>
-              Atelier &amp; Co.
+              Kaala Bhadra
             </Link>
             <p className={styles.tagline}>
               A curated sanctuary for exceptional original art, artisanal craft, and limited edition creations by independent artists worldwide.
@@ -37,25 +37,27 @@ export function Footer() {
             <h4 className={styles.colTitle}>Creators</h4>
             <ul className={styles.linkList}>
               <li><Link href="/creators">Browse Artists</Link></li>
-              <li><Link href="/creator/apply">Apply as Creator</Link></li>
+              <li><Link href="/become-a-creator">Become a Creator</Link></li>
               <li><Link href="/studio/artworks">Studio Portal</Link></li>
               <li><Link href="/wishlist">Your Wishlist</Link></li>
             </ul>
           </div>
 
           <div className={styles.linksCol}>
-            <h4 className={styles.colTitle}>Atelier</h4>
+            <h4 className={styles.colTitle}>Kaala Bhadra</h4>
             <ul className={styles.linkList}>
               <li><Link href="/orders">Track Orders</Link></li>
               <li><Link href="/sign-in">Account Login</Link></li>
-              <li><a href="mailto:support@ateliernco.com">Collector Support</a></li>
+              <li><Link href="/terms">Terms of Use</Link></li>
+              <li><Link href="/privacy">Privacy Policy</Link></li>
+              <li><a href="mailto:support@kaalabhadra.com">Collector Support</a></li>
             </ul>
           </div>
         </div>
 
         <div className={styles.bottomBar}>
           <p className={styles.copyright}>
-            &copy; {new Date().getFullYear()} Atelier &amp; Co. All rights reserved.
+            &copy; {new Date().getFullYear()} Kaala Bhadra. All rights reserved.
           </p>
           <div className={styles.legalLinks}>
             <span className={styles.trustBadge}>

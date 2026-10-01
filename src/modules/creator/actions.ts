@@ -94,7 +94,7 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
             messages: {
               create: {
                 senderId: session.user.id,
-                body: "Hello, I have submitted my application to become a creator on Atelier & Co. Please review my profile.",
+                body: "Hello, I have submitted my application to become a creator on Kaala Bhadra. Please review my profile.",
               }
             }
           }

@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: CreatorProfilePageProps) {
   if (!creator) return { title: "Creator Not Found" };
 
   return {
-    title: `${creator.storeName} (@${creator.handle}) — Atelier & Co.`,
+    title: `${creator.storeName} (@${creator.handle}) — Kaala Bhadra`,
     description: creator.bio || creator.tagline || `Artworks and handmade pieces by ${creator.user.name}`,
   };
 }

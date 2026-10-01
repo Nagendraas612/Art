@@ -33,11 +33,11 @@ export async function getCurrentAdmin() {
   if (!defaultAdmin) {
     // Upsert a default operations admin for testing
     defaultAdmin = await prisma.user.upsert({
-      where: { email: "admin@atelier.co" },
+      where: { email: "admin@kaalabhadra.com" },
       update: { role: Role.ADMIN },
       create: {
-        email: "admin@atelier.co",
-        name: "Atelier Operations",
+        email: "admin@kaalabhadra.com",
+        name: "Kaala Bhadra Operations",
         role: Role.ADMIN,
         emailVerified: true,
       },

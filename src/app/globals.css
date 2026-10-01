@@ -21,6 +21,7 @@
   /* Typography */
   --serif: var(--font-fraunces), serif;
   --sans: var(--font-instrument-sans), sans-serif;
+  --font-brand: var(--font-yatra), 'Yatra One', serif;
 
   /* Spacing scale */
   --sp-1: 4px;

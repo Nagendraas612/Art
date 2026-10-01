@@ -23,8 +23,8 @@
 }
 
 .mark {
-  font-family: var(--serif);
-  font-size: 22px;
+  font-family: var(--font-brand);
+  font-size: 24px;
   font-weight: 500;
   color: var(--ink);
   text-decoration: none;

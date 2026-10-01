@@ -45,7 +45,7 @@ export default function SignInPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <Link href="/" className={styles.mark}>
-            Atelier &amp; Co.
+            Kaala Bhadra
           </Link>
           <h1 className={styles.title}>Welcome back</h1>
           <p className={styles.subtitle}>
@@ -98,7 +98,7 @@ export default function SignInPage() {
         <SocialAuthButtons onError={(msg) => setError(msg)} />
 
         <p className={styles.termsNotice}>
-          By continuing, you agree to Atelier &amp; Co.&apos;s{" "}
+          By continuing, you agree to Kaala Bhadra&apos;s{" "}
           <Link href="/terms">Terms of Use</Link> and{" "}
           <Link href="/privacy">Privacy Policy</Link>.
         </p>

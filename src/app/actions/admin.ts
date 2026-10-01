@@ -159,7 +159,7 @@ export async function updateOrderStatusAction(params: {
       data: {
         orderId,
         status,
-        note: note || `Order status updated to ${status.replace(/_/g, " ")} by atelier operations.`,
+        note: note || `Order status updated to ${status.replace(/_/g, " ")} by Kaala Bhadra operations.`,
       },
     });
 
@@ -361,7 +361,7 @@ export async function reviewCreatorApplicationAction(params: {
         type: action === "APPROVE" ? "CREATOR_APPROVED" : "CREATOR_STATUS_CHANGED",
         title: action === "APPROVE" ? "Your Studio has been Approved! 🎉" : `Studio Application Update: ${action}`,
         body: action === "APPROVE" 
-          ? `Welcome to Atelier & Co. Your storefront @${creator.handle} is now live.`
+          ? `Welcome to Kaala Bhadra. Your storefront @${creator.handle} is now live.`
           : `Your studio status has been updated to ${newStatus}.${reason ? ` Note: ${reason}` : ""}`,
         refType: "CREATOR",
         refId: creator.id,
@@ -383,8 +383,8 @@ export async function reviewCreatorApplicationAction(params: {
         sendEmail({
           to: creator.user.email,
           subject: action === "APPROVE"
-            ? `Your Studio @${creator.handle} is Approved! 🎉 — Atelier & Co.`
-            : `Studio Application Update: ${action} — Atelier & Co.`,
+            ? `Your Studio @${creator.handle} is Approved! 🎉 — Kaala Bhadra`
+            : `Studio Application Update: ${action} — Kaala Bhadra`,
           html: emailHtml,
         }).catch((err) => console.error("Async creator email error:", err));
       } catch (emailErr) {
@@ -545,15 +545,15 @@ export async function moderateArtworkAction(params: {
         sendEmail({
           to: artwork.creator.user.email,
           subject: action === "APPROVE" 
-            ? `🏛 Atelier & Co. — Your artwork "${artwork.title}" has been approved!`
-            : `🎨 Atelier & Co. — Curation update for "${artwork.title}"`,
+            ? `🏛 Kaala Bhadra — Your artwork "${artwork.title}" has been approved!`
+            : `🎨 Kaala Bhadra — Curation update for "${artwork.title}"`,
           html: generateArtworkCurationResultEmail({
             creatorName: artwork.creator.user.name || artwork.creator.storeName,
             artworkTitle: artwork.title,
             isApproved: action === "APPROVE",
             rejectionReason: reason,
-            artworkUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://ateliernco.vercel.app"}/artwork/${artwork.id}`,
-            studioUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://ateliernco.vercel.app"}/studio/artworks`,
+            artworkUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/artwork/${artwork.id}`,
+            studioUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/studio/artworks`,
           }),
           templateType: action === "APPROVE" ? "ARTWORK_APPROVED" : "ARTWORK_REJECTED",
           metadata: { artworkId: artwork.id, creatorId: artwork.creator.id },

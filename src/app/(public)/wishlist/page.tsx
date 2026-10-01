@@ -9,7 +9,7 @@ import { ArtworkStatus } from "@prisma/client";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Saved Collection — Your Curated Pieces | Atelier & Co.",
+  title: "Saved Collection — Your Curated Pieces | Kaala Bhadra",
   description: "Browse and manage your personal wishlist of exceptional fine art and craft pieces.",
 };
 
@@ -87,7 +87,7 @@ export default async function WishlistPage() {
               </div>
               <h2 className={styles.emptyTitle}>Your Wishlist is Empty</h2>
               <p className={styles.emptyText}>
-                As you browse Atelier &amp; Co., click the heart icon on any piece to save it to your private portfolio for later acquisition.
+                As you browse Kaala Bhadra, click the heart icon on any piece to save it to your private portfolio for later acquisition.
               </p>
               <Link href="/explore" className={styles.exploreBtn}>
                 Explore Featured Artworks &rarr;
