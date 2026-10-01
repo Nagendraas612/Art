@@ -33,8 +33,7 @@ export function Nav() {
           </button>
 
           <Link href="/" className={styles.mark}>
-            <img src="/KaalaBhadraLogoCropped.png" alt="Kaala Bhadra Emblem" className={styles.logoBadge} />
-            <span>Kaala Bhadra</span>
+            Kaala Bhadra
           </Link>
 
           <ul className={styles.links}>

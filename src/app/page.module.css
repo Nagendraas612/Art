@@ -2,82 +2,72 @@
   position: relative;
   min-height: 75vh;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
   overflow: hidden;
   border-bottom: 1px solid var(--paper-deep);
   background: linear-gradient(to bottom, var(--paper-deep) 0%, var(--paper) 100%);
   padding: var(--sp-8) 0;
 }
 
-.heroArt {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.floatPiece {
-  position: absolute;
-  border: 1px solid var(--stone);
-  opacity: 0;
-  transform: translateY(28px) scale(0.97);
-  animation: settle 0.8s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
-}
-
-@keyframes settle {
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.p1 {
-  width: 260px;
-  height: 330px;
-  right: 8%;
-  top: 6%;
-  background: radial-gradient(
-    circle at 42% 35%,
-    #d98a5a,
-    #a6532e 50%,
-    #5c2c17 100%
-  );
-  animation-delay: 0.05s;
-}
-
-.p2 {
-  width: 170px;
-  height: 170px;
-  right: 34%;
-  top: 52%;
-  background: conic-gradient(from 90deg, #59613f, #8b9469, #3f4630, #59613f);
-  border-radius: 50%;
-  animation-delay: 0.22s;
-}
-
-.p3 {
-  width: 150px;
-  height: 200px;
-  right: 4%;
-  bottom: 6%;
-  background: linear-gradient(160deg, #e8dfc9, #b8af9b 60%, #8f8874);
-  animation-delay: 0.4s;
-}
-
-@media (max-width: 900px) {
-  .heroArt {
-    opacity: 0.2;
-  }
-  .hero {
-    min-height: 60vh;
-  }
+.heroInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
 }
 
 .heroCopy {
   position: relative;
   z-index: 2;
   max-width: 620px;
+  flex: 1;
 }
+
+.heroLogo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: logoFadeIn 1s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+.heroLogoImg {
+  width: 340px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 32px rgba(0, 0, 0, 0.08));
+}
+
+@keyframes logoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 900px) {
+  .heroInner {
+    flex-direction: column-reverse;
+    gap: 32px;
+    text-align: center;
+  }
+  .heroLogo {
+    margin-bottom: -16px;
+  }
+  .heroLogoImg {
+    width: 200px;
+  }
+  .hero {
+    min-height: auto;
+    padding: var(--sp-6) 0;
+  }
+}
+
 
 .kicker {
   display: inline-block;

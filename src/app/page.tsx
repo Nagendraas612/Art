@@ -64,43 +64,47 @@ export default async function Home() {
       <main>
         {/* Hero Section */}
         <section className={styles.hero}>
-          <div className={styles.heroArt}>
-            <div className={`${styles.floatPiece} ${styles.p1}`} />
-            <div className={`${styles.floatPiece} ${styles.p2}`} />
-            <div className={`${styles.floatPiece} ${styles.p3}`} />
-          </div>
-          <div className={`wrap ${styles.heroCopy}`}>
-            <span className={styles.kicker}>Fine Art &amp; Handcrafted Gallery</span>
-            <h1 className={styles.headline}>
-              Made by people.
-              <br />
-              Meant to be kept.
-            </h1>
-            <p className={styles.subline}>
-              Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.
-            </p>
-            <div className={styles.ctas}>
-              <Link href="/explore" className={styles.btnPrimary}>
-                Explore Collection
-              </Link>
-              <Link href="/become-a-creator" className={styles.btnSecondary}>
-                Apply as Creator
-              </Link>
+          <div className={`wrap ${styles.heroInner}`}>
+            <div className={styles.heroCopy}>
+              <span className={styles.kicker}>Fine Art &amp; Handcrafted Gallery</span>
+              <h1 className={styles.headline}>
+                Made by people.
+                <br />
+                Meant to be kept.
+              </h1>
+              <p className={styles.subline}>
+                Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.
+              </p>
+              <div className={styles.ctas}>
+                <Link href="/explore" className={styles.btnPrimary}>
+                  Explore Collection
+                </Link>
+                <Link href="/become-a-creator" className={styles.btnSecondary}>
+                  Apply as Creator
+                </Link>
+              </div>
             </div>
+            <div className={styles.heroLogo}>
+              <img
+                src="/KaalaBhadraLogoTransparent.png"
+                alt="Kaala Bhadra Logo"
+                className={styles.heroLogoImg}
+              />
+            </div>
+          </div>
 
-            <div className={styles.statsBar}>
-              <div className={styles.statItem}>
-                <span className={styles.statNum}>{totalArtworks}+</span>
-                <span className={styles.statLabel}>Original Works</span>
-              </div>
-              <div className={styles.statItem}>
-                <span className={styles.statNum}>{totalCreators}+</span>
-                <span className={styles.statLabel}>Verified Artisans</span>
-              </div>
-              <div className={styles.statItem}>
-                <span className={styles.statNum}>100%</span>
-                <span className={styles.statLabel}>Provenanced</span>
-              </div>
+          <div className={`wrap ${styles.statsBar}`}>
+            <div className={styles.statItem}>
+              <span className={styles.statNum}>{totalArtworks}+</span>
+              <span className={styles.statLabel}>Original Works</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statNum}>{totalCreators}+</span>
+              <span className={styles.statLabel}>Verified Artisans</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statNum}>100%</span>
+              <span className={styles.statLabel}>Provenanced</span>
             </div>
           </div>
         </section>
