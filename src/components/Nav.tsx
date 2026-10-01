@@ -87,12 +87,37 @@ export function Nav() {
             </>
           ) : (
             <>
-              <Link href="/sign-in" className={styles.link}>
-                Sign in
+              {/* Mobile Account Action Button */}
+              <Link
+                href="/sign-in"
+                className={styles.mobileAccountBtn}
+                aria-label="Sign In / Account"
+                title="Account Sign In"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
               </Link>
-              <Link href="/sign-up" className={styles.btnPrimary}>
-                Get Started
-              </Link>
+
+              {/* Desktop Auth Links */}
+              <div className={styles.desktopAuth}>
+                <Link href="/sign-in" className={styles.link}>
+                  Sign in
+                </Link>
+                <Link href="/sign-up" className={styles.btnPrimary}>
+                  Get Started
+                </Link>
+              </div>
             </>
           )}
         </div>
@@ -144,12 +169,10 @@ export function Nav() {
                     Become a Creator
                   </Link>
                 </li>
-                <li>
-                  <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)}>
+                <li className={styles.mobileAuthBox}>
+                  <Link href="/sign-in" className={styles.mobileSignInBtn} onClick={() => setMobileMenuOpen(false)}>
                     Sign In
                   </Link>
-                </li>
-                <li className={styles.mobileAuthWrap}>
                   <Link href="/sign-up" className={styles.mobileSignUpBtn} onClick={() => setMobileMenuOpen(false)}>
                     Get Started / Sign Up &rarr;
                   </Link>
