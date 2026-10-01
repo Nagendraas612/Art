@@ -21,7 +21,7 @@ export const auth = betterAuth({
       const { sendEmail, generatePasswordResetEmail } = await import("@/lib/email");
       await sendEmail({
         to: user.email,
-        subject: "Reset your Kaala Bhadra password",
+        subject: "Reset your Kalaa Bhadra password",
         html: generatePasswordResetEmail({
           userName: user.name || "Artisan Collector",
           resetUrl: url,

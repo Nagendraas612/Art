@@ -9,7 +9,7 @@ export function Footer() {
           {/* Brand Column */}
           <div className={styles.brandCol}>
             <Link href="/" className={styles.logo}>
-              Kaala Bhadra
+              Kalaa Bhadra
             </Link>
             <p className={styles.tagline}>
               A curated sanctuary for exceptional original art, artisanal craft, and limited edition creations by independent artists worldwide.
@@ -44,20 +44,20 @@ export function Footer() {
           </div>
 
           <div className={styles.linksCol}>
-            <h4 className={styles.colTitle}>Kaala Bhadra</h4>
+            <h4 className={styles.colTitle}>Kalaa Bhadra</h4>
             <ul className={styles.linkList}>
               <li><Link href="/orders">Track Orders</Link></li>
               <li><Link href="/sign-in">Account Login</Link></li>
               <li><Link href="/terms">Terms of Use</Link></li>
               <li><Link href="/privacy">Privacy Policy</Link></li>
-              <li><a href="mailto:support@kaalabhadra.com">Collector Support</a></li>
+              <li><a href="mailto:support@kalaabhadra.com">Collector Support</a></li>
             </ul>
           </div>
         </div>
 
         <div className={styles.bottomBar}>
           <p className={styles.copyright}>
-            &copy; {new Date().getFullYear()} Kaala Bhadra. All rights reserved.
+            &copy; {new Date().getFullYear()} Kalaa Bhadra. All rights reserved.
           </p>
           <div className={styles.legalLinks}>
             <span className={styles.trustBadge}>

@@ -25,23 +25,23 @@ const yatraOne = Yatra_One({
 
 export const metadata: Metadata = {
   title: {
-    default: "Kaala Bhadra — Fine Art & Artisanal Marketplace",
-    template: "%s | Kaala Bhadra",
+    default: "Kalaa Bhadra — Fine Art & Artisanal Marketplace",
+    template: "%s | Kalaa Bhadra",
   },
   description:
     "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kaalabhadra.vercel.app"),
   openGraph: {
-    title: "Kaala Bhadra — Fine Art & Artisanal Marketplace",
+    title: "Kalaa Bhadra — Fine Art & Artisanal Marketplace",
     description: "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
     url: "https://kaalabhadra.vercel.app",
-    siteName: "Kaala Bhadra",
+    siteName: "Kalaa Bhadra",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kaala Bhadra — Fine Art & Artisanal Marketplace",
+    title: "Kalaa Bhadra — Fine Art & Artisanal Marketplace",
     description: "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
   },
   icons: {

@@ -33,7 +33,7 @@ export function Nav() {
           </button>
 
           <Link href="/" className={styles.mark}>
-            Kaala Bhadra
+            Kalaa Bhadra
           </Link>
 
           <ul className={styles.links}>
@@ -147,6 +147,11 @@ export function Nav() {
                 <li>
                   <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)}>
                     Sign In
+                  </Link>
+                </li>
+                <li className={styles.mobileAuthWrap}>
+                  <Link href="/sign-up" className={styles.mobileSignUpBtn} onClick={() => setMobileMenuOpen(false)}>
+                    Get Started / Sign Up &rarr;
                   </Link>
                 </li>
               </>
