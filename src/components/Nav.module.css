@@ -17,7 +17,45 @@
 
 @media (max-width: 900px) {
   .inner {
-    padding: 16px 24px;
+    padding: 14px 20px;
+  }
+
+  .brandGroup {
+    gap: 16px;
+  }
+
+  .mark {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .inner {
+    padding: 12px 14px;
+  }
+
+  .brandGroup {
+    gap: 10px;
+  }
+
+  .mark {
+    font-size: 20px;
+    letter-spacing: 0.01em;
+  }
+
+  .actions {
+    gap: 8px;
+  }
+
+  /* Hide header Get Started button on mobile to avoid squishing top bar */
+  .btnPrimary {
+    display: none;
+  }
+
+  /* Clean mobile link styling */
+  .link {
+    font-size: 13px;
+    padding: 4px 8px;
   }
 }
 

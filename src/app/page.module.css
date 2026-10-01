@@ -53,18 +53,66 @@
 @media (max-width: 900px) {
   .heroInner {
     flex-direction: column-reverse;
-    gap: 32px;
+    gap: 28px;
     text-align: center;
   }
+  .heroCopy {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
   .heroLogo {
-    margin-bottom: -16px;
+    margin-bottom: -8px;
   }
   .heroLogoImg {
-    width: 200px;
+    width: 220px;
   }
   .hero {
     min-height: auto;
     padding: var(--sp-6) 0;
+  }
+  .subline {
+    max-width: 100%;
+  }
+  .ctas {
+    justify-content: center;
+    width: 100%;
+  }
+  .statsBar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px 32px;
+    margin-top: var(--sp-5);
+    padding-top: var(--sp-5);
+    text-align: center;
+  }
+  .statItem {
+    align-items: center;
+    min-width: 90px;
+  }
+}
+
+@media (max-width: 600px) {
+  .heroLogoImg {
+    width: 180px;
+  }
+  .ctas {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+  .btnPrimary,
+  .btnSecondary {
+    width: 100%;
+    text-align: center;
+  }
+  .headline {
+    font-size: clamp(32px, 8vw, 48px);
+  }
+  .subline {
+    font-size: 15px;
+    margin-bottom: 24px;
   }
 }
 
