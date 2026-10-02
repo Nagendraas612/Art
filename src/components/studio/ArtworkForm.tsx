@@ -504,6 +504,25 @@ export function ArtworkForm({ categories, initialData }: ArtworkFormProps) {
           {formData.primaryImageUrl && (
             <div className={styles.previewBox}>
               <span className={styles.previewLabel}>Primary Photo Preview</span>
+              {formData.primaryImageUrl.includes("unsplash.com") && (
+                <div
+                  style={{
+                    background: "#FFFBEB",
+                    border: "1px solid #FCD34D",
+                    borderRadius: "6px",
+                    padding: "10px 14px",
+                    marginBottom: "12px",
+                    color: "#92400E",
+                    fontSize: "13px",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  <strong>⚠️ Unverified External / Stock Photo URL Detected</strong>
+                  <p style={{ margin: "4px 0 0" }}>
+                    This artwork is currently referencing an external stock photo. For maximum collector trust and provenance, please upload a direct, authentic photo of your physical piece.
+                  </p>
+                </div>
+              )}
               <div className={styles.previewThumb}>
                 <img src={formData.primaryImageUrl} alt="Primary Preview" />
               </div>

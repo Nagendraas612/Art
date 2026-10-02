@@ -21,7 +21,7 @@ interface ExplorePageProps {
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Explore Gallery — Kaala Bhadra",
+  title: "Explore Gallery — Kalaa Bhadra",
   description: "Browse original paintings, handcrafted ceramics, fiber arts, limited edition prints, and woodwork from independent master artisans.",
 };
 

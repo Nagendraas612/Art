@@ -30,11 +30,11 @@ export const metadata: Metadata = {
   },
   description:
     "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kaalabhadra.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kalaabhadra.vercel.app"),
   openGraph: {
     title: "Kalaa Bhadra — Fine Art & Artisanal Marketplace",
     description: "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
-    url: "https://kaalabhadra.vercel.app",
+    url: "https://kalaabhadra.vercel.app",
     siteName: "Kalaa Bhadra",
     locale: "en_US",
     type: "website",

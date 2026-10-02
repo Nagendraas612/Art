@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <Link href="/" className={styles.mark}>
-            Kaala Bhadra
+            Kalaa Bhadra
           </Link>
           <h1 className={styles.title}>Reset Password</h1>
           <p className={styles.subtitle}>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { Nav } from "@/components/Nav";
@@ -6,7 +7,7 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import { ArtworkStatus, CreatorStatus } from "@prisma/client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function Home() {
   const session = await getSession();
@@ -60,6 +61,20 @@ export default async function Home() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Kalaa Bhadra",
+            "url": "https://kalaabhadra.vercel.app",
+            "logo": "https://kalaabhadra.vercel.app/KaalaBhadraLogoTransparent.png",
+            "description": "Museum-grade fine art & artisanal marketplace for original art, stoneware, fiber creations, and limited prints direct from master independent artisans.",
+            "sameAs": [],
+          }),
+        }}
+      />
       <Nav />
       <main>
         {/* Hero Section */}
@@ -85,9 +100,12 @@ export default async function Home() {
               </div>
             </div>
             <div className={styles.heroLogo}>
-              <img
+              <Image
                 src="/KaalaBhadraLogoTransparent.png"
-                alt="Kaala Bhadra Logo"
+                alt="Kalaa Bhadra Logo"
+                width={280}
+                height={280}
+                priority
                 className={styles.heroLogoImg}
               />
             </div>
@@ -220,9 +238,11 @@ export default async function Home() {
                   >
                     <div className={styles.creatorHeader}>
                       {creator.profileImageUrl || creator.user.image ? (
-                        <img
+                        <Image
                           src={creator.profileImageUrl || creator.user.image!}
                           alt={creator.user.name}
+                          width={48}
+                          height={48}
                           className={styles.creatorAvatar}
                         />
                       ) : (
@@ -258,7 +278,7 @@ export default async function Home() {
                 <span className={styles.propIcon}>🤝</span>
                 <h3 className={styles.propTitle}>Direct Artist Support</h3>
                 <p className={styles.propDesc}>
-                  Over 85% of every transaction goes directly to the creator, supporting independent artistic practice.
+                  90% of every transaction goes directly to the creator — only a 10% platform fee supports curation and operations.
                 </p>
               </div>
               <div className={styles.propCard}>

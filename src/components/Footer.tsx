@@ -26,10 +26,10 @@ export function Footer() {
             <h4 className={styles.colTitle}>Explore</h4>
             <ul className={styles.linkList}>
               <li><Link href="/explore">All Collections</Link></li>
-              <li><Link href="/explore?type=ORIGINAL_PAINTING">Original Paintings</Link></li>
-              <li><Link href="/explore?type=PRINTS">Fine Art Prints</Link></li>
-              <li><Link href="/explore?type=SCULPTURE">Sculptures &amp; Ceramics</Link></li>
-              <li><Link href="/explore?type=DIGITAL_ART">Digital Collectibles</Link></li>
+              <li><Link href="/explore?type=ORIGINAL">Original Works</Link></li>
+              <li><Link href="/explore?type=LIMITED_EDITION">Limited Editions</Link></li>
+              <li><Link href="/explore?type=MADE_TO_ORDER">Made to Order</Link></li>
+              <li><Link href="/explore?type=DIGITAL">Digital Collectibles</Link></li>
             </ul>
           </div>
 
@@ -46,8 +46,9 @@ export function Footer() {
           <div className={styles.linksCol}>
             <h4 className={styles.colTitle}>Kalaa Bhadra</h4>
             <ul className={styles.linkList}>
-              <li><Link href="/orders">Track Orders</Link></li>
-              <li><Link href="/sign-in">Account Login</Link></li>
+              <li><Link href="/about">About Us</Link></li>
+              <li><Link href="/faq">FAQ</Link></li>
+              <li><Link href="/shipping-returns">Shipping & Returns</Link></li>
               <li><Link href="/terms">Terms of Use</Link></li>
               <li><Link href="/privacy">Privacy Policy</Link></li>
               <li><a href="mailto:support@kalaabhadra.com">Collector Support</a></li>

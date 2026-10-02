@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ArtworkStatus, CreatorStatus } from "@prisma/client";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://ateliernco.vercel.app";
+  const rawBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://kalaabhadra.vercel.app";
+  const baseUrl = rawBaseUrl.replace(/\/+$/, "");
 
   // Static routes
   const routes: MetadataRoute.Sitemap = [

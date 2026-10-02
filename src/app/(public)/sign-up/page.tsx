@@ -53,7 +53,7 @@ export default function SignUpPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <Link href="/" className={styles.mark}>
-            Kaala Bhadra
+            Kalaa Bhadra
           </Link>
           <h1 className={styles.title}>Create your account</h1>
           <p className={styles.subtitle}>
@@ -107,7 +107,7 @@ export default function SignUpPage() {
         <SocialAuthButtons onError={(msg) => setError(msg)} />
 
         <p className={styles.termsNotice}>
-          By registering, you agree to Kaala Bhadra&apos;s{" "}
+          By registering, you agree to Kalaa Bhadra&apos;s{" "}
           <Link href="/terms">Terms of Use</Link> and{" "}
           <Link href="/privacy">Privacy Policy</Link>.
         </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { submitReviewAction } from "@/app/actions/reviews";
 import styles from "./ReviewsSection.module.css";
 
@@ -204,7 +205,7 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
                   <div className={styles.authorInfo}>
                     <div className={styles.authorAvatar}>
                       {r.author?.image ? (
-                        <img src={r.author.image} alt={r.author.name} />
+                        <Image src={r.author.image} alt={r.author.name || "Reviewer"} width={36} height={36} />
                       ) : (
                         <span>{r.author?.name?.charAt(0) || "P"}</span>
                       )}

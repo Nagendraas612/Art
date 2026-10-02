@@ -168,7 +168,7 @@ export async function sendMessageAction({
       // Fire and forget so we don't block the request
       sendEmail({
         to: recipientUser.email,
-        subject: `New Message from ${senderName} — Kaala Bhadra`,
+        subject: `New Message from ${senderName} — Kalaa Bhadra`,
         html: emailHtml,
       }).catch(console.error);
     }

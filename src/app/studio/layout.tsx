@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSession } from "@/modules/auth/guards";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import styles from "./studio.module.css";
 
 export const metadata = {
-  title: "Creator Studio — Kaala Bhadra",
+  title: "Creator Studio — Kalaa Bhadra",
   description: "Artisan and Creator Studio Management Dashboard",
 };
 
@@ -12,7 +14,15 @@ export default async function StudioLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getSession();
+  if (!session) {
+    redirect("/sign-in?callbackUrl=/studio");
+  }
+
   const creator = await getCurrentCreator();
+  if (!creator) {
+    redirect("/become-a-creator?notice=studio_access_required");
+  }
 
   return (
     <div className={styles.container}>
@@ -20,7 +30,7 @@ export default async function StudioLayout({
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <Link href="/" className={styles.brandMark}>
-            Kaala Bhadra
+            Kalaa Bhadra
           </Link>
           <span className={styles.studioTag}>Creator Studio</span>
         </div>
@@ -134,7 +144,7 @@ export default async function StudioLayout({
         <div className={styles.sidebarFooter}>
           <div className={styles.partnerBadge}>
             <span className={styles.badgeDot} />
-            <span>Verified Kaala Bhadra Partner</span>
+            <span>Verified Kalaa Bhadra Partner</span>
           </div>
         </div>
       </aside>

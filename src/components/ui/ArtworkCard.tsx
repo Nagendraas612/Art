@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { WishlistButton } from "@/components/ui/WishlistButton";
 import styles from "./ArtworkCard.module.css";
 
@@ -72,9 +73,11 @@ export function ArtworkCard({
       <div className={styles.imageWrap}>
         <Link href={`/artwork/${slug || id}`} className={styles.imageLink} aria-label={title}>
           {imageUrl ? (
-            <img
+            <Image
               src={imageUrl}
-              alt={imageAlt || title}
+              alt={imageAlt || title || "Artwork preview"}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className={styles.image}
               loading="lazy"
             />
@@ -94,9 +97,11 @@ export function ArtworkCard({
         <div className={styles.metaRow}>
           <Link href={`/creators/${creator.handle}`} className={styles.creatorLink}>
             {creator.avatarUrl && (
-              <img
+              <Image
                 src={creator.avatarUrl}
                 alt={creator.name}
+                width={24}
+                height={24}
                 className={styles.creatorAvatar}
               />
             )}

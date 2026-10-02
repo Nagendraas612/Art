@@ -165,6 +165,15 @@ export async function processCheckout(input: CheckoutInput) {
 
       // Create OrderItems & Earnings
       for (const item of validatedItems) {
+        // Atomic stock verification inside transaction
+        const liveArtwork = await tx.artwork.findUnique({
+          where: { id: item.artwork.id },
+        });
+
+        if (!liveArtwork || liveArtwork.stockStatus === StockStatus.SOLD || liveArtwork.stock < item.quantity) {
+          throw new Error(`"${item.artwork.title}" is no longer available.`);
+        }
+
         const platformCommission = new Prisma.Decimal((item.lineTotal * 0.1).toFixed(2)); // 10% platform fee
         const creatorAmount = new Prisma.Decimal((item.lineTotal * 0.9).toFixed(2));
 
@@ -245,7 +254,7 @@ export async function processCheckout(input: CheckoutInput) {
           orderId: order.id,
           status: isSandbox ? OrderStatus.ORDER_CONFIRMED : OrderStatus.PENDING_PAYMENT,
           note: isSandbox
-            ? "Payment verified via Kaala Bhadra Sandbox Simulator. Order placed with studio."
+            ? "Payment verified via Kalaa Bhadra Sandbox Simulator. Order placed with studio."
             : "Awaiting payment via Stripe.",
         },
       });
@@ -279,7 +288,7 @@ export async function processCheckout(input: CheckoutInput) {
         // 1. Send customer confirmation email
         sendEmail({
           to: customer.email,
-          subject: `🎨 Kaala Bhadra — Order Confirmed (#${createdOrder.orderNumber})`,
+          subject: `🎨 Kalaa Bhadra — Order Confirmed (#${createdOrder.orderNumber})`,
           html: buyerEmailHtml,
           templateType: "ORDER_CONFIRMATION",
           metadata: { orderId: createdOrder.id, orderNumber: createdOrder.orderNumber, grandTotal: grandTotalNum },
@@ -321,7 +330,7 @@ export async function processCheckout(input: CheckoutInput) {
             if (creator.user?.email) {
               sendEmail({
                 to: creator.user.email,
-                subject: `🎉 Kaala Bhadra Studio: New Order for "${item.artwork.title}" (#${createdOrder.orderNumber})`,
+                subject: `🎉 Kalaa Bhadra Studio: New Order for "${item.artwork.title}" (#${createdOrder.orderNumber})`,
                 html: generateCreatorNewOrderEmail({
                   creatorName: creator.user.name || creator.storeName,
                   orderNumber: createdOrder.orderNumber,

@@ -14,7 +14,7 @@ interface OrderConfirmationPageProps {
 export async function generateMetadata({ params }: OrderConfirmationPageProps) {
   const { orderNumber } = await params;
   return {
-    title: `Order ${orderNumber} Confirmed — Kaala Bhadra`,
+    title: `Order ${orderNumber} Confirmed — Kalaa Bhadra`,
     description: `Receipt and fulfillment tracking for order ${orderNumber}`,
   };
 }

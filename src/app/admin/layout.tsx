@@ -4,7 +4,7 @@ import { getCurrentAdmin } from "@/lib/admin-auth";
 import styles from "./admin.module.css";
 
 export const metadata = {
-  title: "Operations Hub — Kaala Bhadra Admin",
+  title: "Operations Hub — Kalaa Bhadra Admin",
   description: "Platform moderation, curation, economics and trust & safety control center.",
 };
 
@@ -25,7 +25,7 @@ export default async function AdminLayout({
       <aside className={styles.sidebar}>
         <div className={styles.brandArea}>
           <Link href="/admin" className={styles.brandLink}>
-            <span className={styles.brandName}>Kaala Bhadra</span>
+            <span className={styles.brandName}>Kalaa Bhadra</span>
             <span className={styles.badgeAdmin}>Operations Control</span>
           </Link>
         </div>
@@ -124,7 +124,7 @@ export default async function AdminLayout({
       <div className={styles.mainContent}>
         <header className={styles.topbar}>
           <div className={styles.topbarLeft}>
-            <span className={styles.breadcrumbs}>Kaala Bhadra Operations</span>
+            <span className={styles.breadcrumbs}>Kalaa Bhadra Operations</span>
           </div>
           <div className={styles.topbarRight}>
             <div className={styles.adminProfilePill}>

@@ -5,9 +5,14 @@ import styles from "./creators.module.css";
 import { CreatorStatus, ArtworkStatus } from "@prisma/client";
 import Link from "next/link";
 
+export const revalidate = 3600;
+
 export const metadata = {
-  title: "Artisans & Creators — Kaala Bhadra",
-  description: "Meet the master ceramists, painters, weavers, printmakers, and woodworkers showcasing their crafts on Kaala Bhadra.",
+  title: "Artisans & Creators — Kalaa Bhadra",
+  description: "Meet the master ceramists, painters, weavers, printmakers, and woodworkers showcasing their crafts on Kalaa Bhadra.",
+  alternates: {
+    canonical: "https://kalaabhadra.vercel.app/creators",
+  },
 };
 
 export default async function CreatorsPage() {
@@ -40,7 +45,7 @@ export default async function CreatorsPage() {
             <span className={styles.kicker}>The Artisans</span>
             <h1 className={styles.title}>Meet Our Creators</h1>
             <p className={styles.subtitle}>
-              Every creator on Kaala Bhadra is an independent maker dedicated to authentic materials,
+              Every creator on Kalaa Bhadra is an independent maker dedicated to authentic materials,
               traditional crafts, and intentional design.
             </p>
           </div>
@@ -76,7 +81,7 @@ export default async function CreatorsPage() {
               </p>
             </div>
             <Link href="/become-a-creator" className={styles.joinBtn}>
-              Apply to Join Kaala Bhadra &rarr;
+              Apply to Join Kalaa Bhadra &rarr;
             </Link>
           </div>
         </section>

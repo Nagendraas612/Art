@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: CommissionPageProps) {
   if (!creator) return { title: "Creator Not Found" };
 
   return {
-    title: `Commission Custom Work — ${creator.storeName} | Kaala Bhadra`,
+    title: `Commission Custom Work — ${creator.storeName} | Kalaa Bhadra`,
     description: `Request a bespoke handcrafted commission with ${creator.storeName}.`,
   };
 }

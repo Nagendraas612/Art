@@ -66,7 +66,7 @@ export function CreatorOnboardingForm({ user, existingProfile }: CreatorOnboardi
       <div className={styles.authNotice}>
         <h3 className={styles.noticeTitle}>Sign in to launch your studio</h3>
         <p className={styles.noticeText}>
-          You need an active Kaala Bhadra collector account before setting up your creator profile and store.
+          You need an active Kalaa Bhadra collector account before setting up your creator profile and store.
         </p>
         <div className={styles.authActions}>
           <Link href="/sign-in?callbackUrl=/become-a-creator" className={styles.btnPrimary}>
@@ -179,7 +179,7 @@ export function CreatorOnboardingForm({ user, existingProfile }: CreatorOnboardi
                 className={styles.handleInput}
               />
             </div>
-            <span className={styles.hint}>Your studio URL: kaalabhadra.com/creators/{handle || "handle"}</span>
+            <span className={styles.hint}>Your studio URL: kalaabhadra.com/creators/{handle || "handle"}</span>
           </div>
         </div>
 

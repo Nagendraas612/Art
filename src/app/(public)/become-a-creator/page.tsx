@@ -5,7 +5,7 @@ import { CreatorOnboardingForm } from "./CreatorOnboardingForm";
 import styles from "./become-a-creator.module.css";
 
 export const metadata = {
-  title: "Join as a Creator — Kaala Bhadra",
+  title: "Join as a Creator — Kalaa Bhadra",
   description: "Set up your independent artisan studio and showcase original artworks directly to collectors.",
 };
 
@@ -27,7 +27,7 @@ export default async function BecomeACreatorPage() {
           <div className={styles.header}>
             <span className={styles.kicker}>Artisan Onboarding</span>
             <h1 className={styles.title}>
-              {existingProfile ? "Your Creator Studio Profile" : "Launch Your Kaala Bhadra Studio"}
+              {existingProfile ? "Your Creator Studio Profile" : "Launch Your Kalaa Bhadra Studio"}
             </h1>
             <p className={styles.subtitle}>
               Share your craft, set your studio identity, and connect directly with collectors looking

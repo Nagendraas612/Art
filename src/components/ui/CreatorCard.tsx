@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { FollowButton } from "@/components/ui/FollowButton";
 import styles from "./CreatorCard.module.css";
 
@@ -36,7 +37,14 @@ export function CreatorCard({
       <Link href={`/creators/${handle}`} className={styles.coverLink}>
         <div className={styles.coverWrap}>
           {coverImageUrl ? (
-            <img src={coverImageUrl} alt={storeName} className={styles.coverImage} loading="lazy" />
+            <Image
+              src={coverImageUrl}
+              alt={`${storeName} cover`}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className={styles.coverImage}
+              loading="lazy"
+            />
           ) : (
             <div className={styles.coverPlaceholder} />
           )}
@@ -50,7 +58,13 @@ export function CreatorCard({
         <div className={styles.avatarRow}>
           <div className={styles.avatarWrap}>
             {profileImageUrl ? (
-              <img src={profileImageUrl} alt={storeName} className={styles.avatar} />
+              <Image
+                src={profileImageUrl}
+                alt={storeName}
+                fill
+                sizes="64px"
+                className={styles.avatar}
+              />
             ) : (
               <div className={styles.avatarFallback}>{storeName.charAt(0)}</div>
             )}

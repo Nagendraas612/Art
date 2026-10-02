@@ -5,29 +5,21 @@ import { CreatorStatus } from "@prisma/client";
 export async function getCurrentCreator() {
   const session = await getSession();
 
-  if (session?.user?.id) {
-    const creator = await prisma.creatorProfile.findUnique({
-      where: { userId: session.user.id },
-      include: {
-        user: true,
-        artworks: true,
-      },
-    });
-
-    if (creator && creator.status === CreatorStatus.APPROVED) {
-      return creator;
-    }
+  if (!session?.user?.id) {
+    return null;
   }
 
-  // Fallback in dev/local mode: Return the primary approved studio (e.g. Studio Rostova)
-  const defaultCreator = await prisma.creatorProfile.findFirst({
-    where: { status: CreatorStatus.APPROVED },
+  const creator = await prisma.creatorProfile.findUnique({
+    where: { userId: session.user.id },
     include: {
       user: true,
       artworks: true,
     },
-    orderBy: { createdAt: "asc" },
   });
 
-  return defaultCreator;
+  if (creator && creator.status === CreatorStatus.APPROVED) {
+    return creator;
+  }
+
+  return null;
 }

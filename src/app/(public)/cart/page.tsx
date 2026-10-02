@@ -30,8 +30,16 @@ export default function CartPage() {
       <>
         <Nav />
         <main className={styles.main}>
-          <div className="wrap">
-            <div className={styles.loading}>Loading your curated bag...</div>
+          <div className="wrap" style={{ padding: "40px 0" }}>
+            <div style={{ width: "200px", height: "32px", background: "var(--paper-deep)", borderRadius: "4px", marginBottom: "24px" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "40px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {[1, 2].map((i) => (
+                  <div key={i} style={{ height: "120px", background: "var(--paper-deep)", borderRadius: "8px" }} />
+                ))}
+              </div>
+              <div style={{ height: "260px", background: "var(--paper-deep)", borderRadius: "8px" }} />
+            </div>
           </div>
         </main>
       </>
@@ -211,7 +219,7 @@ export default function CartPage() {
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
-                    <span>Secure encrypted checkout &bull; Stripe Verified</span>
+                    <span>Secure encrypted checkout &bull; Cashfree Verified</span>
                   </div>
                   <div className={styles.guaranteeItem}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

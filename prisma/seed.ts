@@ -215,7 +215,7 @@ async function main() {
     update: { role: Role.ADMIN },
     create: {
       email: "admin@kaalabhadra.com",
-      name: "Kaala Bhadra Operations",
+      name: "Kalaa Bhadra Operations",
       role: Role.ADMIN,
       emailVerified: true,
     },
@@ -434,7 +434,7 @@ async function main() {
       isFragile: true,
       processingDays: 5,
       images: [
-        { url: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Ceramic totem sculpture" },
+        { url: "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Ceramic totem sculpture" },
       ],
     },
 
@@ -699,7 +699,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Spalted wood tray" },
+        { url: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Spalted wood tray" },
       ],
     },
     {
@@ -724,7 +724,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 3,
       images: [
-        { url: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Teak pedestal bowl" },
+        { url: "https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Teak pedestal bowl" },
       ],
     },
     {
@@ -749,7 +749,7 @@ async function main() {
       hasCertificate: false,
       processingDays: 1,
       images: [
-        { url: "https://images.unsplash.com/photo-1590736969955-71cc94801759?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Olivewood utensils set" },
+        { url: "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Olivewood utensils set" },
       ],
     },
   ];

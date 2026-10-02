@@ -2,8 +2,8 @@ import Link from "next/link";
 import styles from "../legal.module.css";
 
 export const metadata = {
-  title: "Privacy Policy | Kaala Bhadra",
-  description: "Privacy policy and data protection practices for Kaala Bhadra.",
+  title: "Privacy Policy | Kalaa Bhadra",
+  description: "Privacy policy and data protection practices for Kalaa Bhadra.",
 };
 
 export default function PrivacyPage() {
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
 
         <div className={styles.content}>
           <p>
-            At <strong>Kaala Bhadra</strong>, we prioritize the protection and confidentiality of your personal information. This Privacy Policy details how we collect, handle, and secure your data.
+            At <strong>Kalaa Bhadra</strong>, we prioritize the protection and confidentiality of your personal information. This Privacy Policy details how we collect, handle, and secure your data.
           </p>
 
           <h2>1. Information We Collect</h2>

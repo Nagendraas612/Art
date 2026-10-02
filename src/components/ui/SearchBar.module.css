@@ -126,10 +126,23 @@
 }
 
 .loading, .noResults {
-  padding: 16px;
+  padding: 20px 16px;
   font-size: 13px;
   color: var(--charcoal);
   text-align: center;
+}
+
+.noResultsTitle {
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 4px 0;
+  font-size: 14px;
+}
+
+.noResultsHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--clay);
 }
 
 .resultList {

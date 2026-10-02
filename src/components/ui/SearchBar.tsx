@@ -147,7 +147,10 @@ export function SearchBar() {
               </li>
             </ul>
           ) : (
-            <div className={styles.noResults}>No matches found.</div>
+            <div className={styles.noResults}>
+              <p className={styles.noResultsTitle}>No pieces match &ldquo;{query}&rdquo;</p>
+              <p className={styles.noResultsHint}>Try searching for &ldquo;ceramic&rdquo;, &ldquo;oil painting&rdquo;, or artist name.</p>
+            </div>
           )}
         </div>
       )}

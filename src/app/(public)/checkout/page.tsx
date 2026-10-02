@@ -13,6 +13,8 @@ export default function CheckoutPage() {
   const { items, subtotal, isHydrated, clearCart } = useCart();
   const router = useRouter();
 
+  const sandboxEnabled = process.env.NEXT_PUBLIC_ENABLE_SANDBOX_CHECKOUT === "true";
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -23,7 +25,7 @@ export default function CheckoutPage() {
     state: "",
     postalCode: "",
     country: "India",
-    paymentMethod: "SANDBOX" as "SANDBOX" | "CASHFREE",
+    paymentMethod: (sandboxEnabled ? "SANDBOX" : "CASHFREE") as "SANDBOX" | "CASHFREE",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -326,30 +328,32 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className={styles.paymentMethods}>
-                  <label
-                    className={`${styles.paymentOption} ${
-                      formData.paymentMethod === "SANDBOX" ? styles.selectedOption : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="SANDBOX"
-                      checked={formData.paymentMethod === "SANDBOX"}
-                      onChange={handleChange}
-                    />
-                    <div className={styles.paymentInfo}>
-                      <div className={styles.paymentNameRow}>
-                        <span className={styles.paymentName}>
-                          Atelier Sandbox Simulator (1-Click Test Checkout)
-                        </span>
-                        <span className={styles.recommendedBadge}>Dev Recommended</span>
+                  {sandboxEnabled && (
+                    <label
+                      className={`${styles.paymentOption} ${
+                        formData.paymentMethod === "SANDBOX" ? styles.selectedOption : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="SANDBOX"
+                        checked={formData.paymentMethod === "SANDBOX"}
+                        onChange={handleChange}
+                      />
+                      <div className={styles.paymentInfo}>
+                        <div className={styles.paymentNameRow}>
+                          <span className={styles.paymentName}>
+                            Atelier Sandbox Simulator (1-Click Test Checkout)
+                          </span>
+                          <span className={styles.recommendedBadge}>Dev Recommended</span>
+                        </div>
+                        <p className={styles.paymentDesc}>
+                          Instant verification for local environments. Creates authentic database orders, updates stock, and generates fulfillment records without needing live cards.
+                        </p>
                       </div>
-                      <p className={styles.paymentDesc}>
-                        Instant verification for local environments. Creates authentic database orders, updates stock, and generates fulfillment records without needing live Stripe cards.
-                      </p>
-                    </div>
-                  </label>
+                    </label>
+                  )}
 
                   <label
                     className={`${styles.paymentOption} ${

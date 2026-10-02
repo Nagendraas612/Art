@@ -1,12 +1,17 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Nav } from "@/components/Nav";
+import { ArtworkCard } from "@/components/ui/ArtworkCard";
+import { ShareButtons } from "@/components/ui/ShareButtons";
 import Link from "next/link";
 import styles from "./artwork.module.css";
 import { ArtworkProductType, ArtworkStatus, StockStatus } from "@prisma/client";
 import { AddToCartCTA } from "@/components/ui/AddToCartCTA";
 
 import { ReviewsSection } from "@/components/ui/ReviewsSection";
+
+export const revalidate = 3600;
 
 interface ArtworkDetailPageProps {
   params: Promise<{
@@ -34,6 +39,9 @@ export async function generateMetadata({ params }: ArtworkDetailPageProps) {
   return {
     title: `${artwork.title} — ${artwork.creator.user.name}`,
     description: artwork.description.substring(0, 160),
+    alternates: {
+      canonical: `https://kalaabhadra.vercel.app/artwork/${artwork.slug || artwork.id}`,
+    },
     openGraph: {
       title: `${artwork.title} by ${artwork.creator.user.name}`,
       description: artwork.description.substring(0, 160),
@@ -80,6 +88,22 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
     notFound();
   }
 
+  const relatedArtworks = await prisma.artwork.findMany({
+    where: {
+      status: ArtworkStatus.PUBLISHED,
+      id: { not: artwork.id },
+      OR: [
+        { categoryId: artwork.categoryId },
+        { creatorId: artwork.creatorId },
+      ],
+    },
+    take: 3,
+    include: {
+      images: { orderBy: { sortOrder: "asc" }, take: 1 },
+      creator: { include: { user: true } },
+    },
+  });
+
   const numPrice = typeof artwork.price === "number" ? artwork.price : parseFloat(artwork.price.toString());
   const formattedPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -110,13 +134,13 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
     },
     "offers": {
       "@type": "Offer",
-      "url": `https://ateliernco.vercel.app/artwork/${artwork.slug || artwork.id}`,
+      "url": `https://kalaabhadra.vercel.app/artwork/${artwork.slug || artwork.id}`,
       "priceCurrency": artwork.currency,
       "price": artwork.price.toString(),
       "availability": isAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       "seller": {
         "@type": "Organization",
-        "name": "Kaala Bhadra",
+        "name": "Kalaa Bhadra",
       },
     },
   };
@@ -144,9 +168,12 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
             <div className={styles.galleryCol}>
               <div className={styles.mainImageWrap}>
                 {mainImage ? (
-                  <img
+                  <Image
                     src={mainImage}
                     alt={artwork.images[0]?.altText || artwork.title}
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 60vw"
                     className={styles.mainImage}
                   />
                 ) : (
@@ -161,7 +188,13 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
                 <div className={styles.detailGrid}>
                   {detailImages.map((img, idx) => (
                     <div key={img.id || idx} className={styles.detailImageWrap}>
-                      <img src={img.url} alt={img.altText || `Detail ${idx + 1}`} className={styles.detailImage} />
+                      <Image
+                        src={img.url}
+                        alt={img.altText || `Detail ${idx + 1}`}
+                        fill
+                        sizes="(max-width: 1024px) 33vw, 20vw"
+                        className={styles.detailImage}
+                      />
                     </div>
                   ))}
                 </div>
@@ -174,9 +207,11 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
               <div className={styles.creatorAttribution}>
                 <Link href={`/creators/${artwork.creator.handle}`} className={styles.creatorLink}>
                   {artwork.creator.profileImageUrl || artwork.creator.user.image ? (
-                    <img
+                    <Image
                       src={artwork.creator.profileImageUrl || artwork.creator.user.image!}
                       alt={artwork.creator.user.name}
+                      width={40}
+                      height={40}
                       className={styles.creatorAvatar}
                     />
                   ) : null}
@@ -317,9 +352,11 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
                 <div className={styles.creatorCardHeader}>
                   <div className={styles.creatorCardAvatar}>
                     {artwork.creator.profileImageUrl || artwork.creator.user.image ? (
-                      <img
+                      <Image
                         src={artwork.creator.profileImageUrl || artwork.creator.user.image!}
                         alt={artwork.creator.user.name}
+                        width={48}
+                        height={48}
                       />
                     ) : (
                       <span>{artwork.creator.storeName.charAt(0)}</span>
@@ -335,8 +372,49 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
                   View full studio portfolio &rarr;
                 </Link>
               </div>
+
+              {/* Share Buttons */}
+              <ShareButtons title={artwork.title} />
             </div>
           </div>
+
+          {/* Related Artworks */}
+          {relatedArtworks.length > 0 && (
+            <section style={{ marginTop: "64px", paddingTop: "48px", borderTop: "1px solid var(--paper-deep)" }}>
+              <div style={{ marginBottom: "24px" }}>
+                <span style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--moss)", fontWeight: 600 }}>
+                  Curated Collection
+                </span>
+                <h3 style={{ fontFamily: "var(--serif)", fontSize: "28px", margin: "4px 0 0 0", fontWeight: 400 }}>
+                  You May Also Like
+                </h3>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
+                {relatedArtworks.map((item) => (
+                  <ArtworkCard
+                    key={item.id}
+                    id={item.id}
+                    slug={item.slug}
+                    title={item.title}
+                    price={item.price.toString()}
+                    currency={item.currency}
+                    productType={item.productType}
+                    imageUrl={item.images[0]?.url}
+                    imageAlt={item.images[0]?.altText || item.title}
+                    creator={{
+                      name: item.creator.user.name,
+                      handle: item.creator.handle,
+                      avatarUrl: item.creator.profileImageUrl || item.creator.user.image,
+                    }}
+                    isSigned={item.isSigned}
+                    hasCertificate={item.hasCertificate}
+                    editionSize={item.editionSize}
+                    editionSold={item.editionSold}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Collector Reviews */}
           <ReviewsSection

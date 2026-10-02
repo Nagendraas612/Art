@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
@@ -8,6 +9,8 @@ import styles from "./creator-profile.module.css";
 import { ArtworkStatus } from "@prisma/client";
 import { MessageArtistModal } from "@/components/ui/MessageArtistModal";
 import { FollowButton } from "@/components/ui/FollowButton";
+
+export const revalidate = 3600;
 
 interface CreatorProfilePageProps {
   params: Promise<{
@@ -25,8 +28,22 @@ export async function generateMetadata({ params }: CreatorProfilePageProps) {
   if (!creator) return { title: "Creator Not Found" };
 
   return {
-    title: `${creator.storeName} (@${creator.handle}) — Kaala Bhadra`,
+    title: `${creator.storeName} (@${creator.handle}) — Kalaa Bhadra`,
     description: creator.bio || creator.tagline || `Artworks and handmade pieces by ${creator.user.name}`,
+    alternates: {
+      canonical: `https://kalaabhadra.vercel.app/creators/${creator.handle}`,
+    },
+    openGraph: {
+      title: `${creator.storeName} (@${creator.handle}) — Kalaa Bhadra`,
+      description: creator.bio || creator.tagline || `Artworks and handmade pieces by ${creator.user.name}`,
+      ...(creator.coverImageUrl && { images: [{ url: creator.coverImageUrl }] }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${creator.storeName} (@${creator.handle}) — Kalaa Bhadra`,
+      description: creator.bio || creator.tagline || `Artworks and handmade pieces by ${creator.user.name}`,
+      ...(creator.coverImageUrl && { images: [creator.coverImageUrl] }),
+    },
   };
 }
 
@@ -84,7 +101,14 @@ export default async function CreatorProfilePage({ params }: CreatorProfilePageP
         {/* Cover image banner */}
         <div className={styles.coverWrapper}>
           {creator.coverImageUrl ? (
-            <img src={creator.coverImageUrl} alt={creator.storeName} className={styles.coverImage} />
+            <Image
+              src={creator.coverImageUrl}
+              alt={`${creator.storeName} cover banner`}
+              fill
+              priority
+              sizes="100vw"
+              className={styles.coverImage}
+            />
           ) : (
             <div className={styles.coverPlaceholder} />
           )}
@@ -95,9 +119,11 @@ export default async function CreatorProfilePage({ params }: CreatorProfilePageP
           <div className={styles.headerRow}>
             <div className={styles.avatarWrap}>
               {creator.profileImageUrl || creator.user.image ? (
-                <img
+                <Image
                   src={creator.profileImageUrl || creator.user.image!}
                   alt={creator.user.name}
+                  fill
+                  sizes="100px"
                   className={styles.avatar}
                 />
               ) : (

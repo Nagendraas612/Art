@@ -11,7 +11,7 @@ interface MessagesPageProps {
 }
 
 export const metadata = {
-  title: "Messages & Studio Inquiries — Kaala Bhadra",
+  title: "Messages & Studio Inquiries — Kalaa Bhadra",
   description: "Direct encrypted chat with independent master artists and craft studios.",
 };
 

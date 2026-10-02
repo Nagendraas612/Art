@@ -84,6 +84,7 @@
   border: 3px solid var(--paper-0);
   background: var(--paper);
   overflow: hidden;
+  position: relative;
   box-shadow: 0 4px 10px rgba(33, 29, 22, 0.1);
 }
 

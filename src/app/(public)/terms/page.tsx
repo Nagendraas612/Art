@@ -2,8 +2,8 @@ import Link from "next/link";
 import styles from "../legal.module.css";
 
 export const metadata = {
-  title: "Terms of Use | Kaala Bhadra",
-  description: "Terms of service and platform agreements for Kaala Bhadra.",
+  title: "Terms of Use | Kalaa Bhadra",
+  description: "Terms of service and platform agreements for Kalaa Bhadra.",
 };
 
 export default function TermsPage() {
@@ -18,12 +18,12 @@ export default function TermsPage() {
 
         <div className={styles.content}>
           <p>
-            Welcome to <strong>Kaala Bhadra</strong>. These Terms of Use govern your access to and use of our artisanal marketplace, including any purchases, creator storefronts, and direct commissions.
+            Welcome to <strong>Kalaa Bhadra</strong>. These Terms of Use govern your access to and use of our artisanal marketplace, including any purchases, creator storefronts, and direct commissions.
           </p>
 
           <h2>1. Platform Marketplace &amp; Authenticity</h2>
           <p>
-            Kaala Bhadra connects discerning collectors with independent artisans and studios. Each original artwork and bespoke commission is accompanied by an artisan Certificate of Authenticity.
+            Kalaa Bhadra connects discerning collectors with independent artisans and studios. Each original artwork and bespoke commission is accompanied by an artisan Certificate of Authenticity.
           </p>
 
           <h2>2. Buyer Orders &amp; Payments</h2>
