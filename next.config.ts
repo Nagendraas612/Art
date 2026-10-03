@@ -1,15 +1,19 @@
 import type { NextConfig } from "next";
 
 // P8: the image optimizer is no longer an open proxy. Only hosts we actually
-// use are allowed: our Cloudinary pipeline, legacy Unsplash seed photos, and
-// Cashfree's checkout assets. Everything else 400s at the optimizer.
+// use are allowed: our Cloudinary pipeline, the artwork photo hosts used by
+// the seed / image-repair script, and Cashfree's checkout assets. Everything
+// else 400s at the optimizer.
 const IMAGE_HOSTS = [
   "res.cloudinary.com",
   "images.unsplash.com",
   "images.pexels.com",
-  "cashfree.com",
-  "www.cashfree.com",
+  "images.stockcake.com",
+  "cdn.myportfolio.com",
+  "lh3.googleusercontent.com", // Google OAuth avatars
 ];
+const CHECKOUT_ASSET_HOSTS = ["cashfree.com", "www.cashfree.com"];
+const REMOTE_IMAGE_HOSTS = [...IMAGE_HOSTS, ...CHECKOUT_ASSET_HOSTS];
 
 // P8: Content-Security-Policy. `unsafe-inline`/`unsafe-eval` are required by
 // Next.js itself (inline scripts/styles); everything else is locked down:
@@ -22,7 +26,7 @@ const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.cashfree.com",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://images.pexels.com",
+  "img-src 'self' data: blob: " + IMAGE_HOSTS.map((h) => `https://${h}`).join(" "),
   "font-src 'self' data:",
   "connect-src 'self' https://api.cashfree.com https://sandbox.cashfree.com https://sdk.cashfree.com https://api.cloudinary.com",
   "frame-src https://www.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com",
@@ -35,7 +39,7 @@ const csp = [
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: IMAGE_HOSTS.map((hostname) => ({
+    remotePatterns: REMOTE_IMAGE_HOSTS.map((hostname) => ({
       protocol: "https" as const,
       hostname,
     })),
