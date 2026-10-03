@@ -63,9 +63,18 @@ export function proxy(request: NextRequest) {
     }
   }
 
+  // Stash the request path for studio routes so the studio layout (which
+  // cannot read the pathname directly) can build accurate post-sign-in
+  // callback URLs, e.g. /studio/orders instead of a hardcoded /studio.
+  if (pathname.startsWith("/studio")) {
+    const headers = new Headers(request.headers);
+    headers.set("x-request-path", pathname + request.nextUrl.search);
+    return NextResponse.next({ request: { headers } });
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/api/auth/:path*", "/checkout", "/api/checkout/:path*"],
+  matcher: ["/api/auth/:path*", "/checkout", "/api/checkout/:path*", "/studio/:path*"],
 };

@@ -1,0 +1,67 @@
+From 0a74c622e46759b62307af40507ac8c406d2221a Mon Sep 17 00:00:00 2001
+From: nags <nags@kalaa-bhadra.local>
+Date: Sat, 3 Oct 2026 18:38:45 +0000
+Subject: [PATCH] fix: merge studio callback header into existing proxy.ts
+ (Next 16 rejects middleware.ts + proxy.ts together)
+
+---
+ src/middleware.ts | 22 ----------------------
+ src/proxy.ts      | 11 ++++++++++-
+ 2 files changed, 10 insertions(+), 23 deletions(-)
+ delete mode 100644 src/middleware.ts
+
+diff --git a/src/middleware.ts b/src/middleware.ts
+deleted file mode 100644
+index 1344109..0000000
+--- a/src/middleware.ts
++++ /dev/null
+@@ -1,22 +0,0 @@
+-import { NextResponse } from "next/server";
+-import type { NextRequest } from "next/server";
+-
+-/**
+- * Stash the request path in a header so server layouts — which cannot read
+- * the pathname directly — can build accurate post-sign-in callback URLs
+- * (e.g. /studio/orders instead of a hardcoded /studio).
+- *
+- * Runs only on studio routes; everything else is untouched.
+- */
+-export function middleware(request: NextRequest) {
+-  const headers = new Headers(request.headers);
+-  headers.set(
+-    "x-request-path",
+-    request.nextUrl.pathname + request.nextUrl.search
+-  );
+-  return NextResponse.next({ request: { headers } });
+-}
+-
+-export const config = {
+-  matcher: ["/studio/:path*"],
+-};
+diff --git a/src/proxy.ts b/src/proxy.ts
+index 752edf5..c269f82 100644
+--- a/src/proxy.ts
++++ b/src/proxy.ts
+@@ -63,9 +63,18 @@ export function proxy(request: NextRequest) {
+     }
+   }
+ 
++  // Stash the request path for studio routes so the studio layout (which
++  // cannot read the pathname directly) can build accurate post-sign-in
++  // callback URLs, e.g. /studio/orders instead of a hardcoded /studio.
++  if (pathname.startsWith("/studio")) {
++    const headers = new Headers(request.headers);
++    headers.set("x-request-path", pathname + request.nextUrl.search);
++    return NextResponse.next({ request: { headers } });
++  }
++
+   return NextResponse.next();
+ }
+ 
+ export const config = {
+-  matcher: ["/api/auth/:path*", "/checkout", "/api/checkout/:path*"],
++  matcher: ["/api/auth/:path*", "/checkout", "/api/checkout/:path*", "/studio/:path*"],
+ };
+-- 
+2.43.0
+
