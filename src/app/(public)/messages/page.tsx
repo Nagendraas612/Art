@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
+import { redirect } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { ChatView, ConversationSummary } from "@/components/messaging/ChatView";
 import styles from "./messages.module.css";
@@ -18,18 +19,23 @@ export const metadata = {
 export default async function MessagesPage({ searchParams }: MessagesPageProps) {
   const { conversationId } = await searchParams;
   const session = await getSession();
-  let userId = session?.user?.id;
+
+  // Private conversations must never be visible without a session. Previously
+  // an unauthenticated visitor received EVERY conversation platform-wide
+  // because the Prisma filter fell back to `undefined`.
+  if (!session?.user?.id) {
+    redirect("/sign-in?callbackUrl=/messages");
+  }
+  const userId = session.user.id;
 
   // Find conversations where user is the customer, OR where user is the creator behind a CreatorProfile
   const conversationsData = await prisma.conversation.findMany({
-    where: userId
-      ? {
-          OR: [
-            { customerId: userId },
-            { creator: { userId: userId } },
-          ],
-        }
-      : undefined,
+    where: {
+      OR: [
+        { customerId: userId },
+        { creator: { userId: userId } },
+      ],
+    },
     include: {
       creator: { include: { user: true } },
       customer: true,

@@ -1,0 +1,327 @@
+diff --git a/.env.example b/.env.example
+index 96db2f3..874f246 100644
+--- a/.env.example
++++ b/.env.example
+@@ -13,6 +13,12 @@ EMAIL_FROM="Atelier & Co. <concierge@yourdomain.com>"
+ CASHFREE_APP_ID="your_cashfree_app_id_here"
+ CASHFREE_SECRET_KEY="your_cashfree_secret_key_here"
+ CASHFREE_ENVIRONMENT=SANDBOX
++# Mirror of CASHFREE_ENVIRONMENT for the client-side Cashfree SDK (SANDBOX / PRODUCTION)
++NEXT_PUBLIC_CASHFREE_ENVIRONMENT=SANDBOX
++
++# Dev-only: when "true", checkout uses the sandbox simulator instead of Cashfree.
++# NEVER set this to true in production. Decided server-side only.
++SANDBOX_CHECKOUT_ENABLED=false
+ 
+ # Google OAuth (Social Login)
+ GOOGLE_CLIENT_ID="your_google_client_id_here.apps.googleusercontent.com"
+diff --git a/src/app/(public)/checkout/page.tsx b/src/app/(public)/checkout/page.tsx
+index 1bc26bc..3443127 100644
+--- a/src/app/(public)/checkout/page.tsx
++++ b/src/app/(public)/checkout/page.tsx
+@@ -13,8 +13,6 @@ export default function CheckoutPage() {
+   const { items, subtotal, isHydrated, clearCart } = useCart();
+   const router = useRouter();
+ 
+-  const sandboxEnabled = process.env.NEXT_PUBLIC_ENABLE_SANDBOX_CHECKOUT === "true";
+-
+   const [formData, setFormData] = useState({
+     fullName: "",
+     email: "",
+@@ -25,7 +23,6 @@ export default function CheckoutPage() {
+     state: "",
+     postalCode: "",
+     country: "India",
+-    paymentMethod: (sandboxEnabled ? "SANDBOX" : "CASHFREE") as "SANDBOX" | "CASHFREE",
+   });
+ 
+   const [isSubmitting, setIsSubmitting] = useState(false);
+@@ -90,7 +87,6 @@ export default function CheckoutPage() {
+           postalCode: formData.postalCode,
+           country: formData.country,
+         },
+-        paymentMethod: formData.paymentMethod,
+       });
+ 
+       if (res.error) {
+@@ -103,8 +99,13 @@ export default function CheckoutPage() {
+       clearCart();
+ 
+       if (res.paymentSessionId) {
+-        // Initialize Cashfree Checkout
+-        const cashfree = await (window as any).Cashfree({ mode: "sandbox" }); // or production based on env
++        // Initialize Cashfree Checkout. SDK mode must match the server's
++        // CASHFREE_ENVIRONMENT (default sandbox for local dev).
++        const cfMode =
++          process.env.NEXT_PUBLIC_CASHFREE_ENVIRONMENT === "PRODUCTION"
++            ? "production"
++            : "sandbox";
++        const cashfree = await (window as any).Cashfree({ mode: cfMode });
+         
+         let checkoutOptions = {
+           paymentSessionId: res.paymentSessionId,
+@@ -328,45 +329,9 @@ export default function CheckoutPage() {
+                 </div>
+ 
+                 <div className={styles.paymentMethods}>
+-                  {sandboxEnabled && (
+-                    <label
+-                      className={`${styles.paymentOption} ${
+-                        formData.paymentMethod === "SANDBOX" ? styles.selectedOption : ""
+-                      }`}
+-                    >
+-                      <input
+-                        type="radio"
+-                        name="paymentMethod"
+-                        value="SANDBOX"
+-                        checked={formData.paymentMethod === "SANDBOX"}
+-                        onChange={handleChange}
+-                      />
+-                      <div className={styles.paymentInfo}>
+-                        <div className={styles.paymentNameRow}>
+-                          <span className={styles.paymentName}>
+-                            Atelier Sandbox Simulator (1-Click Test Checkout)
+-                          </span>
+-                          <span className={styles.recommendedBadge}>Dev Recommended</span>
+-                        </div>
+-                        <p className={styles.paymentDesc}>
+-                          Instant verification for local environments. Creates authentic database orders, updates stock, and generates fulfillment records without needing live cards.
+-                        </p>
+-                      </div>
+-                    </label>
+-                  )}
+-
+-                  <label
+-                    className={`${styles.paymentOption} ${
+-                      formData.paymentMethod === "CASHFREE" ? styles.selectedOption : ""
+-                    }`}
+-                  >
+-                    <input
+-                      type="radio"
+-                      name="paymentMethod"
+-                      value="CASHFREE"
+-                      checked={formData.paymentMethod === "CASHFREE"}
+-                      onChange={handleChange}
+-                    />
++                  {/* Payment mode is decided server-side only. The gateway shown
++                      here is informational; the client never selects it. */}
++                  <div className={`${styles.paymentOption} ${styles.selectedOption}`}>
+                     <div className={styles.paymentInfo}>
+                       <div className={styles.paymentNameRow}>
+                         <span className={styles.paymentName}>
+@@ -377,7 +342,7 @@ export default function CheckoutPage() {
+                         Secured by Cashfree Payments. Supports all major cards, UPI apps, and netbanking.
+                       </p>
+                     </div>
+-                  </label>
++                  </div>
+                 </div>
+               </section>
+ 
+diff --git a/src/app/(public)/messages/page.tsx b/src/app/(public)/messages/page.tsx
+index 4343527..ae8b9c1 100644
+--- a/src/app/(public)/messages/page.tsx
++++ b/src/app/(public)/messages/page.tsx
+@@ -1,5 +1,6 @@
+ import { prisma } from "@/lib/prisma";
+ import { getSession } from "@/modules/auth/guards";
++import { redirect } from "next/navigation";
+ import { Nav } from "@/components/Nav";
+ import { ChatView, ConversationSummary } from "@/components/messaging/ChatView";
+ import styles from "./messages.module.css";
+@@ -18,18 +19,23 @@ export const metadata = {
+ export default async function MessagesPage({ searchParams }: MessagesPageProps) {
+   const { conversationId } = await searchParams;
+   const session = await getSession();
+-  let userId = session?.user?.id;
++
++  // Private conversations must never be visible without a session. Previously
++  // an unauthenticated visitor received EVERY conversation platform-wide
++  // because the Prisma filter fell back to `undefined`.
++  if (!session?.user?.id) {
++    redirect("/sign-in?callbackUrl=/messages");
++  }
++  const userId = session.user.id;
+ 
+   // Find conversations where user is the customer, OR where user is the creator behind a CreatorProfile
+   const conversationsData = await prisma.conversation.findMany({
+-    where: userId
+-      ? {
+-          OR: [
+-            { customerId: userId },
+-            { creator: { userId: userId } },
+-          ],
+-        }
+-      : undefined,
++    where: {
++      OR: [
++        { customerId: userId },
++        { creator: { userId: userId } },
++      ],
++    },
+     include: {
+       creator: { include: { user: true } },
+       customer: true,
+diff --git a/src/app/(public)/orders/[orderNumber]/page.tsx b/src/app/(public)/orders/[orderNumber]/page.tsx
+index 792b41b..926c185 100644
+--- a/src/app/(public)/orders/[orderNumber]/page.tsx
++++ b/src/app/(public)/orders/[orderNumber]/page.tsx
+@@ -1,6 +1,7 @@
+ import { notFound } from "next/navigation";
+ import Link from "next/link";
+ import { prisma } from "@/lib/prisma";
++import { getSession } from "@/modules/auth/guards";
+ import { Nav } from "@/components/Nav";
+ import { OrderStatus } from "@prisma/client";
+ import styles from "./order.module.css";
+@@ -49,6 +50,23 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
+     notFound();
+   }
+ 
++  // Ownership check: order pages previously rendered full name, address and
++  // phone to anyone with the order number (5-digit, enumerable). Only the
++  // ordering customer, a creator with items in the order, or an admin may
++  // view. Deliberately 404 (not 403) so existence isn't confirmed.
++  const session = await getSession();
++  const viewerId = session?.user?.id;
++  const viewerRole = session?.user?.role;
++  const isOwner = !!viewerId && viewerId === order.customerId;
++  const isAdmin = viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN";
++  const isOwningCreator =
++    !!viewerId &&
++    order.items.some((item) => item.creator?.user?.id === viewerId);
++
++  if (!isOwner && !isAdmin && !isOwningCreator) {
++    notFound();
++  }
++
+   const formattedGrandTotal = new Intl.NumberFormat("en-IN", {
+     style: "currency",
+     currency: order.currency,
+diff --git a/src/app/actions/checkout.ts b/src/app/actions/checkout.ts
+index e77974b..dcc1b99 100644
+--- a/src/app/actions/checkout.ts
++++ b/src/app/actions/checkout.ts
+@@ -1,5 +1,6 @@
+ "use server";
+ 
++import { randomInt } from "node:crypto";
+ import { prisma } from "@/lib/prisma";
+ import { getSession } from "@/modules/auth/guards";
+ import { cashfree, isCashfreeConfigured } from "@/lib/cashfree";
+@@ -25,12 +26,13 @@ export interface CheckoutInput {
+     postalCode: string;
+     country: string;
+   };
+-  paymentMethod: "CASHFREE" | "SANDBOX";
++  // NOTE: payment mode is decided server-side only (see processCheckout).
++  // The client must never influence whether an order is treated as paid.
+ }
+ 
+ export async function processCheckout(input: CheckoutInput) {
+   try {
+-    const { items: cartItems, customer, shippingAddress, paymentMethod } = input;
++    const { items: cartItems, customer, shippingAddress } = input;
+ 
+     if (!cartItems || cartItems.length === 0) {
+       return { error: "Your bag is empty." };
+@@ -78,6 +80,15 @@ export async function processCheckout(input: CheckoutInput) {
+       const artwork = artworks.find((a) => a.id === item.id);
+       if (!artwork) continue;
+ 
++      // Quantity is a trust boundary: reject non-integers, zero/negative,
++      // and absurd values before any money math happens.
++      if (!Number.isInteger(item.quantity) || item.quantity < 1) {
++        return { error: "Invalid quantity in your bag. Please review your items." };
++      }
++      if (item.quantity > 99) {
++        return { error: `Only up to 99 units of "${artwork.title}" can be ordered at once.` };
++      }
++
+       if (artwork.stockStatus === StockStatus.SOLD || artwork.stock <= 0) {
+         return { error: `"${artwork.title}" has already been acquired.` };
+       }
+@@ -138,13 +149,37 @@ export async function processCheckout(input: CheckoutInput) {
+       },
+     });
+ 
+-    // 5. Generate Order Number
++    // 5. Generate Order Number — high entropy (10 unambiguous chars, ~52 bits),
++    // verified unique against the DB before use. Old format (5 digits, ~90k
++    // space) was trivially enumerable, exposing order PII.
+     const year = new Date().getFullYear();
+-    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+-    const orderNumber = `ORD-${year}-${randomSuffix}`;
++    const orderAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
++    let orderNumber = "";
++    for (let attempt = 0; attempt < 5 && !orderNumber; attempt++) {
++      const suffix = Array.from(
++        { length: 10 },
++        () => orderAlphabet[randomInt(orderAlphabet.length)]
++      ).join("");
++      const candidate = `ORD-${year}-${suffix}`;
++      const existing = await prisma.order.findUnique({
++        where: { orderNumber: candidate },
++        select: { id: true },
++      });
++      if (!existing) orderNumber = candidate;
++    }
++    if (!orderNumber) {
++      return { error: "Could not generate an order reference. Please try again." };
++    }
+ 
+-    // 6. Execute Order Creation in a Prisma Transaction
+-    const isSandbox = paymentMethod === "SANDBOX" || !isCashfreeConfigured();
++    // 6. Decide payment mode SERVER-SIDE ONLY. Never derive this from client
++    // input: a client-controlled flag here meant anyone could mark orders
++    // PAID with zero money moved. SANDBOX_CHECKOUT_ENABLED=true is for local
++    // dev only — in production it must be unset, and checkout refuses to run
++    // without a configured Cashfree gateway (fail closed, never free orders).
++    const isSandbox = process.env.SANDBOX_CHECKOUT_ENABLED === "true";
++    if (!isSandbox && !isCashfreeConfigured()) {
++      return { error: "Payments are currently unavailable. Please try again later." };
++    }
+ 
+     const createdOrder = await prisma.$transaction(async (tx) => {
+       // Create Order
+@@ -255,7 +290,7 @@ export async function processCheckout(input: CheckoutInput) {
+           status: isSandbox ? OrderStatus.ORDER_CONFIRMED : OrderStatus.PENDING_PAYMENT,
+           note: isSandbox
+             ? "Payment verified via Kalaa Bhadra Sandbox Simulator. Order placed with studio."
+-            : "Awaiting payment via Stripe.",
++            : "Awaiting payment via Cashfree.",
+         },
+       });
+ 
+@@ -362,8 +397,9 @@ export async function processCheckout(input: CheckoutInput) {
+       }
+     }
+ 
+-    // 7. Handle Cashfree Order if live Cashfree requested
+-    if (paymentMethod === "CASHFREE" && isCashfreeConfigured()) {
++    // 7. Handle Cashfree Order when not in sandbox-simulator mode.
++    // (If Cashfree were unconfigured here we already returned above.)
++    if (!isSandbox) {
+       const orderRequest = {
+         order_amount: grandTotalNum,
+         order_currency: "INR",
+@@ -403,15 +439,11 @@ export async function processCheckout(input: CheckoutInput) {
+ export async function getCustomerOrdersAction() {
+   try {
+     const session = await getSession();
+-    let userId = session?.user?.id;
+-
+-    if (!userId) {
+-      const fallbackUser = await prisma.user.findFirst({
+-        where: { role: "CUSTOMER" },
+-      });
+-      userId = fallbackUser?.id;
+-    }
++    const userId = session?.user?.id;
+ 
++    // Fail closed: guests see an empty order history. Previously this fell
++    // back to the first CUSTOMER row in the DB, handing a stranger's full
++    // order history to any signed-out caller.
+     if (!userId) {
+       return { success: true, orders: [] };
+     }

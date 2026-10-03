@@ -13,8 +13,6 @@ export default function CheckoutPage() {
   const { items, subtotal, isHydrated, clearCart } = useCart();
   const router = useRouter();
 
-  const sandboxEnabled = process.env.NEXT_PUBLIC_ENABLE_SANDBOX_CHECKOUT === "true";
-
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -25,7 +23,6 @@ export default function CheckoutPage() {
     state: "",
     postalCode: "",
     country: "India",
-    paymentMethod: (sandboxEnabled ? "SANDBOX" : "CASHFREE") as "SANDBOX" | "CASHFREE",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,7 +87,6 @@ export default function CheckoutPage() {
           postalCode: formData.postalCode,
           country: formData.country,
         },
-        paymentMethod: formData.paymentMethod,
       });
 
       if (res.error) {
@@ -103,8 +99,13 @@ export default function CheckoutPage() {
       clearCart();
 
       if (res.paymentSessionId) {
-        // Initialize Cashfree Checkout
-        const cashfree = await (window as any).Cashfree({ mode: "sandbox" }); // or production based on env
+        // Initialize Cashfree Checkout. SDK mode must match the server's
+        // CASHFREE_ENVIRONMENT (default sandbox for local dev).
+        const cfMode =
+          process.env.NEXT_PUBLIC_CASHFREE_ENVIRONMENT === "PRODUCTION"
+            ? "production"
+            : "sandbox";
+        const cashfree = await (window as any).Cashfree({ mode: cfMode });
         
         let checkoutOptions = {
           paymentSessionId: res.paymentSessionId,
@@ -328,45 +329,9 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className={styles.paymentMethods}>
-                  {sandboxEnabled && (
-                    <label
-                      className={`${styles.paymentOption} ${
-                        formData.paymentMethod === "SANDBOX" ? styles.selectedOption : ""
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="SANDBOX"
-                        checked={formData.paymentMethod === "SANDBOX"}
-                        onChange={handleChange}
-                      />
-                      <div className={styles.paymentInfo}>
-                        <div className={styles.paymentNameRow}>
-                          <span className={styles.paymentName}>
-                            Atelier Sandbox Simulator (1-Click Test Checkout)
-                          </span>
-                          <span className={styles.recommendedBadge}>Dev Recommended</span>
-                        </div>
-                        <p className={styles.paymentDesc}>
-                          Instant verification for local environments. Creates authentic database orders, updates stock, and generates fulfillment records without needing live cards.
-                        </p>
-                      </div>
-                    </label>
-                  )}
-
-                  <label
-                    className={`${styles.paymentOption} ${
-                      formData.paymentMethod === "CASHFREE" ? styles.selectedOption : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="CASHFREE"
-                      checked={formData.paymentMethod === "CASHFREE"}
-                      onChange={handleChange}
-                    />
+                  {/* Payment mode is decided server-side only. The gateway shown
+                      here is informational; the client never selects it. */}
+                  <div className={`${styles.paymentOption} ${styles.selectedOption}`}>
                     <div className={styles.paymentInfo}>
                       <div className={styles.paymentNameRow}>
                         <span className={styles.paymentName}>
@@ -377,7 +342,7 @@ export default function CheckoutPage() {
                         Secured by Cashfree Payments. Supports all major cards, UPI apps, and netbanking.
                       </p>
                     </div>
-                  </label>
+                  </div>
                 </div>
               </section>
 
