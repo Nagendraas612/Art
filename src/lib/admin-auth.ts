@@ -15,34 +15,9 @@ export async function getCurrentAdmin() {
     }
   }
 
-  // In production, strictly deny access if not authenticated as Admin
-  if (process.env.NODE_ENV === "production") {
-    return null;
-  }
-
-  // Fallback in dev/local mode only: Find an existing admin user or ensure a default one
-  let defaultAdmin = await prisma.user.findFirst({
-    where: {
-      role: {
-        in: [Role.ADMIN, Role.SUPER_ADMIN],
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  if (!defaultAdmin) {
-    // Upsert a default operations admin for testing
-    defaultAdmin = await prisma.user.upsert({
-      where: { email: "admin@kalaabhadra.com" },
-      update: { role: Role.ADMIN },
-      create: {
-        email: "admin@kalaabhadra.com",
-        name: "Kalaa Bhadra Operations",
-        role: Role.ADMIN,
-        emailVerified: true,
-      },
-    });
-  }
-
-  return defaultAdmin;
+  // No fallback, in any environment. The old code silently minted/returned an
+  // admin user whenever NODE_ENV !== "production" — a dev-mode backdoor that
+  // also risked leaking into misconfigured deployments. Admin access requires
+  // a real authenticated ADMIN/SUPER_ADMIN session, always.
+  return null;
 }

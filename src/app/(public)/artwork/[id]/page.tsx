@@ -149,7 +149,11 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{
+          // Escape `<` so a creator-supplied `</script>` in a title/description
+          // can never break out of this block (stored XSS, P8).
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
       />
       <Nav />
       <main className={styles.main}>

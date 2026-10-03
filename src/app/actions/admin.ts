@@ -2,8 +2,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin } from "@/lib/admin-auth";
-import { sendEmail, generateCreatorStatusEmail, generateOrderStatusEmail } from "@/lib/email";
+import { sendEmail, generateCreatorStatusEmail, generateOrderStatusEmail, generatePayoutSettledEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { cuidSchema, firstIssue, toClientError } from "@/lib/validation";
 import { 
   CreatorStatus, 
   ArtworkStatus, 
@@ -125,7 +127,7 @@ export async function getAdminOverviewStatsAction() {
     };
   } catch (error: any) {
     console.error("[getAdminOverviewStatsAction] Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: toClientError("admin action error", error) };
   }
 }
 
@@ -138,7 +140,17 @@ export async function updateOrderStatusAction(params: {
     const admin = await getCurrentAdmin();
     if (!admin) throw new Error("Unauthorized admin access");
 
-    const { orderId, status, note } = params;
+    const parsed = z
+      .object({
+        orderId: cuidSchema,
+        status: z.nativeEnum(OrderStatus),
+        note: z.string().trim().max(2000).optional(),
+      })
+      .safeParse(params);
+    if (!parsed.success) {
+      return { success: false, error: firstIssue(parsed.error) };
+    }
+    const { orderId, status, note } = parsed.data;
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -210,7 +222,7 @@ export async function updateOrderStatusAction(params: {
     return { success: true, order: updatedOrder };
   } catch (error: any) {
     console.error("[updateOrderStatusAction] Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: toClientError("admin action error", error) };
   }
 }
 
@@ -276,7 +288,7 @@ export async function getCreatorApplicationsAction(filter?: { status?: CreatorSt
     };
   } catch (error: any) {
     console.error("[getCreatorApplicationsAction] Error:", error);
-    return { success: false, error: error.message, creators: [] };
+    return { success: false, error: toClientError("admin action error", error), creators: [] };
   }
 }
 
@@ -289,7 +301,17 @@ export async function reviewCreatorApplicationAction(params: {
     const admin = await getCurrentAdmin();
     if (!admin) throw new Error("Unauthorized admin access");
 
-    const { creatorId, action, reason } = params;
+    const parsed = z
+      .object({
+        creatorId: cuidSchema,
+        action: z.enum(["APPROVE", "REJECT", "SUSPEND", "REINSTATE"]),
+        reason: z.string().trim().max(2000).optional(),
+      })
+      .safeParse(params);
+    if (!parsed.success) {
+      return { success: false, error: firstIssue(parsed.error) };
+    }
+    const { creatorId, action, reason } = parsed.data;
 
     const creator = await prisma.creatorProfile.findUnique({
       where: { id: creatorId },
@@ -399,7 +421,7 @@ export async function reviewCreatorApplicationAction(params: {
     return { success: true, creator: updatedCreator };
   } catch (error: any) {
     console.error("[reviewCreatorApplicationAction] Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: toClientError("admin action error", error) };
   }
 }
 
@@ -465,7 +487,7 @@ export async function getArtworkModerationQueueAction(filter?: { status?: Artwor
     };
   } catch (error: any) {
     console.error("[getArtworkModerationQueueAction] Error:", error);
-    return { success: false, error: error.message, artworks: [] };
+    return { success: false, error: toClientError("admin action error", error), artworks: [] };
   }
 }
 
@@ -478,7 +500,17 @@ export async function moderateArtworkAction(params: {
     const admin = await getCurrentAdmin();
     if (!admin) throw new Error("Unauthorized admin access");
 
-    const { artworkId, action, reason } = params;
+    const parsed = z
+      .object({
+        artworkId: cuidSchema,
+        action: z.enum(["APPROVE", "REJECT", "ARCHIVE"]),
+        reason: z.string().trim().max(2000).optional(),
+      })
+      .safeParse(params);
+    if (!parsed.success) {
+      return { success: false, error: firstIssue(parsed.error) };
+    }
+    const { artworkId, action, reason } = parsed.data;
 
     const artwork = await prisma.artwork.findUnique({
       where: { id: artworkId },
@@ -571,7 +603,7 @@ export async function moderateArtworkAction(params: {
     return { success: true, artwork: updatedArtwork };
   } catch (error: any) {
     console.error("[moderateArtworkAction] Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: toClientError("admin action error", error) };
   }
 }
 
@@ -674,7 +706,7 @@ export async function getPlatformEconomicsAction() {
     };
   } catch (error: any) {
     console.error("[getPlatformEconomicsAction] Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: toClientError("admin action error", error) };
   }
 }
 
@@ -725,7 +757,7 @@ export async function updatePlatformCommissionAction(params: {
     return { success: true, rule };
   } catch (error: any) {
     console.error("[updatePlatformCommissionAction] Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: toClientError("admin action error", error) };
   }
 }
 
@@ -737,7 +769,16 @@ export async function processPayoutBatchAction(params: {
     const admin = await getCurrentAdmin();
     if (!admin) throw new Error("Unauthorized admin access");
 
-    const { creatorId, reference } = params;
+    const parsed = z
+      .object({
+        creatorId: cuidSchema.optional(),
+        reference: z.string().trim().min(4).max(100).optional(),
+      })
+      .safeParse(params);
+    if (!parsed.success) {
+      return { success: false, error: firstIssue(parsed.error) };
+    }
+    const { creatorId, reference } = parsed.data;
 
     // A payout represents a REAL-WORLD money movement. The settlement
     // reference is the bank/UPI transaction ID — required, never
@@ -760,7 +801,7 @@ export async function processPayoutBatchAction(params: {
 
     const unpaidEarnings = await prisma.creatorEarning.findMany({
       where: whereClause,
-      include: { creator: true },
+      include: { creator: { include: { user: true } } },
     });
 
     if (unpaidEarnings.length === 0) {
@@ -842,6 +883,29 @@ export async function processPayoutBatchAction(params: {
         },
       });
 
+      // Payout settlement email (P8) — failures are logged, not fatal.
+      try {
+        const creatorUser = earningsList[0].creator.user;
+        const emailResult = await sendEmail({
+          to: creatorUser.email,
+          subject: `Payout settled: ₹${totalAmount.toNumber().toLocaleString("en-IN")} (Ref #${settlementRef})`,
+          html: generatePayoutSettledEmail({
+            creatorName: creatorUser.name || earningsList[0].creator.storeName,
+            amount: totalAmount.toNumber(),
+            settlementReference: settlementRef,
+            earningsCount: earningsList.length,
+            dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/studio/earnings`,
+          }),
+          templateType: "PAYOUT_SETTLED",
+          metadata: { payoutId: payout.id, creatorId: cId },
+        });
+        if (!emailResult.success) {
+          console.error("[processPayoutBatchAction] payout email failed:", emailResult.error);
+        }
+      } catch (emailErr) {
+        console.error("[processPayoutBatchAction] payout email error:", emailErr);
+      }
+
       settledPayouts.push(payout);
     }
 
@@ -852,7 +916,7 @@ export async function processPayoutBatchAction(params: {
     return { success: true, payoutsCount: settledPayouts.length };
   } catch (error: any) {
     console.error("[processPayoutBatchAction] Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: toClientError("admin action error", error) };
   }
 }
 
@@ -919,7 +983,7 @@ export async function getDisputesAndReportsAction() {
     };
   } catch (error: any) {
     console.error("[getDisputesAndReportsAction] Error:", error);
-    return { success: false, error: error.message, disputes: [], reports: [] };
+    return { success: false, error: toClientError("admin action error", error), disputes: [], reports: [] };
   }
 }
 
@@ -932,7 +996,17 @@ export async function resolveDisputeAction(params: {
     const admin = await getCurrentAdmin();
     if (!admin) throw new Error("Unauthorized admin access");
 
-    const { disputeId, resolution, status } = params;
+    const parsed = z
+      .object({
+        disputeId: cuidSchema,
+        resolution: z.string().trim().min(1).max(5000),
+        status: z.nativeEnum(DisputeStatus),
+      })
+      .safeParse(params);
+    if (!parsed.success) {
+      return { success: false, error: firstIssue(parsed.error) };
+    }
+    const { disputeId, resolution, status } = parsed.data;
 
     const dispute = await prisma.dispute.update({
       where: { id: disputeId },
@@ -959,7 +1033,7 @@ export async function resolveDisputeAction(params: {
     return { success: true, dispute };
   } catch (error: any) {
     console.error("[resolveDisputeAction] Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: toClientError("admin action error", error) };
   }
 }
 
@@ -971,7 +1045,16 @@ export async function actionReportAction(params: {
     const admin = await getCurrentAdmin();
     if (!admin) throw new Error("Unauthorized admin access");
 
-    const { reportId, action } = params;
+    const parsed = z
+      .object({
+        reportId: cuidSchema,
+        action: z.enum(["ACTIONED", "DISMISSED"]),
+      })
+      .safeParse(params);
+    if (!parsed.success) {
+      return { success: false, error: firstIssue(parsed.error) };
+    }
+    const { reportId, action } = parsed.data;
 
     const report = await prisma.report.update({
       where: { id: reportId },
@@ -997,7 +1080,7 @@ export async function actionReportAction(params: {
     return { success: true, report };
   } catch (error: any) {
     console.error("[actionReportAction] Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: toClientError("admin action error", error) };
   }
 }
 
@@ -1010,7 +1093,8 @@ export async function getAuditLogsAction(params?: { limit?: number }) {
     const admin = await getCurrentAdmin();
     if (!admin) throw new Error("Unauthorized admin access");
 
-    const limit = params?.limit || 50;
+    const limitParsed = z.number().int().min(1).max(500).optional().safeParse(params?.limit);
+    const limit = limitParsed.success && limitParsed.data ? limitParsed.data : 50;
 
     const logs = await prisma.auditLog.findMany({
       take: limit,
@@ -1038,6 +1122,6 @@ export async function getAuditLogsAction(params?: { limit?: number }) {
     };
   } catch (error: any) {
     console.error("[getAuditLogsAction] Error:", error);
-    return { success: false, error: error.message, logs: [] };
+    return { success: false, error: toClientError("admin action error", error), logs: [] };
   }
 }

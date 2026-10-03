@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
+import {
+  firstIssue,
+  submitReviewSchema,
+  toClientError,
+} from "@/lib/validation";
 
 export interface SubmitReviewInput {
   artworkId: string;
@@ -14,7 +20,9 @@ export interface SubmitReviewInput {
 
 export async function submitReviewAction(input: SubmitReviewInput) {
   try {
-    const { artworkId, rating, text, imageUrl } = input;
+    const parsed = submitReviewSchema.safeParse(input);
+    if (!parsed.success) return { error: firstIssue(parsed.error) };
+    const { artworkId, rating, text, imageUrl } = parsed.data;
 
     // Identity comes from the session ONLY. Previously a guest could pass any
     // authorEmail and the review would be filed under that real account.
@@ -28,17 +36,11 @@ export async function submitReviewAction(input: SubmitReviewInput) {
       };
     }
 
-    if (!artworkId || !rating || rating < 1 || rating > 5) {
-      return { error: "Please provide a valid rating between 1 and 5 stars." };
-    }
+    const rl = checkRateLimit(`review:${authorId}`, 10, 60_000);
+    if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
-    if (!text || text.trim().length < 5) {
-      return { error: "Please write at least a brief comment about the artwork." };
-    }
-
-    if (text.trim().length > 5000) {
-      return { error: "Review is too long (maximum 5000 characters)." };
-    }
+    // Reviews are only allowed on real, paid, confirmed order items owned by
+    // the session user (P5).
 
     // A review requires a REAL, paid, confirmed purchase by the reviewer.
     // The old code hijacked other customers' order items, or fabricated a
@@ -95,7 +97,7 @@ export async function submitReviewAction(input: SubmitReviewInput) {
         artworkId,
         authorId,
         rating,
-        text: text.trim(),
+        text,
         imageUrl: imageUrl || null,
         isVerifiedPurchase: true,
       },
@@ -127,7 +129,6 @@ export async function submitReviewAction(input: SubmitReviewInput) {
 
     return { success: true, review };
   } catch (err: any) {
-    console.error("submitReviewAction error:", err);
-    return { error: err.message || "Failed to submit review." };
+    return { error: toClientError("submitReviewAction error", err, "Failed to submit review.") };
   }
 }

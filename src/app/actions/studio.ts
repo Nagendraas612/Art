@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import { ArtworkProductType, ArtworkStatus, OrderStatus, Prisma, StockStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { artworkFormSchema, cuidSchema, firstIssue, toClientError } from "@/lib/validation";
+import { z } from "zod";
 
 export interface ArtworkFormData {
   title: string;
@@ -54,11 +56,15 @@ export async function createArtworkAction(data: ArtworkFormData) {
       return { error: "You must be an approved creator to list artwork." };
     }
 
-    if (!data.title || !data.categoryId || !data.price || !data.description || !data.primaryImageUrl) {
-      return { error: "Please provide all required fields (title, category, price, description, primary image)." };
+    // Validate the entire payload up front (P7). Unknown keys (e.g. a
+    // smuggled `status`) are stripped by the schema.
+    const parsed = artworkFormSchema.safeParse(data);
+    if (!parsed.success) {
+      return { error: firstIssue(parsed.error) };
     }
+    const d = parsed.data;
 
-    let baseSlug = slugify(data.title);
+    let baseSlug = slugify(d.title);
     if (!baseSlug) baseSlug = "artwork";
 
     let uniqueSlug = baseSlug;
@@ -69,52 +75,52 @@ export async function createArtworkAction(data: ArtworkFormData) {
     }
 
     const specifications: Record<string, any> = {};
-    if (data.medium) specifications.medium = data.medium;
-    if (data.surface) specifications.surface = data.surface;
-    if (data.clayBody) specifications.clayBody = data.clayBody;
-    if (data.glaze) specifications.glaze = data.glaze;
-    if (data.timber) specifications.timber = data.timber;
-    if (data.fibers) specifications.fibers = data.fibers;
-    if (data.paper) specifications.paper = data.paper;
-    if (data.printingMethod) specifications.printingMethod = data.printingMethod;
+    if (d.medium) specifications.medium = d.medium;
+    if (d.surface) specifications.surface = d.surface;
+    if (d.clayBody) specifications.clayBody = d.clayBody;
+    if (d.glaze) specifications.glaze = d.glaze;
+    if (d.timber) specifications.timber = d.timber;
+    if (d.fibers) specifications.fibers = d.fibers;
+    if (d.paper) specifications.paper = d.paper;
+    if (d.printingMethod) specifications.printingMethod = d.printingMethod;
 
     const artwork = await prisma.artwork.create({
       data: {
         creatorId: creator.id,
-        title: data.title,
+        title: d.title,
         slug: uniqueSlug,
-        description: data.description,
-        categoryId: data.categoryId,
-        productType: data.productType || ArtworkProductType.ORIGINAL,
+        description: d.description,
+        categoryId: d.categoryId,
+        productType: (d.productType as ArtworkProductType) || ArtworkProductType.ORIGINAL,
         status: ArtworkStatus.SUBMITTED,
-        price: new Prisma.Decimal(data.price.toFixed(2)),
+        price: new Prisma.Decimal(d.price.toFixed(2)),
         currency: "INR",
-        stock: data.productType === ArtworkProductType.ORIGINAL ? 1 : data.stock || 1,
+        stock: d.productType === ArtworkProductType.ORIGINAL ? 1 : d.stock || 1,
         stockStatus: StockStatus.AVAILABLE,
-        editionSize: data.editionSize || null,
+        editionSize: d.editionSize || null,
         specifications,
-        widthCm: data.widthCm ? new Prisma.Decimal(data.widthCm.toFixed(2)) : null,
-        heightCm: data.heightCm ? new Prisma.Decimal(data.heightCm.toFixed(2)) : null,
-        depthCm: data.depthCm ? new Prisma.Decimal(data.depthCm.toFixed(2)) : null,
-        weightGrams: data.weightGrams || null,
-        isSigned: data.isSigned ?? false,
-        hasCertificate: data.hasCertificate ?? false,
-        provenanceNote: data.provenanceNote || null,
-        isFragile: data.isFragile ?? false,
-        processingDays: data.processingDays || 3,
+        widthCm: d.widthCm ? new Prisma.Decimal(d.widthCm.toFixed(2)) : null,
+        heightCm: d.heightCm ? new Prisma.Decimal(d.heightCm.toFixed(2)) : null,
+        depthCm: d.depthCm ? new Prisma.Decimal(d.depthCm.toFixed(2)) : null,
+        weightGrams: d.weightGrams || null,
+        isSigned: d.isSigned ?? false,
+        hasCertificate: d.hasCertificate ?? false,
+        provenanceNote: d.provenanceNote || null,
+        isFragile: d.isFragile ?? false,
+        processingDays: d.processingDays || 3,
         images: {
           create: [
             {
               publicId: `studio_${Date.now()}_0`,
-              url: data.primaryImageUrl,
-              altText: data.title,
+              url: d.primaryImageUrl,
+              altText: d.title,
               kind: "main",
               sortOrder: 0,
             },
-            ...(data.galleryImageUrls || []).filter(Boolean).map((url, idx) => ({
+            ...(d.galleryImageUrls || []).filter(Boolean).map((url, idx) => ({
               publicId: `studio_${Date.now()}_${idx + 1}`,
               url,
-              altText: `${data.title} detail ${idx + 1}`,
+              altText: `${d.title} detail ${idx + 1}`,
               kind: "detail",
               sortOrder: idx + 1,
             })),
@@ -127,7 +133,7 @@ export async function createArtworkAction(data: ArtworkFormData) {
       },
     });
 
-    if (data.hasCertificate) {
+    if (d.hasCertificate) {
       await prisma.certificate.create({
         data: {
           artworkId: artwork.id,
@@ -152,7 +158,7 @@ export async function createArtworkAction(data: ArtworkFormData) {
             userId: admin.id,
             type: "SYSTEM_ALERT",
             title: "🎨 Artwork Submitted for Curation",
-            body: `"${data.title}" by ${creator.storeName} is waiting for curation review.`,
+            body: `"${d.title}" by ${creator.storeName} is waiting for curation review.`,
             refType: "ARTWORK",
             refId: artwork.id,
           },
@@ -161,12 +167,12 @@ export async function createArtworkAction(data: ArtworkFormData) {
         // Admin Email Alert
         sendEmail({
           to: admin.email,
-          subject: `🎨 Curation Alert: "${data.title}" Submitted by ${creator.storeName}`,
+          subject: `🎨 Curation Alert: "${d.title}" Submitted by ${creator.storeName}`,
           html: generateArtworkSubmittedAdminEmail({
-            artworkTitle: data.title,
+            artworkTitle: d.title,
             creatorName: creator.user.name || "Artisan",
             storeName: creator.storeName,
-            price: data.price,
+            price: d.price,
             category: artwork.category?.name || "Original Work",
             reviewUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/admin/artworks`,
           }),
@@ -189,13 +195,24 @@ export async function createArtworkAction(data: ArtworkFormData) {
       message: "Piece submitted successfully! It will go live once reviewed and approved by the curation board.",
     };
   } catch (error: any) {
-    console.error("createArtworkAction error:", error);
-    return { error: error.message || "Failed to create artwork." };
+    return { error: toClientError("createArtworkAction error", error, "Failed to create artwork.") };
   }
 }
 
 export async function updateArtworkAction(id: string, data: Partial<ArtworkFormData> & { status?: ArtworkStatus }) {
   try {
+    // P8: creators can NEVER self-publish via this action. `status` is not
+    // part of the validation schema, so any smuggled value is stripped here.
+    const parsed = artworkFormSchema.partial().safeParse(data);
+    if (!parsed.success) {
+      return { error: firstIssue(parsed.error) };
+    }
+    const idParsed = cuidSchema.safeParse(id);
+    if (!idParsed.success) {
+      return { error: "Invalid artwork." };
+    }
+    const d = parsed.data;
+
     const creator = await getCurrentCreator();
     if (!creator) {
       return { error: "Unauthorized." };
@@ -213,45 +230,44 @@ export async function updateArtworkAction(id: string, data: Partial<ArtworkFormD
       ...((existing.specifications as Record<string, any>) || {}),
     };
 
-    if (data.medium !== undefined) specifications.medium = data.medium;
-    if (data.surface !== undefined) specifications.surface = data.surface;
-    if (data.clayBody !== undefined) specifications.clayBody = data.clayBody;
-    if (data.glaze !== undefined) specifications.glaze = data.glaze;
-    if (data.timber !== undefined) specifications.timber = data.timber;
-    if (data.fibers !== undefined) specifications.fibers = data.fibers;
-    if (data.paper !== undefined) specifications.paper = data.paper;
-    if (data.printingMethod !== undefined) specifications.printingMethod = data.printingMethod;
+    if (d.medium !== undefined) specifications.medium = d.medium;
+    if (d.surface !== undefined) specifications.surface = d.surface;
+    if (d.clayBody !== undefined) specifications.clayBody = d.clayBody;
+    if (d.glaze !== undefined) specifications.glaze = d.glaze;
+    if (d.timber !== undefined) specifications.timber = d.timber;
+    if (d.fibers !== undefined) specifications.fibers = d.fibers;
+    if (d.paper !== undefined) specifications.paper = d.paper;
+    if (d.printingMethod !== undefined) specifications.printingMethod = d.printingMethod;
 
     await prisma.artwork.update({
       where: { id },
       data: {
-        ...(data.title && { title: data.title }),
-        ...(data.description && { description: data.description }),
-        ...(data.categoryId && { categoryId: data.categoryId }),
-        ...(data.productType && { productType: data.productType }),
-        ...(data.status && { status: data.status }),
-        ...(data.price !== undefined && { price: new Prisma.Decimal(data.price.toFixed(2)) }),
-        ...(data.stock !== undefined && {
-          stock: data.stock,
-          stockStatus: data.stock > 0 ? StockStatus.AVAILABLE : StockStatus.OUT_OF_STOCK,
+        ...(d.title && { title: d.title }),
+        ...(d.description && { description: d.description }),
+        ...(d.categoryId && { categoryId: d.categoryId }),
+        ...(d.productType && { productType: d.productType as ArtworkProductType }),
+        ...(d.price !== undefined && { price: new Prisma.Decimal(d.price.toFixed(2)) }),
+        ...(d.stock !== undefined && {
+          stock: d.stock,
+          stockStatus: d.stock > 0 ? StockStatus.AVAILABLE : StockStatus.OUT_OF_STOCK,
         }),
-        ...(data.editionSize !== undefined && { editionSize: data.editionSize }),
+        ...(d.editionSize !== undefined && { editionSize: d.editionSize }),
         specifications,
-        ...(data.widthCm !== undefined && {
-          widthCm: data.widthCm ? new Prisma.Decimal(data.widthCm.toFixed(2)) : null,
+        ...(d.widthCm !== undefined && {
+          widthCm: d.widthCm ? new Prisma.Decimal(d.widthCm.toFixed(2)) : null,
         }),
-        ...(data.heightCm !== undefined && {
-          heightCm: data.heightCm ? new Prisma.Decimal(data.heightCm.toFixed(2)) : null,
+        ...(d.heightCm !== undefined && {
+          heightCm: d.heightCm ? new Prisma.Decimal(d.heightCm.toFixed(2)) : null,
         }),
-        ...(data.depthCm !== undefined && {
-          depthCm: data.depthCm ? new Prisma.Decimal(data.depthCm.toFixed(2)) : null,
+        ...(d.depthCm !== undefined && {
+          depthCm: d.depthCm ? new Prisma.Decimal(d.depthCm.toFixed(2)) : null,
         }),
-        ...(data.weightGrams !== undefined && { weightGrams: data.weightGrams }),
-        ...(data.isSigned !== undefined && { isSigned: data.isSigned }),
-        ...(data.hasCertificate !== undefined && { hasCertificate: data.hasCertificate }),
-        ...(data.provenanceNote !== undefined && { provenanceNote: data.provenanceNote }),
-        ...(data.isFragile !== undefined && { isFragile: data.isFragile }),
-        ...(data.processingDays !== undefined && { processingDays: data.processingDays }),
+        ...(d.weightGrams !== undefined && { weightGrams: d.weightGrams }),
+        ...(d.isSigned !== undefined && { isSigned: d.isSigned }),
+        ...(d.hasCertificate !== undefined && { hasCertificate: d.hasCertificate }),
+        ...(d.provenanceNote !== undefined && { provenanceNote: d.provenanceNote }),
+        ...(d.isFragile !== undefined && { isFragile: d.isFragile }),
+        ...(d.processingDays !== undefined && { processingDays: d.processingDays }),
       },
     });
 
@@ -262,13 +278,17 @@ export async function updateArtworkAction(id: string, data: Partial<ArtworkFormD
 
     return { success: true };
   } catch (error: any) {
-    console.error("updateArtworkAction error:", error);
-    return { error: error.message || "Failed to update artwork." };
+    return { error: toClientError("updateArtworkAction error", error, "Failed to update artwork.") };
   }
 }
 
 export async function deleteArtworkAction(id: string) {
   try {
+    const idParsed = cuidSchema.safeParse(id);
+    if (!idParsed.success) {
+      return { error: "Invalid artwork." };
+    }
+    id = idParsed.data;
     const creator = await getCurrentCreator();
     if (!creator) {
       return { error: "Unauthorized." };
@@ -296,8 +316,7 @@ export async function deleteArtworkAction(id: string) {
 
     return { success: true };
   } catch (error: any) {
-    console.error("deleteArtworkAction error:", error);
-    return { error: error.message || "Failed to delete artwork." };
+    return { error: toClientError("deleteArtworkAction error", error, "Failed to delete artwork.") };
   }
 }
 
@@ -313,8 +332,48 @@ export async function updateStudioOrderStatusAction({
   trackingNumber?: string;
 }) {
   try {
+    const parsed = z
+      .object({
+        orderId: cuidSchema,
+        status: z.nativeEnum(OrderStatus),
+        carrier: z.string().trim().max(100).optional(),
+        trackingNumber: z.string().trim().max(100).optional(),
+      })
+      .safeParse({ orderId, status, carrier, trackingNumber });
+    if (!parsed.success) return { error: firstIssue(parsed.error) };
+    ({ orderId, status, carrier, trackingNumber } = parsed.data);
+
     const creator = await getCurrentCreator();
     if (!creator) return { error: "Unauthorized." };
+
+    // P8: ownership — a creator may only touch orders containing THEIR artwork.
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: { include: { artwork: { select: { creatorId: true, title: true } } } },
+        customer: { select: { email: true, name: true } },
+      },
+    });
+    if (!order) return { error: "Order not found." };
+    const ownsItem = order.items.some((i) => i.artwork.creatorId === creator.id);
+    if (!ownsItem) return { error: "Order not found." };
+
+    // P8: state-transition map — creators move fulfilment forward only.
+    // Cancellations/refunds/disputes/payment states are admin-handled.
+    const allowedTransitions: Record<string, OrderStatus[]> = {
+      [OrderStatus.PAYMENT_CONFIRMED]: [OrderStatus.ORDER_CONFIRMED, OrderStatus.CANCELLED],
+      [OrderStatus.ORDER_CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+      [OrderStatus.PREPARING]: [OrderStatus.PACKED, OrderStatus.CANCELLED],
+      [OrderStatus.PACKED]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+      [OrderStatus.SHIPPED]: [OrderStatus.OUT_FOR_DELIVERY],
+      [OrderStatus.OUT_FOR_DELIVERY]: [OrderStatus.DELIVERED],
+    };
+    const allowed = allowedTransitions[order.status] ?? [];
+    if (!allowed.includes(status)) {
+      return {
+        error: `Cannot move this order from ${order.status.replace(/_/g, " ")} to ${status.replace(/_/g, " ")}.`,
+      };
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
@@ -333,11 +392,38 @@ export async function updateStudioOrderStatusAction({
       });
     });
 
+    // P8: buyer gets a real transactional email for every status change
+    // (shipment, out-for-delivery, delivered, ...).
+    try {
+      const { sendEmail, generateOrderStatusEmail } = await import("@/lib/email");
+      const emailHtml = generateOrderStatusEmail({
+        customerName: order.customer.name || "Collector",
+        orderNumber: order.orderNumber,
+        status: status.replace(/_/g, " "),
+        message: trackingNumber
+          ? `Your artwork is on its way via ${carrier || "insured courier"}. Tracking number: ${trackingNumber}.`
+          : undefined,
+        trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}`,
+      });
+      const result = await sendEmail({
+        to: order.customer.email,
+        subject: `Order ${order.orderNumber} — ${status.replace(/_/g, " ")}`,
+        html: emailHtml,
+        templateType: "ORDER_STATUS_UPDATE",
+        metadata: { orderId, status },
+      });
+      if (!result.success) {
+        console.error("[StudioOrderStatus] status email failed:", result.error);
+      }
+    } catch (emailErr) {
+      console.error("[StudioOrderStatus] status email error:", emailErr);
+    }
+
     revalidatePath("/studio/orders");
     revalidatePath("/studio");
     return { success: true };
   } catch (err: any) {
-    console.error("updateStudioOrderStatusAction error:", err);
-    return { error: err.message || "Failed to update order status." };
+    return { error: toClientError("updateStudioOrderStatusAction error", err, "Failed to update order status.") };
   }
 }
+

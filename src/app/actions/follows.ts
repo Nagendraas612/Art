@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { revalidatePath } from "next/cache";
+import { cuidSchema } from "@/lib/validation";
 
 async function resolveUserId(): Promise<string> {
   const session = await getSession();
@@ -22,6 +23,11 @@ async function resolveUserId(): Promise<string> {
  * Toggle follow/unfollow for a creator.
  */
 export async function toggleFollowAction(creatorId: string) {
+  const parsed = cuidSchema.safeParse(creatorId);
+  if (!parsed.success) {
+    return { error: "Invalid creator." };
+  }
+  creatorId = parsed.data;
   try {
     const userId = await resolveUserId();
 

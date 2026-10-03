@@ -13,6 +13,21 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // P9: this seed WIPES artwork, order, payment, and messaging tables.
+  // Refuse to run against production unless explicitly forced. The user
+  // cleanup below is already scoped to @atelier.local/@kaalabhadra.local
+  // test addresses, but the catalog wipe is not — hence this guard.
+  if (
+    process.env.ALLOW_DESTRUCTIVE_SEED !== "true" &&
+    (process.env.NODE_ENV === "production" ||
+      /neon\.tech|amazonaws\.com/i.test(connectionString ?? ""))
+  ) {
+    throw new Error(
+      "Refusing to run the destructive seed against what looks like a production database. " +
+        "If you really mean it, set ALLOW_DESTRUCTIVE_SEED=true."
+    );
+  }
+
   console.log("🌱 Starting seed...");
 
   console.log("🧹 Cleaning old seed data...");
@@ -101,7 +116,7 @@ async function main() {
       tagline: "Earthy abstraction and layered oil pigments on Belgian linen",
       bio: "Elena creates contemplative, texturally rich oil paintings inspired by quiet Nordic landscapes, geological stratification, and morning mist.",
       disciplines: ["Oil Painting", "Impasto", "Abstract Expressionism"],
-      cover: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1200&q=80",
+      cover: "https://images.pexels.com/photos/6818618/pexels-photo-6818618.jpeg?auto=format&fit=crop&w=1000&q=80",
       acceptsCustomOrders: true,
     },
     {
@@ -125,7 +140,7 @@ async function main() {
       tagline: "Architectural wall tapestries woven from botanical-dyed raw silk & wool",
       bio: "Aria explores modern geometric rhythm and organic fiber tension through traditional handloom and backstrap weaving techniques.",
       disciplines: ["Fiber Art", "Tapestry Weaving", "Botanical Dyes"],
-      cover: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+      cover: "https://images.pexels.com/photos/4611614/pexels-photo-4611614.jpeg?auto=format&fit=crop&w=1000&q=80",
       acceptsCustomOrders: false,
     },
     {
@@ -137,7 +152,7 @@ async function main() {
       tagline: "Hand-pulled multi-block relief prints and nocturnal botanical linocuts",
       bio: "Marcus documents vanishing alpine flora and nocturnal landscapes using meticulous hand-carved lino blocks on handmade Japanese washi paper.",
       disciplines: ["Linocut", "Relief Printmaking", "Botanical Illustration"],
-      cover: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=1200&q=80",
+      cover: "https://images.unsplash.com/photo-1557938615-3e9e68aff5c4?auto=format&fit=crop&w=1000&q=80",
       acceptsCustomOrders: true,
     },
     {
@@ -149,7 +164,7 @@ async function main() {
       tagline: "Heirloom timber vessels hand-carved from rescued fallen teak & walnut",
       bio: "Maya's craft centers around sustainable forestry, hand-turning organic bowls and sculptural utensils that highlight natural bark live edges and spalted rings.",
       disciplines: ["Woodturning", "Heritage Joinery", "Sculptural Objects"],
-      cover: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80",
+      cover: "https://images.pexels.com/photos/6569019/pexels-photo-6569019.jpeg?auto=format&fit=crop&w=1000&q=80",
       acceptsCustomOrders: true,
     },
   ];
@@ -248,7 +263,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 3,
       images: [
-        { url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Terracotta abstract painting" },
+        { url: "https://images.pexels.com/photos/6818618/pexels-photo-6818618.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Abstract painting in warm terracotta and clay tones with bold brushstrokes" },
         { url: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1000&q=80", kind: "detail", alt: "Texture close up" },
       ],
     },
@@ -300,7 +315,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Nocturne painting" },
+        { url: "https://images.pexels.com/photos/14686005/pexels-photo-14686005.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Full moon over a dark sea with a moonlight path on the water" },
       ],
     },
     {
@@ -326,7 +341,7 @@ async function main() {
       hasCertificate: false,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1549887534-1541e9326642?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Chalk and Ochre abstract artwork" },
+        { url: "https://images.pexels.com/photos/2827740/pexels-photo-2827740.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Abstract study in ochre, umber and terracotta impasto paint strokes" },
       ],
     },
 
@@ -356,7 +371,7 @@ async function main() {
       processingDays: 3,
       images: [
         { url: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Brutalist ceramic vessel" },
-        { url: "https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=1000&q=80", kind: "detail", alt: "Ash glaze detail" },
+        { url: "https://images.pexels.com/photos/6962808/pexels-photo-6962808.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "detail", alt: "Ash glaze detail" },
       ],
     },
     {
@@ -383,7 +398,7 @@ async function main() {
       isFragile: true,
       processingDays: 3,
       images: [
-        { url: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Black carved ceramic urn" },
+        { url: "https://images.pexels.com/photos/8100353/pexels-photo-8100353.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Dark carved ribbed ceramic urn with a dried eucalyptus sprig" },
       ],
     },
     {
@@ -409,7 +424,7 @@ async function main() {
       isFragile: true,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1490312278390-ab64016e0aa9?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Trio of minimalist planters" },
+        { url: "https://images.pexels.com/photos/7223262/pexels-photo-7223262.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Set of geometric concrete planters holding red berry sprigs" },
       ],
     },
     {
@@ -434,7 +449,7 @@ async function main() {
       isFragile: true,
       processingDays: 5,
       images: [
-        { url: "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Ceramic totem sculpture" },
+        { url: "https://images.pexels.com/photos/26762152/pexels-photo-26762152.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Monumental carved stone head sculpture against a mountain sky" },
       ],
     },
 
@@ -461,7 +476,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 4,
       images: [
-        { url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Textured woven wall tapestry" },
+        { url: "https://images.pexels.com/photos/4611614/pexels-photo-4611614.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Woven tapestry with dense layered botanical and floral motifs" },
         { url: "https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&w=1000&q=80", kind: "detail", alt: "Fiber weave close up" },
       ],
     },
@@ -486,7 +501,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 3,
       images: [
-        { url: "https://images.unsplash.com/photo-1584589167171-541ce45f1eea?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Fiber relief textile frame" },
+        { url: "https://images.pexels.com/photos/15240887/pexels-photo-15240887.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Woven fiber wall hanging in cream, tan and dune-brown tones" },
       ],
     },
     {
@@ -511,7 +526,7 @@ async function main() {
       hasCertificate: false,
       processingDays: 1,
       images: [
-        { url: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Indigo woven runner" },
+        { url: "https://images.pexels.com/photos/7640756/pexels-photo-7640756.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Indigo-blue striped woven textile" },
       ],
     },
     {
@@ -535,7 +550,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Monochrome fiber textile piece" },
+        { url: "https://images.pexels.com/photos/36476194/pexels-photo-36476194.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Black-and-white striped woven textile, draped" },
       ],
     },
 
@@ -564,7 +579,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Linocut relief print" },
+        { url: "https://images.unsplash.com/photo-1557938615-3e9e68aff5c4?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Dense carpet of small vivid-blue alpine flowers" },
         { url: "https://images.unsplash.com/photo-1579783901586-d88db74b4fe4?auto=format&fit=crop&w=1000&q=80", kind: "detail", alt: "Deckled edge detail" },
       ],
     },
@@ -592,7 +607,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Barn owl woodcut print" },
+        { url: "https://images.pexels.com/photos/33618400/pexels-photo-33618400.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Barn owl with heart-shaped face perched on a branch" },
       ],
     },
     {
@@ -619,7 +634,7 @@ async function main() {
       hasCertificate: false,
       processingDays: 1,
       images: [
-        { url: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Pine silhouette print" },
+        { url: "https://images.pexels.com/photos/27424801/pexels-photo-27424801.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Lone tall pine tree silhouetted against a pale sky" },
       ],
     },
     {
@@ -646,7 +661,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1582562124811-c09040d0a901?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Botanical fern print suite" },
+        { url: "https://images.pexels.com/photos/17983798/pexels-photo-17983798.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Lush green fern fronds in soft light" },
       ],
     },
 
@@ -673,8 +688,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Live edge turned wooden vessel" },
-        { url: "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=1000&q=80", kind: "detail", alt: "Wood grain detail" },
+        { url: "https://images.pexels.com/photos/6569019/pexels-photo-6569019.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Stack of dark handcrafted wooden bowls" },
       ],
     },
     {
@@ -699,7 +713,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 2,
       images: [
-        { url: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Spalted wood tray" },
+        { url: "https://images.pexels.com/photos/6692141/pexels-photo-6692141.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Handcrafted wooden serving tray, close detail of the grain" },
       ],
     },
     {
@@ -724,7 +738,7 @@ async function main() {
       hasCertificate: true,
       processingDays: 3,
       images: [
-        { url: "https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Teak pedestal bowl" },
+        { url: "https://images.pexels.com/photos/6962808/pexels-photo-6962808.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Single dark sculptural wooden bowl on a pale shelf" },
       ],
     },
     {
@@ -749,7 +763,7 @@ async function main() {
       hasCertificate: false,
       processingDays: 1,
       images: [
-        { url: "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Olivewood utensils set" },
+        { url: "https://images.pexels.com/photos/30798748/pexels-photo-30798748.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Curated set of dark wooden kitchen utensils in a wooden holder" },
       ],
     },
   ];

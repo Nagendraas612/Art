@@ -5,6 +5,14 @@ import { getSession } from "@/modules/auth/guards";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import { CustomRequestStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
+import {
+  cuidSchema,
+  customRequestSchema,
+  firstIssue,
+  toClientError,
+} from "@/lib/validation";
+import { z } from "zod";
 
 export interface CustomRequestInput {
   creatorId: string;
@@ -18,6 +26,8 @@ export interface CustomRequestInput {
 
 export async function submitCustomRequestAction(input: CustomRequestInput) {
   try {
+    const parsed = customRequestSchema.safeParse(input);
+    if (!parsed.success) return { error: firstIssue(parsed.error) };
     const {
       creatorId,
       description,
@@ -26,7 +36,7 @@ export async function submitCustomRequestAction(input: CustomRequestInput) {
       budget,
       deadline,
       referenceImageUrl,
-    } = input;
+    } = parsed.data;
 
     // Identity comes from the session ONLY. Previously a guest could pass any
     // customerEmail and the request would be filed under that real account.
@@ -40,19 +50,14 @@ export async function submitCustomRequestAction(input: CustomRequestInput) {
       };
     }
 
-    if (!creatorId || !description || description.trim().length < 10) {
-      return { error: "Please provide a detailed description for your custom commission request." };
-    }
-
-    if (description.trim().length > 5000) {
-      return { error: "Description is too long (maximum 5000 characters)." };
-    }
+    const rl = checkRateLimit(`commission:${customerId}`, 10, 60_000);
+    if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
     const customRequest = await prisma.customRequest.create({
       data: {
         creatorId,
         customerId,
-        description: description.trim(),
+        description,
         preferredSize: preferredSize || null,
         preferredMedium: preferredMedium || null,
         budget: budget ? new Prisma.Decimal(budget.toFixed(2)) : null,
@@ -70,8 +75,7 @@ export async function submitCustomRequestAction(input: CustomRequestInput) {
 
     return { success: true, requestId: customRequest.id };
   } catch (err: any) {
-    console.error("submitCustomRequestAction error:", err);
-    return { error: err.message || "Failed to submit commission request." };
+    return { error: toClientError("submitCustomRequestAction error", err, "Failed to submit commission request.") };
   }
 }
 
@@ -89,6 +93,18 @@ export async function respondToCommissionAction({
   creatorNotes?: string;
 }) {
   try {
+    const parsed = z
+      .object({
+        requestId: cuidSchema,
+        status: z.nativeEnum(CustomRequestStatus),
+        proposedPrice: z.number().finite().min(0).max(10_000_000).optional(),
+        estimatedDays: z.number().int().min(1).max(730).optional(),
+        creatorNotes: z.string().trim().max(5000).optional(),
+      })
+      .safeParse({ requestId, status, proposedPrice, estimatedDays, creatorNotes });
+    if (!parsed.success) return { error: firstIssue(parsed.error) };
+    ({ requestId, status, proposedPrice, estimatedDays, creatorNotes } = parsed.data);
+
     const creator = await getCurrentCreator();
     if (!creator) return { error: "Unauthorized." };
 
@@ -116,7 +132,6 @@ export async function respondToCommissionAction({
 
     return { success: true };
   } catch (err: any) {
-    console.error("respondToCommissionAction error:", err);
-    return { error: err.message || "Failed to update commission request." };
+    return { error: toClientError("respondToCommissionAction error", err, "Failed to update commission request.") };
   }
 }

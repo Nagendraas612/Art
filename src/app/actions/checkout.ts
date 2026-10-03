@@ -8,6 +8,7 @@ import { sendEmail, generateOrderConfirmationEmail } from "@/lib/email";
 import { dispatchAdminAlert } from "@/lib/admin-alerts";
 import { resolvePlatformFeeRate } from "@/lib/commissions";
 import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, StockStatus, Prisma } from "@prisma/client";
+import { checkoutInputSchema, firstIssue, toClientError } from "@/lib/validation";
 
 export interface CheckoutInput {
   items: Array<{
@@ -33,19 +34,12 @@ export interface CheckoutInput {
 
 export async function processCheckout(input: CheckoutInput) {
   try {
-    const { items: cartItems, customer, shippingAddress } = input;
-
-    if (!cartItems || cartItems.length === 0) {
-      return { error: "Your bag is empty." };
+    // Validate the entire trust boundary up front (P7).
+    const parsed = checkoutInputSchema.safeParse(input);
+    if (!parsed.success) {
+      return { error: firstIssue(parsed.error) };
     }
-
-    if (!customer.email || !customer.fullName || !customer.phone) {
-      return { error: "Please fill in all customer contact details." };
-    }
-
-    if (!shippingAddress.line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.postalCode) {
-      return { error: "Please fill in all required shipping address fields." };
-    }
+    const { items: cartItems, customer, shippingAddress } = parsed.data;
 
     // 1. Fetch live artwork data from database
     const artworkIds = cartItems.map((i) => i.id);
@@ -80,15 +74,6 @@ export async function processCheckout(input: CheckoutInput) {
     for (const item of cartItems) {
       const artwork = artworks.find((a) => a.id === item.id);
       if (!artwork) continue;
-
-      // Quantity is a trust boundary: reject non-integers, zero/negative,
-      // and absurd values before any money math happens.
-      if (!Number.isInteger(item.quantity) || item.quantity < 1) {
-        return { error: "Invalid quantity in your bag. Please review your items." };
-      }
-      if (item.quantity > 99) {
-        return { error: `Only up to 99 units of "${artwork.title}" can be ordered at once.` };
-      }
 
       if (artwork.stockStatus === StockStatus.SOLD || artwork.stock <= 0) {
         return { error: `"${artwork.title}" has already been acquired.` };
@@ -444,8 +429,7 @@ export async function processCheckout(input: CheckoutInput) {
       redirectUrl: `/orders/${createdOrder.orderNumber}`,
     };
   } catch (error: any) {
-    console.error("Checkout process error:", error);
-    return { error: error.message || "An unexpected error occurred during checkout." };
+    return { error: toClientError("Checkout process error", error, "An unexpected error occurred during checkout.") };
   }
 }
 
@@ -504,7 +488,6 @@ export async function getCustomerOrdersAction() {
       })),
     };
   } catch (error: any) {
-    console.error("getCustomerOrdersAction error:", error);
-    return { success: false, error: error.message, orders: [] };
+    return { success: false, orders: [], error: toClientError("getCustomerOrdersAction error", error) };
   }
 }

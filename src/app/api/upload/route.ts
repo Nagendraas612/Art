@@ -3,32 +3,12 @@ import { headers } from "next/headers";
 import { createHash } from "node:crypto";
 import { getSession } from "@/modules/auth/guards";
 import { getCurrentCreator } from "@/lib/studio-auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// ---------------------------------------------------------------------------
-// Rate limiting: in-memory sliding window, per serverless instance.
-// This stops casual abuse; a determined attacker can still spread requests
-// across instances/cold starts. Upgrade path: move buckets to Redis/Upstash.
-// ---------------------------------------------------------------------------
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX_UPLOADS = 20;
-const buckets = new Map<string, number[]>();
-
-function isRateLimited(key: string): boolean {
-  const now = Date.now();
-  const hits = (buckets.get(key) || []).filter((t) => now - t < RATE_WINDOW_MS);
-  hits.push(now);
-  buckets.set(key, hits);
-  if (buckets.size > 5000) {
-    for (const [k, v] of buckets) {
-      if (v.length === 0 || now - v[v.length - 1] > RATE_WINDOW_MS) buckets.delete(k);
-      if (buckets.size <= 4000) break;
-    }
-  }
-  return hits.length > RATE_MAX_UPLOADS;
-}
+// Upload rate limit: 20 uploads / minute / user via the shared limiter (P8).
 
 // ---------------------------------------------------------------------------
 // Magic-byte sniffing. file.type comes from the client-constructed File
@@ -146,7 +126,8 @@ export async function POST(req: NextRequest) {
   const ip =
     (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ||
     "unknown";
-  if (isRateLimited(`upload:${session.user.id}:${ip}`)) {
+  const rl = checkRateLimit(`upload:${session.user.id}:${ip}`, 20, 60_000);
+  if (!rl.allowed) {
     return NextResponse.json(
       { error: "Too many uploads. Please wait a minute and try again." },
       { status: 429 }
