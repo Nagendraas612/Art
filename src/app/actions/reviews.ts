@@ -8,14 +8,24 @@ export interface SubmitReviewInput {
   artworkId: string;
   rating: number;
   text: string;
-  authorName?: string;
-  authorEmail?: string;
   imageUrl?: string;
 }
 
 export async function submitReviewAction(input: SubmitReviewInput) {
   try {
-    const { artworkId, rating, text, authorName, authorEmail, imageUrl } = input;
+    const { artworkId, rating, text, imageUrl } = input;
+
+    // Identity comes from the session ONLY. Previously a guest could pass any
+    // authorEmail and the review would be filed under that real account.
+    const session = await getSession();
+    const authorId = session?.user?.id;
+
+    if (!authorId) {
+      return {
+        error: "Please sign in to write a review.",
+        code: "UNAUTHENTICATED",
+      };
+    }
 
     if (!artworkId || !rating || rating < 1 || rating > 5) {
       return { error: "Please provide a valid rating between 1 and 5 stars." };
@@ -25,24 +35,8 @@ export async function submitReviewAction(input: SubmitReviewInput) {
       return { error: "Please write at least a brief comment about the artwork." };
     }
 
-    // Resolve user
-    const session = await getSession();
-    let authorId = session?.user?.id;
-
-    if (!authorId) {
-      const email = authorEmail || "collector@example.com";
-      const name = authorName || "Art Collector";
-
-      let user = await prisma.user.findUnique({ where: { email } });
-      if (!user) {
-        user = await prisma.user.create({
-          data: {
-            email,
-            name,
-          },
-        });
-      }
-      authorId = user.id;
+    if (text.trim().length > 5000) {
+      return { error: "Review is too long (maximum 5000 characters)." };
     }
 
     // Check if orderItem exists or create a synthetic link for verified purchase
@@ -87,7 +81,7 @@ export async function submitReviewAction(input: SubmitReviewInput) {
       const addr = await prisma.address.create({
         data: {
           userId: authorId,
-          fullName: authorName || "Verified Collector",
+          fullName: session.user.name || "Verified Collector",
           phone: "+91 9876543210",
           line1: "Artisanal Studio Guild",
           city: "Mumbai",

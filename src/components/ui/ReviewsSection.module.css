@@ -336,3 +336,9 @@
   color: var(--color-foreground, #1e1b18);
   line-height: 1.55;
 }
+
+.signInLink {
+  color: var(--color-primary, #b85d38);
+  font-weight: 600;
+  text-decoration: underline;
+}

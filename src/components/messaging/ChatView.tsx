@@ -63,7 +63,6 @@ export function ChatView({
       conversationId: activeConv.id,
       body: newMessage.trim(),
       attachmentUrl: attachmentUrl.trim() || undefined,
-      isCreatorSender: isStudioView,
     });
 
     setIsSending(false);

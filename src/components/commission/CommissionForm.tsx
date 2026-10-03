@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { submitCustomRequestAction } from "@/app/actions/commissions";
+import { useSession } from "@/lib/auth-client";
 import styles from "./CommissionForm.module.css";
 
 interface CommissionFormProps {
@@ -18,6 +19,7 @@ interface CommissionFormProps {
 
 export function CommissionForm({ creator }: CommissionFormProps) {
   const router = useRouter();
+  const { data: session, isPending } = useSession();
   const [formData, setFormData] = useState({
     description: "",
     preferredMedium: creator.disciplines[0] || "",
@@ -25,8 +27,6 @@ export function CommissionForm({ creator }: CommissionFormProps) {
     budget: "",
     deadline: "",
     referenceImageUrl: "",
-    customerName: "",
-    customerEmail: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,8 +59,6 @@ export function CommissionForm({ creator }: CommissionFormProps) {
       budget: formData.budget ? parseFloat(formData.budget) : undefined,
       deadline: formData.deadline || undefined,
       referenceImageUrl: formData.referenceImageUrl || undefined,
-      customerName: formData.customerName || undefined,
-      customerEmail: formData.customerEmail || undefined,
     });
 
     setIsSubmitting(false);
@@ -167,31 +165,18 @@ export function CommissionForm({ creator }: CommissionFormProps) {
             onChange={handleChange}
           />
         </div>
-
-        <div className={styles.formGroup}>
-          <label htmlFor="customerName">Your Name</label>
-          <input
-            type="text"
-            id="customerName"
-            name="customerName"
-            placeholder="e.g. Rajiv Menon"
-            value={formData.customerName}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div className={styles.formGroup}>
-          <label htmlFor="customerEmail">Your Email</label>
-          <input
-            type="email"
-            id="customerEmail"
-            name="customerEmail"
-            placeholder="rajiv@example.com"
-            value={formData.customerEmail}
-            onChange={handleChange}
-          />
-        </div>
       </div>
+
+      {!isPending && !session && (
+        <div className={styles.signInNotice}>
+          Please{" "}
+          <Link href="/sign-in" className={styles.signInLink}>
+            sign in
+          </Link>{" "}
+          to submit a commission request — it will be filed under your collector
+          account.
+        </div>
+      )}
 
       <div className={styles.footer}>
         <Link href={`/creators/${creator.handle}`} className={styles.cancelLink}>

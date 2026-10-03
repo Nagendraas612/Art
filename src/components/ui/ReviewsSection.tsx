@@ -2,7 +2,9 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { submitReviewAction } from "@/app/actions/reviews";
+import { useSession } from "@/lib/auth-client";
 import styles from "./ReviewsSection.module.css";
 
 export interface ReviewItem {
@@ -24,13 +26,12 @@ interface ReviewsSectionProps {
 }
 
 export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProps) {
+  const { data: session, isPending } = useSession();
   const [reviews, setReviews] = useState<ReviewItem[]>(initialReviews);
   const [showForm, setShowForm] = useState(false);
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [text, setText] = useState("");
-  const [authorName, setAuthorName] = useState("");
-  const [authorEmail, setAuthorEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -56,8 +57,6 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
       artworkId,
       rating,
       text,
-      authorName: authorName || "Verified Collector",
-      authorEmail: authorEmail || "collector@example.com",
     });
 
     setIsSubmitting(false);
@@ -121,8 +120,22 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
         </div>
       </div>
 
-      {/* Review Submission Form */}
-      {showForm && (
+      {/* Review Submission Form — signed-in collectors only. Identity is
+          derived from the session server-side; guests can no longer file
+          reviews under arbitrary emails. */}
+      {showForm &&
+        (!isPending && !session ? (
+          <div className={styles.formCard}>
+            <h4 className={styles.formTitle}>Leave an Artisanal Appraisal</h4>
+            <p>
+              Please{" "}
+              <Link href="/sign-in" className={styles.signInLink}>
+                sign in
+              </Link>{" "}
+              to share your appraisal of this piece.
+            </p>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className={styles.formCard}>
           <h4 className={styles.formTitle}>Leave an Artisanal Appraisal</h4>
 
@@ -151,17 +164,6 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
               </div>
             </div>
 
-            <div>
-              <label htmlFor="authorName">Your Name</label>
-              <input
-                type="text"
-                id="authorName"
-                placeholder="e.g. Anandita S."
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-              />
-            </div>
-
             <div className={styles.fullWidth}>
               <label htmlFor="reviewText">Your Review &amp; Experience *</label>
               <textarea
@@ -185,7 +187,7 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
             </button>
           </div>
         </form>
-      )}
+        ))}
 
       {/* Reviews List */}
       {reviews.length === 0 ? (
