@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/modules/auth/guards";
 import { Nav } from "@/components/Nav";
 import { OrderStatus } from "@prisma/client";
 import styles from "./order.module.css";
@@ -46,6 +47,23 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
   });
 
   if (!order) {
+    notFound();
+  }
+
+  // Ownership check: order pages previously rendered full name, address and
+  // phone to anyone with the order number (5-digit, enumerable). Only the
+  // ordering customer, a creator with items in the order, or an admin may
+  // view. Deliberately 404 (not 403) so existence isn't confirmed.
+  const session = await getSession();
+  const viewerId = session?.user?.id;
+  const viewerRole = session?.user?.role;
+  const isOwner = !!viewerId && viewerId === order.customerId;
+  const isAdmin = viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN";
+  const isOwningCreator =
+    !!viewerId &&
+    order.items.some((item) => item.creator?.user?.id === viewerId);
+
+  if (!isOwner && !isAdmin && !isOwningCreator) {
     notFound();
   }
 

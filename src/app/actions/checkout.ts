@@ -1,5 +1,6 @@
 "use server";
 
+import { randomInt } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { cashfree, isCashfreeConfigured } from "@/lib/cashfree";
@@ -25,12 +26,13 @@ export interface CheckoutInput {
     postalCode: string;
     country: string;
   };
-  paymentMethod: "CASHFREE" | "SANDBOX";
+  // NOTE: payment mode is decided server-side only (see processCheckout).
+  // The client must never influence whether an order is treated as paid.
 }
 
 export async function processCheckout(input: CheckoutInput) {
   try {
-    const { items: cartItems, customer, shippingAddress, paymentMethod } = input;
+    const { items: cartItems, customer, shippingAddress } = input;
 
     if (!cartItems || cartItems.length === 0) {
       return { error: "Your bag is empty." };
@@ -77,6 +79,15 @@ export async function processCheckout(input: CheckoutInput) {
     for (const item of cartItems) {
       const artwork = artworks.find((a) => a.id === item.id);
       if (!artwork) continue;
+
+      // Quantity is a trust boundary: reject non-integers, zero/negative,
+      // and absurd values before any money math happens.
+      if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+        return { error: "Invalid quantity in your bag. Please review your items." };
+      }
+      if (item.quantity > 99) {
+        return { error: `Only up to 99 units of "${artwork.title}" can be ordered at once.` };
+      }
 
       if (artwork.stockStatus === StockStatus.SOLD || artwork.stock <= 0) {
         return { error: `"${artwork.title}" has already been acquired.` };
@@ -138,13 +149,37 @@ export async function processCheckout(input: CheckoutInput) {
       },
     });
 
-    // 5. Generate Order Number
+    // 5. Generate Order Number — high entropy (10 unambiguous chars, ~52 bits),
+    // verified unique against the DB before use. Old format (5 digits, ~90k
+    // space) was trivially enumerable, exposing order PII.
     const year = new Date().getFullYear();
-    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
-    const orderNumber = `ORD-${year}-${randomSuffix}`;
+    const orderAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let orderNumber = "";
+    for (let attempt = 0; attempt < 5 && !orderNumber; attempt++) {
+      const suffix = Array.from(
+        { length: 10 },
+        () => orderAlphabet[randomInt(orderAlphabet.length)]
+      ).join("");
+      const candidate = `ORD-${year}-${suffix}`;
+      const existing = await prisma.order.findUnique({
+        where: { orderNumber: candidate },
+        select: { id: true },
+      });
+      if (!existing) orderNumber = candidate;
+    }
+    if (!orderNumber) {
+      return { error: "Could not generate an order reference. Please try again." };
+    }
 
-    // 6. Execute Order Creation in a Prisma Transaction
-    const isSandbox = paymentMethod === "SANDBOX" || !isCashfreeConfigured();
+    // 6. Decide payment mode SERVER-SIDE ONLY. Never derive this from client
+    // input: a client-controlled flag here meant anyone could mark orders
+    // PAID with zero money moved. SANDBOX_CHECKOUT_ENABLED=true is for local
+    // dev only — in production it must be unset, and checkout refuses to run
+    // without a configured Cashfree gateway (fail closed, never free orders).
+    const isSandbox = process.env.SANDBOX_CHECKOUT_ENABLED === "true";
+    if (!isSandbox && !isCashfreeConfigured()) {
+      return { error: "Payments are currently unavailable. Please try again later." };
+    }
 
     const createdOrder = await prisma.$transaction(async (tx) => {
       // Create Order
@@ -255,7 +290,7 @@ export async function processCheckout(input: CheckoutInput) {
           status: isSandbox ? OrderStatus.ORDER_CONFIRMED : OrderStatus.PENDING_PAYMENT,
           note: isSandbox
             ? "Payment verified via Kalaa Bhadra Sandbox Simulator. Order placed with studio."
-            : "Awaiting payment via Stripe.",
+            : "Awaiting payment via Cashfree.",
         },
       });
 
@@ -362,8 +397,9 @@ export async function processCheckout(input: CheckoutInput) {
       }
     }
 
-    // 7. Handle Cashfree Order if live Cashfree requested
-    if (paymentMethod === "CASHFREE" && isCashfreeConfigured()) {
+    // 7. Handle Cashfree Order when not in sandbox-simulator mode.
+    // (If Cashfree were unconfigured here we already returned above.)
+    if (!isSandbox) {
       const orderRequest = {
         order_amount: grandTotalNum,
         order_currency: "INR",
@@ -403,15 +439,11 @@ export async function processCheckout(input: CheckoutInput) {
 export async function getCustomerOrdersAction() {
   try {
     const session = await getSession();
-    let userId = session?.user?.id;
+    const userId = session?.user?.id;
 
-    if (!userId) {
-      const fallbackUser = await prisma.user.findFirst({
-        where: { role: "CUSTOMER" },
-      });
-      userId = fallbackUser?.id;
-    }
-
+    // Fail closed: guests see an empty order history. Previously this fell
+    // back to the first CUSTOMER row in the DB, handing a stranger's full
+    // order history to any signed-out caller.
     if (!userId) {
       return { success: true, orders: [] };
     }
