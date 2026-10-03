@@ -129,7 +129,20 @@ export async function createArtworkAction(data: ArtworkFormData) {
       },
       include: {
         category: true,
-        creator: { include: { user: true } },
+        creator: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+                avatarUrl: true,
+                role: true,
+              },
+            },
+          },
+        },
       },
     });
 

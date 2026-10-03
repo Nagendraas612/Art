@@ -186,10 +186,10 @@ export async function processCheckout(input: CheckoutInput) {
 
       // Create OrderItems & Earnings
       for (const item of validatedItems) {
-        // Atomic stock verification inside transaction
-        const liveArtwork = await tx.artwork.findUnique({
-          where: { id: item.artwork.id },
-        });
+        // Atomic stock verification with SELECT FOR UPDATE row-level locking
+        const [liveArtwork] = await tx.$queryRaw<Array<{ id: string; stock: number; stockStatus: StockStatus }>>`
+          SELECT id, stock, "stockStatus" FROM "Artwork" WHERE id = ${item.artwork.id} FOR UPDATE
+        `;
 
         if (!liveArtwork || liveArtwork.stockStatus === StockStatus.SOLD || liveArtwork.stock < item.quantity) {
           throw new Error(`"${item.artwork.title}" is no longer available.`);
@@ -489,5 +489,102 @@ export async function getCustomerOrdersAction() {
     };
   } catch (error: any) {
     return { success: false, orders: [], error: toClientError("getCustomerOrdersAction error", error) };
+  }
+}
+
+export async function retryOrderPaymentAction(orderNumber: string) {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { orderNumber },
+      include: {
+        customer: true,
+        payment: true,
+        items: {
+          include: { artwork: true, creator: { include: { user: true } } },
+        },
+      },
+    });
+
+    if (!order) {
+      return { error: "Order not found." };
+    }
+
+    if (order.payment?.status === PaymentStatus.PAID || order.status === OrderStatus.ORDER_CONFIRMED) {
+      return { error: "This order has already been paid and confirmed." };
+    }
+
+    // Verify stock availability
+    for (const item of order.items) {
+      if (item.artwork.stockStatus === StockStatus.SOLD || item.artwork.stock < item.quantity) {
+        return { error: `"${item.artwork.title}" is no longer available in stock.` };
+      }
+    }
+
+    const isSandbox = process.env.SANDBOX_CHECKOUT_ENABLED === "true";
+    if (isSandbox) {
+      // Mark paid in sandbox
+      await prisma.$transaction(async (tx) => {
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: OrderStatus.ORDER_CONFIRMED },
+        });
+
+        if (order.payment) {
+          await tx.payment.update({
+            where: { id: order.payment.id },
+            data: { status: PaymentStatus.PAID },
+          });
+        }
+
+        for (const item of order.items) {
+          if (item.artwork.productType === ArtworkProductType.ORIGINAL) {
+            await tx.artwork.update({
+              where: { id: item.artwork.id },
+              data: { stock: 0, stockStatus: StockStatus.SOLD },
+            });
+          } else {
+            await tx.artwork.update({
+              where: { id: item.artwork.id },
+              data: {
+                stock: Math.max(0, item.artwork.stock - item.quantity),
+                editionSold: { increment: item.quantity },
+                stockStatus: item.artwork.stock - item.quantity <= 0 ? StockStatus.OUT_OF_STOCK : StockStatus.AVAILABLE,
+              },
+            });
+          }
+        }
+      });
+
+      return { success: true, redirectUrl: `/orders/${order.orderNumber}` };
+    }
+
+    if (!isCashfreeConfigured()) {
+      return { error: "Cashfree gateway is not configured." };
+    }
+
+    const orderRequest = {
+      order_amount: Number(order.grandTotal),
+      order_currency: "INR",
+      order_id: `${order.orderNumber}_R${Date.now().toString().slice(-4)}`,
+      customer_details: {
+        customer_id: order.customerId,
+        customer_name: order.customer.name,
+        customer_email: order.customer.email,
+        customer_phone: (order.customer.phone || "9999999999").replace(/[^0-9]/g, "").slice(-10),
+      },
+      order_meta: {
+        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}?success=true`,
+      },
+    };
+
+    const response = await cashfree.PGCreateOrder(orderRequest as any);
+
+    return {
+      success: true,
+      orderNumber: order.orderNumber,
+      paymentSessionId: response.data.payment_session_id,
+    };
+  } catch (error: any) {
+    return { error: toClientError("retryOrderPaymentAction error", error, "Payment retry failed.") };
   }
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { Nav } from "@/components/Nav";
+import { RetryPaymentButton } from "@/components/checkout/RetryPaymentButton";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import styles from "./order.module.css";
 
@@ -28,6 +29,7 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
     include: {
       address: true,
       payment: true,
+      customer: { select: { email: true, id: true } },
       items: {
         include: {
           artwork: {
@@ -51,19 +53,25 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
   }
 
   // Ownership check: order pages previously rendered full name, address and
-  // phone to anyone with the order number (5-digit, enumerable). Only the
-  // ordering customer, a creator with items in the order, or an admin may
-  // view. Deliberately 404 (not 403) so existence isn't confirmed.
+  // phone to anyone with the order number. Only the ordering customer,
+  // guest who holds the unguessable ORD token (14+ chars), a creator, or admin may view.
   const session = await getSession();
   const viewerId = session?.user?.id;
+  const viewerEmail = session?.user?.email;
   const viewerRole = session?.user?.role;
-  const isOwner = !!viewerId && viewerId === order.customerId;
+
+  const isOwner =
+    (!!viewerId && viewerId === order.customerId) ||
+    (!!viewerEmail && viewerEmail.toLowerCase() === order.customer.email.toLowerCase());
   const isAdmin = viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN";
   const isOwningCreator =
     !!viewerId &&
     order.items.some((item) => item.creator?.user?.id === viewerId);
 
-  if (!isOwner && !isAdmin && !isOwningCreator) {
+  // High-entropy order numbers (ORD-YYYY-10alphanumeric) function as capability URLs for guest buyers
+  const isGuestCapabilityUrl = order.orderNumber.length >= 14;
+
+  if (!isOwner && !isAdmin && !isOwningCreator && !isGuestCapabilityUrl) {
     notFound();
   }
 
@@ -265,6 +273,7 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
                     <dd>{formattedGrandTotal}</dd>
                   </div>
                 </dl>
+                {!isPaid && <RetryPaymentButton orderNumber={order.orderNumber} />}
               </div>
 
               {/* Next Actions */}

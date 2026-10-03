@@ -90,7 +90,20 @@ export async function searchArtworksAction(input: SearchInput) {
         skip: (page - 1) * perPage,
         include: {
           images: { orderBy: { sortOrder: "asc" }, take: 1 },
-          creator: { include: { user: true } },
+          creator: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true,
+                  avatarUrl: true,
+                  role: true,
+                },
+              },
+            },
+          },
           category: true,
         },
       }),

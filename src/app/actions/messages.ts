@@ -106,7 +106,20 @@ export async function sendMessageAction(input: {
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
-        creator: { include: { user: true } },
+        creator: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+                avatarUrl: true,
+                role: true,
+              },
+            },
+          },
+        },
         customer: true
       },
     });

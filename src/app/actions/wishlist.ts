@@ -99,7 +99,20 @@ export async function getWishlistItemsAction() {
             artwork: {
               include: {
                 images: { orderBy: { sortOrder: "asc" }, take: 1 },
-                creator: { include: { user: true } },
+                creator: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        image: true,
+                        avatarUrl: true,
+                        role: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },

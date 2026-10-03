@@ -53,11 +53,22 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
             onClick={() => handleStatusChange(OrderStatus.PREPARING)}
             className={styles.prepBtn}
           >
-            Start Preparing &amp; Stamping
+            Start Inspection &amp; Preparation
           </button>
         )}
 
-        {status === OrderStatus.PREPARING && !showDispatchForm && (
+        {status === OrderStatus.PREPARING && (
+          <button
+            type="button"
+            disabled={isUpdating}
+            onClick={() => handleStatusChange(OrderStatus.PACKED)}
+            className={styles.prepBtn}
+          >
+            Mark Artwork as Packed &amp; Sealed ✓
+          </button>
+        )}
+
+        {(status === OrderStatus.PREPARING || status === OrderStatus.PACKED) && !showDispatchForm && (
           <button
             type="button"
             onClick={() => setShowDispatchForm(true)}
@@ -107,10 +118,21 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
           <button
             type="button"
             disabled={isUpdating}
+            onClick={() => handleStatusChange(OrderStatus.OUT_FOR_DELIVERY)}
+            className={styles.deliverBtn}
+          >
+            Mark Out for Delivery
+          </button>
+        )}
+
+        {(status === OrderStatus.SHIPPED || status === OrderStatus.OUT_FOR_DELIVERY) && (
+          <button
+            type="button"
+            disabled={isUpdating}
             onClick={() => handleStatusChange(OrderStatus.DELIVERED)}
             className={styles.deliverBtn}
           >
-            Mark as Delivered
+            Confirm Final Hand-Delivery ✓
           </button>
         )}
       </div>
