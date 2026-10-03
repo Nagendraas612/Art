@@ -566,6 +566,35 @@ export async function updateStudioOrderStatusAction({
       console.error("[StudioOrderStatus] status email error:", emailErr);
     }
 
+    // Review request: once the order is delivered, invite the collector to
+    // appraise the pieces. The review action itself requires a paid order
+    // item, so this can only ever reach genuine buyers.
+    if (status === OrderStatus.DELIVERED) {
+      try {
+        const { sendEmail, generateReviewRequestEmail } = await import(
+          "@/lib/email"
+        );
+        const reviewHtml = generateReviewRequestEmail({
+          customerName: order.customer.name || "Collector",
+          orderNumber: order.orderNumber,
+          artworkTitles: order.items.map((i) => i.artwork.title),
+          reviewUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}`,
+        });
+        const reviewResult = await sendEmail({
+          to: order.customer.email,
+          subject: `How was ${order.items.length > 1 ? "your art" : order.items[0]?.artwork.title || "your art"}? Share your appraisal`,
+          html: reviewHtml,
+          templateType: "REVIEW_REQUEST",
+          metadata: { orderId, status },
+        });
+        if (!reviewResult.success) {
+          console.error("[StudioOrderStatus] review email failed:", reviewResult.error);
+        }
+      } catch (emailErr) {
+        console.error("[StudioOrderStatus] review email error:", emailErr);
+      }
+    }
+
     revalidatePath("/studio/orders");
     revalidatePath("/studio");
     return { success: true };

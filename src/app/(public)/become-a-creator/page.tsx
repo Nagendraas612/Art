@@ -5,7 +5,7 @@ import { CreatorOnboardingForm } from "./CreatorOnboardingForm";
 import styles from "./become-a-creator.module.css";
 
 export const metadata = {
-  title: "Join as a Creator — Kalaa Bhadra",
+  title: "Join as a Creator",
   description: "Set up your independent artisan studio and showcase original artworks directly to collectors.",
 };
 

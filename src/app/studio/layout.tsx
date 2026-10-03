@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getSession } from "@/modules/auth/guards";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import styles from "./studio.module.css";
 
 export const metadata = {
-  title: "Creator Studio — Kalaa Bhadra",
+  title: "Creator Studio",
   description: "Artisan and Creator Studio Management Dashboard",
 };
 
@@ -16,7 +17,11 @@ export default async function StudioLayout({
 }) {
   const session = await getSession();
   if (!session) {
-    redirect("/sign-in?callbackUrl=/studio");
+    // Preserve the originally requested studio sub-path so sign-in can
+    // return the creator to where they were headed (via middleware's
+    // x-request-path header).
+    const requestPath = (await headers()).get("x-request-path") || "/studio";
+    redirect(`/sign-in?callbackUrl=${encodeURIComponent(requestPath)}`);
   }
 
   const creator = await getCurrentCreator();

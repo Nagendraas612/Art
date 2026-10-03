@@ -36,7 +36,7 @@ export async function startConversationAction(input: {
       };
     }
 
-    const rl = checkRateLimit(`convo:${customerId}`, 10, 60_000);
+    const rl = await checkRateLimit(`convo:${customerId}`, 10, 60_000);
     if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
     // Check if conversation already exists between customer and creator
@@ -101,7 +101,7 @@ export async function sendMessageAction(input: {
       };
     }
 
-    const rl = checkRateLimit(`msg:${senderId}`, 30, 60_000);
+    const rl = await checkRateLimit(`msg:${senderId}`, 30, 60_000);
     if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
     const conversation = await prisma.conversation.findUnique({

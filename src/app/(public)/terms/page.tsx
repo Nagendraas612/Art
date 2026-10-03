@@ -2,7 +2,7 @@ import Link from "next/link";
 import styles from "../legal.module.css";
 
 export const metadata = {
-  title: "Terms of Use | Kalaa Bhadra",
+  title: "Terms of Use",
   description: "Terms of service and platform agreements for Kalaa Bhadra.",
 };
 

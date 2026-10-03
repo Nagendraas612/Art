@@ -2,7 +2,7 @@ import Link from "next/link";
 import styles from "../legal.module.css";
 
 export const metadata = {
-  title: "About Us | Kalaa Bhadra",
+  title: "About Us",
   description: "Kalaa Bhadra is a curated marketplace connecting discerning collectors with independent master artisans worldwide.",
 };
 

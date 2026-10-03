@@ -2,7 +2,7 @@ import Link from "next/link";
 import styles from "../legal.module.css";
 
 export const metadata = {
-  title: "Shipping & Returns | Kalaa Bhadra",
+  title: "Shipping & Returns",
   description: "Learn about Kalaa Bhadra's shipping process, insured delivery, processing times, and return policy for original artworks.",
 };
 

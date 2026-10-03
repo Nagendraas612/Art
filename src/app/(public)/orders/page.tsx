@@ -7,7 +7,7 @@ import { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "My Orders | Kalaa Bhadra",
+  title: "My Orders",
   description: "View and track your acquired art pieces, limited editions, and bespoke commissions.",
 };
 

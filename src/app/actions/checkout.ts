@@ -49,9 +49,9 @@ export async function processCheckout(input: CheckoutInput) {
     // emails nor a shared inbox defeats the limit.
     const ip =
       (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const rlEmail = checkRateLimit(`checkout:email:${customer.email.toLowerCase()}`, 10, 10 * 60_000);
+    const rlEmail = await checkRateLimit(`checkout:email:${customer.email.toLowerCase()}`, 10, 10 * 60_000);
     if (!rlEmail.allowed) return { error: rateLimitExceeded(rlEmail.retryAfterMs) };
-    const rlIp = checkRateLimit(`checkout:ip:${ip}`, 20, 10 * 60_000);
+    const rlIp = await checkRateLimit(`checkout:ip:${ip}`, 20, 10 * 60_000);
     if (!rlIp.allowed) return { error: rateLimitExceeded(rlIp.retryAfterMs) };
 
     // 1. Fetch live artwork data from database
@@ -600,9 +600,9 @@ export async function retryOrderPaymentAction(orderNumber: string, guestToken?: 
     // Rate-limit retries: 3 attempts per 5 minutes per order and per IP.
     const ip =
       (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const rlOrder = checkRateLimit(`retry:order:${order.id}`, 3, 5 * 60_000);
+    const rlOrder = await checkRateLimit(`retry:order:${order.id}`, 3, 5 * 60_000);
     if (!rlOrder.allowed) return { error: rateLimitExceeded(rlOrder.retryAfterMs) };
-    const rlIp = checkRateLimit(`retry:ip:${ip}`, 10, 5 * 60_000);
+    const rlIp = await checkRateLimit(`retry:ip:${ip}`, 10, 5 * 60_000);
     if (!rlIp.allowed) return { error: rateLimitExceeded(rlIp.retryAfterMs) };
 
     const isSandbox = process.env.SANDBOX_CHECKOUT_ENABLED === "true";

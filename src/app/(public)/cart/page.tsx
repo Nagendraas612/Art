@@ -129,7 +129,7 @@ export default function CartPage() {
                           {isOriginal ? (
                             <span className={styles.originalBadge}>Unique 1/1 Original</span>
                           ) : (
-                            <span className={styles.editionBadge}>Limited Artisan Craft</span>
+                            <span className={styles.editionBadge}>Limited Edition</span>
                           )}
                         </div>
 

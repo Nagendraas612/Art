@@ -2,7 +2,7 @@ import Link from "next/link";
 import styles from "../legal.module.css";
 
 export const metadata = {
-  title: "Frequently Asked Questions | Kalaa Bhadra",
+  title: "Frequently Asked Questions",
   description: "Find answers to common questions about ordering, shipping, returns, creator applications, and more on Kalaa Bhadra.",
 };
 

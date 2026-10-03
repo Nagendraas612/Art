@@ -2,6 +2,15 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "@/lib/prisma";
 
+// Email verification can only be enforced when an email provider is actually
+// configured — otherwise sign-in would lock every user out. The flag follows
+// the provider: set RESEND_API_KEY (or Gmail SMTP) in production to enforce.
+const emailProviderConfigured = !!(
+  process.env.RESEND_API_KEY ||
+  process.env.GMAIL_USER ||
+  process.env.SMTP_USER
+);
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -16,6 +25,9 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+    // When an email provider is configured, users must verify their email
+    // before they can sign in. Google OAuth users are inherently verified.
+    requireEmailVerification: emailProviderConfigured,
     async sendResetPassword({ user, url }) {
       const { sendEmail, generatePasswordResetEmail } = await import("@/lib/email");
       await sendEmail({
@@ -34,6 +46,24 @@ export const auth = betterAuth({
       enabled: true,
       trustedProviders: ["google"],
       requireLocalEmailVerified: true,
+    },
+  },
+
+  emailVerification: {
+    sendOnSignUp: true,
+    async sendVerificationEmail({ user, url }) {
+      const { sendEmail, generateVerificationEmail } = await import(
+        "@/lib/email"
+      );
+      await sendEmail({
+        to: user.email,
+        subject: "Verify your Kalaa Bhadra email",
+        html: generateVerificationEmail({
+          userName: user.name || "Collector",
+          verificationUrl: url,
+        }),
+        templateType: "EMAIL_VERIFICATION",
+      });
     },
   },
 

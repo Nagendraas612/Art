@@ -2,7 +2,7 @@ import Link from "next/link";
 import styles from "../legal.module.css";
 
 export const metadata = {
-  title: "Privacy Policy | Kalaa Bhadra",
+  title: "Privacy Policy",
   description: "Privacy policy and data protection practices for Kalaa Bhadra.",
 };
 

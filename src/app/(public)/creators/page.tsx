@@ -8,7 +8,7 @@ import Link from "next/link";
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "Artisans & Creators — Kalaa Bhadra",
+  title: "Artisans & Creators",
   description: "Meet the master ceramists, painters, weavers, printmakers, and woodworkers showcasing their crafts on Kalaa Bhadra.",
   alternates: {
     canonical: "https://kalaabhadra.vercel.app/creators",

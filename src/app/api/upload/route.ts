@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
   const ip =
     (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ||
     "unknown";
-  const rl = checkRateLimit(`upload:${session.user.id}:${ip}`, 20, 60_000);
+  const rl = await checkRateLimit(`upload:${session.user.id}:${ip}`, 20, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Too many uploads. Please wait a minute and try again." },

@@ -117,6 +117,7 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
   const mainImage = artwork.images[0]?.url || "";
   const detailImages = artwork.images.slice(1);
   const isAvailable = artwork.stockStatus === StockStatus.AVAILABLE;
+  const dispatchDays = artwork.processingDays || 3;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -318,7 +319,7 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
                   </div>
                   <div className={styles.specItem}>
                     <dt>Dispatch Time</dt>
-                    <dd>Ships in {artwork.processingDays || 3} business days directly from creator studio</dd>
+                    <dd>Ships in {dispatchDays} business day{dispatchDays === 1 ? "" : "s"} directly from creator studio</dd>
                   </div>
                 </dl>
               </div>

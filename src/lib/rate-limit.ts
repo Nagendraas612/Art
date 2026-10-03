@@ -1,10 +1,13 @@
 /**
- * Shared in-memory sliding-window rate limiter (P8).
+ * Shared sliding-window rate limiter.
  *
- * Per-process memory: adequate for a single-instance deployment.
- * For multi-instance / production scale, replace `store` with a
- * Redis/Upstash adapter behind the same `checkRateLimit` signature —
- * the call sites must not change.
+ * Uses Upstash Redis when UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
+ * are configured (shared across all serverless instances — the correct
+ * production behavior). Otherwise falls back to the original in-memory
+ * sliding window (adequate for single-instance dev).
+ *
+ * Call sites use `await checkRateLimit(...)` and never change regardless of
+ * which backend is active.
  */
 
 interface Bucket {
@@ -29,11 +32,50 @@ export interface RateLimitResult {
   retryAfterMs: number;
 }
 
-/**
- * Sliding-window check: at most `limit` events per `windowMs` per key.
- * Key should be namespaced, e.g. `msg:<userId>` or `search:<ip>`.
- */
-export function checkRateLimit(
+const upstashConfigured = !!(
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+);
+
+// Lazily created per (limit, window) — Upstash Ratelimit instances are bound
+// to one limit/window pair. Typed loosely because the class comes from a
+// dynamic import.
+const upstashLimiters = new Map<string, { limit: (key: string) => Promise<{ success: boolean }> }>();
+
+async function checkUpstash(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult | null> {
+  if (!upstashConfigured) return null;
+  try {
+    const cacheKey = `${limit}:${windowMs}`;
+    let rl = upstashLimiters.get(cacheKey);
+    if (!rl) {
+      const { Ratelimit } = await import("@upstash/ratelimit");
+      const { Redis } = await import("@upstash/redis");
+      rl = new Ratelimit({
+        redis: Redis.fromEnv(),
+        limiter: Ratelimit.slidingWindow(
+          limit,
+          `${Math.max(1, Math.round(windowMs / 1000))} s`
+        ),
+        analytics: false,
+        prefix: "kb-ratelimit",
+      });
+      upstashLimiters.set(cacheKey, rl);
+    }
+    const { success } = await rl.limit(key);
+    return success
+      ? { allowed: true, retryAfterMs: 0 }
+      : { allowed: false, retryAfterMs: windowMs };
+  } catch (err) {
+    // Never fail open or closed on Redis trouble — degrade to memory.
+    console.error("[rate-limit] Upstash error, falling back to memory:", err);
+    return null;
+  }
+}
+
+function checkMemory(
   key: string,
   limit: number,
   windowMs: number
@@ -56,6 +98,20 @@ export function checkRateLimit(
 
   bucket.hits.push(now);
   return { allowed: true, retryAfterMs: 0 };
+}
+
+/**
+ * Sliding-window check: at most `limit` events per `windowMs` per key.
+ * Key should be namespaced, e.g. `msg:<userId>` or `search:<ip>`.
+ */
+export async function checkRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  const upstash = await checkUpstash(key, limit, windowMs);
+  if (upstash) return upstash;
+  return checkMemory(key, limit, windowMs);
 }
 
 /** Client-facing message when the limiter denies a request (wrap in `{ error: ... }`). */

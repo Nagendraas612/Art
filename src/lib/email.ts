@@ -622,6 +622,82 @@ export function generatePasswordResetEmail(params: {
   `;
 }
 
+/**
+ * Review request email — sent when an order is marked DELIVERED, inviting
+ * the collector to appraise the piece. Reviews require a paid order item
+ * (enforced in the review action), so this email can only ever reach genuine
+ * buyers.
+ */
+export function generateReviewRequestEmail(params: {
+  customerName: string;
+  orderNumber: string;
+  artworkTitles: string[];
+  reviewUrl: string;
+}) {
+  const titles =
+    params.artworkTitles.length > 0
+      ? params.artworkTitles.join(", ")
+      : "your recent acquisition";
+  return `
+    <div style="${baseEmailStyles}">
+      <div style="${containerStyles}">
+        <div style="${headerStyles}">
+          <h1 style="margin: 0; font-family: serif; font-size: 26px;">KALAA BHADRA</h1>
+          <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase;">Share Your Appraisal</p>
+        </div>
+        
+        <div style="${bodyStyles}">
+          <p>Dear ${params.customerName},</p>
+          <p>Your order <strong>#${params.orderNumber}</strong> has been delivered. We hope ${params.artworkTitles.length > 1 ? "the pieces have" : "the piece has"} found a worthy wall.</p>
+          <p>Collectors value the appraisals of fellow collectors — would you share a few words on ${titles}?</p>
+
+          <div style="text-align: center; margin-top: 28px;">
+            <a href="${params.reviewUrl}" style="${buttonStyles}">Write a Review</a>
+          </div>
+
+          <p style="margin-top: 32px; font-size: 13px; color: #78716c;">Only verified buyers can leave reviews, so your appraisal carries real weight.</p>
+        </div>
+
+        <div style="${footerStyles}">
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kalaa Bhadra. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// 7b. Email Verification
+export function generateVerificationEmail(params: {
+  userName: string;
+  verificationUrl: string;
+}) {
+  return `
+    <div style="${baseEmailStyles}">
+      <div style="${containerStyles}">
+        <div style="${headerStyles}">
+          <h1 style="margin: 0; font-family: serif; font-size: 26px;">KALAA BHADRA</h1>
+          <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase;">Email Verification</p>
+        </div>
+        
+        <div style="${bodyStyles}">
+          <p>Hello ${params.userName},</p>
+          <p>Welcome to Kalaa Bhadra. Please verify your email address to secure your account and unlock the full collector experience:</p>
+          
+          <div style="text-align: center; margin-top: 28px;">
+            <a href="${params.verificationUrl}" style="${buttonStyles}">Verify Email Address</a>
+          </div>
+
+          <p style="margin-top: 32px; font-size: 13px; color: #78716c;">If you didn't create a Kalaa Bhadra account, you can safely ignore this email.</p>
+        </div>
+
+        <div style="${footerStyles}">
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kalaa Bhadra</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 // 8. Order Status Update Email
 export function generateOrderStatusEmail(params: {
   customerName: string;

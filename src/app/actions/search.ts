@@ -43,7 +43,7 @@ export async function searchArtworksAction(input: SearchInput) {
     const ip =
       (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
-    const rl = checkRateLimit(`search:${ip}`, 60, 60_000);
+    const rl = await checkRateLimit(`search:${ip}`, 60, 60_000);
     if (!rl.allowed)
       return { artworks: [], total: 0, error: rateLimitExceeded(rl.retryAfterMs) };
 

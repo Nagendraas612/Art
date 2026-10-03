@@ -9,7 +9,7 @@ import { ArtworkStatus } from "@prisma/client";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Saved Collection — Your Curated Pieces | Kalaa Bhadra",
+  title: "Saved Collection — Your Curated Pieces",
   description: "Browse and manage your personal wishlist of exceptional fine art and craft pieces.",
 };
 

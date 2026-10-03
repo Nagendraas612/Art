@@ -286,7 +286,7 @@ export default async function Home() {
                 <span className={styles.propIcon}>📦</span>
                 <h3 className={styles.propTitle}>Insured Shipping</h3>
                 <p className={styles.propDesc}>
-                  Archival-grade packaging and fully insured white-glove courier delivery worldwide.
+                  Archival-grade packaging and fully insured white-glove courier delivery across India.
                 </p>
               </div>
             </div>

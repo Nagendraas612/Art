@@ -50,7 +50,7 @@ export async function submitCustomRequestAction(input: CustomRequestInput) {
       };
     }
 
-    const rl = checkRateLimit(`commission:${customerId}`, 10, 60_000);
+    const rl = await checkRateLimit(`commission:${customerId}`, 10, 60_000);
     if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
     const customRequest = await prisma.customRequest.create({

@@ -37,7 +37,7 @@ export async function submitReviewAction(input: SubmitReviewInput) {
       };
     }
 
-    const rl = checkRateLimit(`review:${authorId}`, 10, 60_000);
+    const rl = await checkRateLimit(`review:${authorId}`, 10, 60_000);
     if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
     // Reviews are only allowed on real, paid, confirmed order items owned by
