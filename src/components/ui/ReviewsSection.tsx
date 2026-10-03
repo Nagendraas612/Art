@@ -39,7 +39,8 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
   const averageRating =
     reviews.length > 0
       ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-      : "5.0";
+      : null;
+  const hasReviews = reviews.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,16 +97,18 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
       {/* Rating Summary Bar */}
       <div className={styles.summaryBar}>
         <div className={styles.scoreBox}>
-          <span className={styles.scoreNumber}>{averageRating}</span>
+          <span className={styles.scoreNumber}>{hasReviews ? averageRating : "–"}</span>
           <div className={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((star) => (
-              <span key={star} className={styles.starFilled}>
+              <span key={star} className={hasReviews ? styles.starFilled : styles.starEmpty}>
                 ★
               </span>
             ))}
           </div>
           <span className={styles.reviewCount}>
-            Based on {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
+            {hasReviews
+              ? `Based on ${reviews.length} ${reviews.length === 1 ? "review" : "reviews"}`
+              : "No reviews yet"}
           </span>
         </div>
 

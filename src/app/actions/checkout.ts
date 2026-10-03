@@ -6,6 +6,7 @@ import { getSession } from "@/modules/auth/guards";
 import { cashfree, isCashfreeConfigured } from "@/lib/cashfree";
 import { sendEmail, generateOrderConfirmationEmail } from "@/lib/email";
 import { dispatchAdminAlert } from "@/lib/admin-alerts";
+import { resolvePlatformFeeRate } from "@/lib/commissions";
 import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, StockStatus, Prisma } from "@prisma/client";
 
 export interface CheckoutInput {
@@ -209,8 +210,14 @@ export async function processCheckout(input: CheckoutInput) {
           throw new Error(`"${item.artwork.title}" is no longer available.`);
         }
 
-        const platformCommission = new Prisma.Decimal((item.lineTotal * 0.1).toFixed(2)); // 10% platform fee
-        const creatorAmount = new Prisma.Decimal((item.lineTotal * 0.9).toFixed(2));
+        // Platform fee resolved from the commission rules table
+        // (creator > category > global specificity, default 10%).
+        const feeRate = await resolvePlatformFeeRate(tx, {
+          creatorId: item.artwork.creatorId,
+          categoryId: item.artwork.categoryId,
+        });
+        const platformCommission = new Prisma.Decimal((item.lineTotal * feeRate).toFixed(2));
+        const creatorAmount = new Prisma.Decimal((item.lineTotal * (1 - feeRate)).toFixed(2));
 
         const orderItem = await tx.orderItem.create({
           data: {
@@ -226,15 +233,21 @@ export async function processCheckout(input: CheckoutInput) {
           },
         });
 
-        // Create Creator Earning
-        await tx.creatorEarning.create({
-          data: {
-            creatorId: item.artwork.creatorId,
-            orderItemId: orderItem.id,
-            amount: creatorAmount,
-            isPaidOut: false,
-          },
-        });
+        // Creator earnings are booked ONLY once payment is confirmed.
+        // In live mode the Cashfree webhook creates them on PAYMENT_SUCCESS;
+        // booking them here would create phantom earnings for every abandoned
+        // PENDING_PAYMENT checkout. The sandbox path confirms instantly, so
+        // earnings are booked here in that mode only.
+        if (isSandbox) {
+          await tx.creatorEarning.create({
+            data: {
+              creatorId: item.artwork.creatorId,
+              orderItemId: orderItem.id,
+              amount: creatorAmount,
+              isPaidOut: false,
+            },
+          });
+        }
 
         // If sandbox instant payment, update inventory immediately
         if (isSandbox) {

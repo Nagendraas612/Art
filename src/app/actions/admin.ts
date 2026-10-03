@@ -689,6 +689,11 @@ export async function updatePlatformCommissionAction(params: {
 
     const { percentage, creatorId, categoryId } = params;
 
+    // A corrupt fee rule corrupts every future order's money math.
+    if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
+      throw new Error("Commission percentage must be between 0 and 100.");
+    }
+
     // Create new Commission rule
     const rule = await prisma.platformCommission.create({
       data: {
@@ -734,6 +739,20 @@ export async function processPayoutBatchAction(params: {
 
     const { creatorId, reference } = params;
 
+    // A payout represents a REAL-WORLD money movement. The settlement
+    // reference is the bank/UPI transaction ID — required, never
+    // auto-generated — so a database write can never be mistaken for (or
+    // presented as) a completed transfer. Complete the transfer first,
+    // then record it here.
+    const settlementRef = reference?.trim();
+    if (!settlementRef) {
+      return {
+        success: false,
+        error:
+          "A bank/UPI settlement reference is required. Complete the transfer first, then record it here.",
+      };
+    }
+
     const whereClause: Prisma.CreatorEarningWhereInput = { isPaidOut: false };
     if (creatorId) {
       whereClause.creatorId = creatorId;
@@ -769,9 +788,8 @@ export async function processPayoutBatchAction(params: {
         if (e.createdAt > latest) latest = e.createdAt;
       }
 
-      const payoutRef = reference || `PAY-${Date.now().toString(36).toUpperCase()}-${cId.slice(-4)}`;
-
-      // Create payout record
+      // Create payout record. Status PAID here means "recorded as settled by
+      // the admin after an external transfer" — it is NOT itself a transfer.
       const payout = await prisma.payout.create({
         data: {
           creatorId: cId,
@@ -779,7 +797,7 @@ export async function processPayoutBatchAction(params: {
           status: PayoutStatus.PAID,
           periodStart: earliest,
           periodEnd: latest,
-          settlementReference: payoutRef,
+          settlementReference: settlementRef,
           processedAt: new Date(),
         },
       });
@@ -805,19 +823,20 @@ export async function processPayoutBatchAction(params: {
           metadata: {
             creatorId: cId,
             amount: totalAmount.toNumber(),
-            settlementReference: payoutRef,
+            settlementReference: settlementRef,
             earningsSettledCount: earningsList.length,
           },
         },
       });
 
-      // Notify Creator
+      // Notify Creator — honest copy: this records a settlement the team made
+      // externally. Never claim a bank dispatch the code did not perform.
       await prisma.notification.create({
         data: {
           userId: earningsList[0].creator.userId,
           type: "PAYOUT_PROCESSED",
           title: `Payout Settled: ₹${totalAmount.toNumber().toLocaleString("en-IN")}`,
-          body: `Settlement ref #${payoutRef} has been completed and dispatched to your bank.`,
+          body: `Your payout has been recorded as settled by the Kalaa Bhadra team (settlement ref #${settlementRef}). Please allow 2-3 business days for bank credit, and contact support if it doesn't arrive.`,
           refType: "PAYOUT",
           refId: payout.id,
         },
