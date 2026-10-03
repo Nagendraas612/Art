@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { Nav } from "@/components/Nav";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 import styles from "./order.module.css";
 
 interface OrderConfirmationPageProps {
@@ -89,6 +89,10 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
 
   const isConfirmed = order.status === OrderStatus.ORDER_CONFIRMED || order.status === OrderStatus.PREPARING;
 
+  // P8: never show "Confirmed" copy for an unpaid order. The studio only
+  // starts work after payment clears.
+  const isPaid = order.payment?.status === PaymentStatus.PAID;
+
   return (
     <>
       <Nav />
@@ -101,9 +105,11 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 className={styles.heading}>Order Confirmed</h1>
+            <h1 className={styles.heading}>{isPaid ? "Order Confirmed" : "Order Received"}</h1>
             <p className={styles.subheading}>
-              Thank you for supporting independent artisans. Your order has been registered with the creators&apos; studios.
+              {isPaid
+                ? "Thank you for supporting independent artisans. Your order has been registered with the creators\u2019 studios."
+                : "Your order is registered, but payment hasn't cleared yet. The studio starts work only after payment is confirmed — please complete your payment."}
             </p>
             <div className={styles.orderNumberBadge}>
               Order Ref: <strong>{order.orderNumber}</strong>
@@ -117,11 +123,11 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
               <div className={styles.card}>
                 <h2 className={styles.cardTitle}>Fulfillment Timeline</h2>
                 <div className={styles.timeline}>
-                  <div className={`${styles.timelineStep} ${styles.stepDone}`}>
-                    <div className={styles.stepDot}>✓</div>
+                  <div className={`${styles.timelineStep} ${isPaid ? styles.stepDone : styles.stepActive}`}>
+                    <div className={styles.stepDot}>{isPaid ? "\u2713" : "!"}</div>
                     <div className={styles.stepContent}>
-                      <h4>Payment &amp; Order Confirmed</h4>
-                      <p>{orderDate}</p>
+                      <h4>{isPaid ? "Payment & Order Confirmed" : "Awaiting Payment"}</h4>
+                      <p>{isPaid ? orderDate : "Complete your payment to confirm this order"}</p>
                     </div>
                   </div>
 

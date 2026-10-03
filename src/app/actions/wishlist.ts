@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { revalidatePath } from "next/cache";
+import { cuidSchema, firstIssue } from "@/lib/validation";
 
 /**
  * Get the current session user ID or null if unauthenticated.
@@ -17,6 +18,10 @@ async function resolveUserId(): Promise<string | null> {
  */
 export async function toggleWishlistAction(artworkId: string) {
   try {
+    const parsed = cuidSchema.safeParse(artworkId);
+    if (!parsed.success) return { error: firstIssue(parsed.error) };
+    artworkId = parsed.data;
+
     const userId = await resolveUserId();
     if (!userId) {
       return { error: "Please sign in to save artworks to your wishlist." };

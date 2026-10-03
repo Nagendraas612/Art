@@ -63,12 +63,7 @@ enum StockStatus {
   OUT_OF_STOCK
 }
 
-enum ReservationStatus {
-  ACTIVE
-  COMMITTED
-  RELEASED
-  EXPIRED
-}
+// NOTE (P9): ReservationStatus removed with the dead StockReservation model.
 
 enum OrderStatus {
   PENDING_PAYMENT
@@ -428,7 +423,6 @@ model Artwork {
   wishlistItems   WishlistItem[]
   cartItems       CartItem[]
   orderItems      OrderItem[]
-  reservations    StockReservation[]
   reviews         Review[]
   digitalAsset    DigitalAsset?
 
@@ -436,6 +430,11 @@ model Artwork {
   @@index([categoryId])
   @@index([status])
   @@index([productType])
+  // P9: composite indexes for the explore/listing query, which always filters
+  // by status and then by category/price with a publishedAt or price sort.
+  @@index([status, publishedAt])
+  @@index([status, categoryId, publishedAt])
+  @@index([status, price])
   // Full-text search — generated column populated via migration/trigger,
   // e.g.: ALTER TABLE "Artwork" ADD COLUMN search_vector tsvector
   //       GENERATED ALWAYS AS (to_tsvector('english', title || ' ' || description)) STORED;
@@ -495,20 +494,8 @@ model DigitalAsset {
 // INVENTORY RESERVATION
 // ─────────────────────────────────────────────────────────────────────────
 
-model StockReservation {
-  id        String            @id @default(cuid())
-  artworkId String
-  artwork   Artwork           @relation(fields: [artworkId], references: [id])
-  orderId   String?
-  order     Order?            @relation(fields: [orderId], references: [id])
-  quantity  Int               @default(1)
-  status    ReservationStatus @default(ACTIVE)
-  expiresAt DateTime
-  createdAt DateTime          @default(now())
-
-  @@index([artworkId, status])
-  @@index([expiresAt])
-}
+// NOTE (P9): StockReservation was dead code — designed but never written or read
+// by any query. Removed; stock is decremented atomically at payment confirmation.
 
 // ─────────────────────────────────────────────────────────────────────────
 // CART / WISHLIST
@@ -573,14 +560,11 @@ model Order {
   grandTotal     Decimal     @db.Decimal(12, 2)
   currency       String      @default("INR")
 
-  couponId       String?
-  coupon         Coupon?     @relation(fields: [couponId], references: [id])
 
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
   items          OrderItem[]
-  reservations   StockReservation[]
   payment        Payment?
   shipments      Shipment[]
   refunds        Refund[]
@@ -630,20 +614,8 @@ model OrderItem {
   @@index([artworkId])
 }
 
-model Coupon {
-  id            String   @id @default(cuid())
-  code          String   @unique
-  description   String?
-  discountType  String // "PERCENT" | "FIXED"
-  discountValue Decimal  @db.Decimal(12, 2)
-  isActive      Boolean  @default(true)
-  startsAt      DateTime?
-  expiresAt     DateTime?
-  usageLimit    Int?
-  usedCount     Int      @default(0)
-
-  orders        Order[]
-}
+// NOTE (P9): Coupon was dead code — no checkout, admin, or validation logic ever
+// referenced it. Removed; reintroduce with real discount logic when needed.
 
 model Promotion {
   id          String   @id @default(cuid())

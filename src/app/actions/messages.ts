@@ -4,17 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import { revalidatePath } from "next/cache";
+import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
+import {
+  firstIssue,
+  startConversationSchema,
+  sendMessageSchema,
+  toClientError,
+} from "@/lib/validation";
 
-export async function startConversationAction({
-  creatorId,
-  initialMessage,
-  orderRefId,
-}: {
+export async function startConversationAction(input: {
   creatorId: string;
   initialMessage?: string;
   orderRefId?: string;
 }) {
   try {
+    const parsed = startConversationSchema.safeParse(input);
+    if (!parsed.success) return { error: firstIssue(parsed.error) };
+    const { creatorId, initialMessage, orderRefId } = parsed.data;
+
     // Identity comes from the session ONLY. Previously a guest could pass any
     // senderEmail, and the action would look up that email and act as the real
     // account holder (or silently mint an unverified user row).
@@ -27,6 +34,9 @@ export async function startConversationAction({
         code: "UNAUTHENTICATED",
       };
     }
+
+    const rl = checkRateLimit(`convo:${customerId}`, 10, 60_000);
+    if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
     // Check if conversation already exists between customer and creator
     let conversation = await prisma.conversation.findUnique({
@@ -63,21 +73,20 @@ export async function startConversationAction({
 
     return { success: true, conversationId: conversation.id };
   } catch (err: any) {
-    console.error("startConversationAction error:", err);
-    return { error: err.message || "Failed to start conversation." };
+    return { error: toClientError("startConversationAction error", err, "Failed to start conversation.") };
   }
 }
 
-export async function sendMessageAction({
-  conversationId,
-  body,
-  attachmentUrl,
-}: {
+export async function sendMessageAction(input: {
   conversationId: string;
   body: string;
   attachmentUrl?: string;
 }) {
   try {
+    const parsed = sendMessageSchema.safeParse(input);
+    if (!parsed.success) return { error: firstIssue(parsed.error) };
+    const { conversationId, body, attachmentUrl } = parsed.data;
+
     // Identity comes from the session ONLY. The old client-controlled
     // isCreatorSender flag let anyone who knew a conversationId post as
     // either party.
@@ -91,13 +100,8 @@ export async function sendMessageAction({
       };
     }
 
-    if (!body || !body.trim()) {
-      return { error: "Message body cannot be empty." };
-    }
-
-    if (body.trim().length > 5000) {
-      return { error: "Message is too long (maximum 5000 characters)." };
-    }
+    const rl = checkRateLimit(`msg:${senderId}`, 30, 60_000);
+    if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
@@ -183,7 +187,6 @@ export async function sendMessageAction({
 
     return { success: true, message };
   } catch (err: any) {
-    console.error("sendMessageAction error:", err);
-    return { error: err.message || "Failed to send message." };
+    return { error: toClientError("sendMessageAction error", err, "Failed to send message.") };
   }
 }

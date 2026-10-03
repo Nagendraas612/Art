@@ -129,7 +129,7 @@ export async function sendEmail({
           },
         }).catch(() => {});
 
-        return { success: true, simulated: true, error: errorData };
+        return { success: false, error: `Resend rejected the email: ${JSON.stringify(errorData).slice(0, 300)}` };
       }
 
       const data = await response.json();
@@ -155,11 +155,28 @@ export async function sendEmail({
     }
   }
 
-  // 3. FALLBACK CONSOLE SIMULATOR
-  console.log(`\n======================================================`);
-  console.log(`📬 [DEV EMAIL SIMULATOR]`);
-  console.log(`To: ${to} | Subject: ${subject}`);
-  console.log(`======================================================\n`);
+  // 3. FALLBACK CONSOLE SIMULATOR (development only).
+  // In production a missing provider is a hard failure, not a silent
+  // success — callers must know the email never left the building.
+  if (process.env.NODE_ENV === "production") {
+    const errMsg = "Email provider not configured (set GMAIL_USER/GMAIL_APP_PASSWORD or RESEND_API_KEY).";
+    console.error(`[Email] ${errMsg} To: ${to} | Subject: ${subject}`);
+    await prisma.emailLog.create({
+      data: {
+        to,
+        from: fromEmail,
+        subject,
+        templateType,
+        status: "FAILED",
+        provider: "NONE_CONFIGURED",
+        errorDetails: errMsg,
+        metadata: jsonMetadata,
+      },
+    }).catch(() => {});
+    return { success: false, error: errMsg };
+  }
+
+  console.log(`[DEV EMAIL SIMULATOR] To: ${to} | Subject: ${subject}`);
 
   await prisma.emailLog.create({
     data: {
@@ -634,6 +651,51 @@ export function generateOrderStatusEmail(params: {
 
           <div style="text-align: center; margin-top: 28px;">
             <a href="${params.trackingUrl}" style="${buttonStyles}">View Order Details</a>
+          </div>
+        </div>
+
+        <div style="${footerStyles}">
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kalaa Bhadra. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Payout settlement email (P8). Honest copy: the transfer was completed
+ * externally by the operations team; this email records the settlement,
+ * it does not claim the code dispatched money.
+ */
+export function generatePayoutSettledEmail(params: {
+  creatorName: string;
+  amount: number;
+  settlementReference: string;
+  earningsCount: number;
+  dashboardUrl: string;
+}) {
+  return `
+    <div style="${baseEmailStyles}">
+      <div style="${containerStyles}">
+        <div style="${headerStyles}">
+          <h1 style="margin: 0; font-family: serif; font-size: 26px;">KALAA BHADRA</h1>
+          <p style="margin: 6px 0 0; font-size: 13px; color: #a8a29e; text-transform: uppercase;">Payout Settled</p>
+        </div>
+
+        <div style="${bodyStyles}">
+          <p>Dear ${params.creatorName},</p>
+          <p>Your payout has been recorded as settled by the Kalaa Bhadra team.</p>
+
+          <div style="background: #fafaf9; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <span style="font-size: 13px; color: #78716c; text-transform: uppercase;">Settlement Amount</span><br/>
+            <strong style="font-size: 22px; color: #1c1917;">₹${params.amount.toLocaleString("en-IN")}</strong><br/>
+            <span style="font-size: 12px; color: #78716c;">${params.earningsCount} earning${params.earningsCount === 1 ? "" : "s"} · Ref #${params.settlementReference}</span>
+          </div>
+
+          <p>Please allow 2-3 business days for the amount to reflect in your bank account. If it doesn't arrive, reply to this email with the settlement reference above.</p>
+
+          <div style="text-align: center; margin-top: 28px;">
+            <a href="${params.dashboardUrl}" style="${buttonStyles}">View Earnings</a>
           </div>
         </div>
 
