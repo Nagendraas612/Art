@@ -2,7 +2,9 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { startConversationAction } from "@/app/actions/messages";
+import { useSession } from "@/lib/auth-client";
 import styles from "./MessageArtistModal.module.css";
 
 interface MessageArtistModalProps {
@@ -23,20 +25,21 @@ export function MessageArtistModal({
   className,
 }: MessageArtistModalProps) {
   const router = useRouter();
+  const { data: session, isPending } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState(
     artworkTitle
       ? `Hello ${creatorName.split(" ")[0]}, I am inquiring about your piece "${artworkTitle}".`
       : `Hello ${creatorName.split(" ")[0]}, I would like to inquire about your craft studio.`
   );
-  const [senderName, setSenderName] = useState("");
-  const [senderEmail, setSenderEmail] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNeedsAuth(false);
 
     if (!message.trim()) {
       setError("Please write your inquiry message.");
@@ -48,14 +51,15 @@ export function MessageArtistModal({
     const res = await startConversationAction({
       creatorId,
       initialMessage: message,
-      senderName: senderName || undefined,
-      senderEmail: senderEmail || undefined,
     });
 
     setIsSending(false);
 
     if (res.error) {
       setError(res.error);
+      if ((res as { code?: string }).code === "UNAUTHENTICATED") {
+        setNeedsAuth(true);
+      }
     } else {
       setIsOpen(false);
       router.push(`/messages?conversationId=${res.conversationId}`);
@@ -92,8 +96,31 @@ export function MessageArtistModal({
               </button>
             </div>
 
-            {error && <div className={styles.errorAlert}>{error}</div>}
+            {error && (
+              <div className={styles.errorAlert}>
+                {error}
+                {needsAuth && (
+                  <>
+                    {" "}
+                    <Link href="/sign-in" className={styles.signInLink}>
+                      Sign in →
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
 
+            {!isPending && !session ? (
+              <div className={styles.signInPrompt}>
+                <p>
+                  Please sign in to chat directly with{" "}
+                  <strong>{storeName}</strong>.
+                </p>
+                <Link href="/sign-in" className={styles.sendBtn}>
+                  Sign In to Continue →
+                </Link>
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} className={styles.form}>
               <div className={styles.formGroup}>
                 <label htmlFor="modalMessage">Your Message *</label>
@@ -105,30 +132,6 @@ export function MessageArtistModal({
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Ask about dimensions, framing options, provenance, or custom requests..."
                 />
-              </div>
-
-              <div className={styles.row}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="modalName">Your Name</label>
-                  <input
-                    type="text"
-                    id="modalName"
-                    placeholder="e.g. Priya Sharma"
-                    value={senderName}
-                    onChange={(e) => setSenderName(e.target.value)}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="modalEmail">Your Email</label>
-                  <input
-                    type="email"
-                    id="modalEmail"
-                    placeholder="priya@example.com"
-                    value={senderEmail}
-                    onChange={(e) => setSenderEmail(e.target.value)}
-                  />
-                </div>
               </div>
 
               <div className={styles.modalActions}>
@@ -148,6 +151,7 @@ export function MessageArtistModal({
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}

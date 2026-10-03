@@ -14,8 +14,6 @@ export interface CustomRequestInput {
   budget?: number;
   deadline?: string;
   referenceImageUrl?: string;
-  customerName?: string;
-  customerEmail?: string;
 }
 
 export async function submitCustomRequestAction(input: CustomRequestInput) {
@@ -28,28 +26,26 @@ export async function submitCustomRequestAction(input: CustomRequestInput) {
       budget,
       deadline,
       referenceImageUrl,
-      customerName,
-      customerEmail,
     } = input;
+
+    // Identity comes from the session ONLY. Previously a guest could pass any
+    // customerEmail and the request would be filed under that real account.
+    const session = await getSession();
+    const customerId = session?.user?.id;
+
+    if (!customerId) {
+      return {
+        error: "Please sign in to request a commission.",
+        code: "UNAUTHENTICATED",
+      };
+    }
 
     if (!creatorId || !description || description.trim().length < 10) {
       return { error: "Please provide a detailed description for your custom commission request." };
     }
 
-    const session = await getSession();
-    let customerId = session?.user?.id;
-
-    if (!customerId) {
-      const email = customerEmail || "patron@example.com";
-      const name = customerName || "Art Patron";
-
-      let user = await prisma.user.findUnique({ where: { email } });
-      if (!user) {
-        user = await prisma.user.create({
-          data: { email, name },
-        });
-      }
-      customerId = user.id;
+    if (description.trim().length > 5000) {
+      return { error: "Description is too long (maximum 5000 characters)." };
     }
 
     const customRequest = await prisma.customRequest.create({

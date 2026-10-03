@@ -9,30 +9,23 @@ export async function startConversationAction({
   creatorId,
   initialMessage,
   orderRefId,
-  senderName,
-  senderEmail,
 }: {
   creatorId: string;
   initialMessage?: string;
   orderRefId?: string;
-  senderName?: string;
-  senderEmail?: string;
 }) {
   try {
+    // Identity comes from the session ONLY. Previously a guest could pass any
+    // senderEmail, and the action would look up that email and act as the real
+    // account holder (or silently mint an unverified user row).
     const session = await getSession();
-    let customerId = session?.user?.id;
+    const customerId = session?.user?.id;
 
     if (!customerId) {
-      const email = senderEmail || "collector@example.com";
-      const name = senderName || "Art Patron";
-
-      let user = await prisma.user.findUnique({ where: { email } });
-      if (!user) {
-        user = await prisma.user.create({
-          data: { email, name },
-        });
-      }
-      customerId = user.id;
+      return {
+        error: "Please sign in to message creators.",
+        code: "UNAUTHENTICATED",
+      };
     }
 
     // Check if conversation already exists between customer and creator
@@ -79,23 +72,38 @@ export async function sendMessageAction({
   conversationId,
   body,
   attachmentUrl,
-  isCreatorSender = false,
 }: {
   conversationId: string;
   body: string;
   attachmentUrl?: string;
-  isCreatorSender?: boolean;
 }) {
   try {
+    // Identity comes from the session ONLY. The old client-controlled
+    // isCreatorSender flag let anyone who knew a conversationId post as
+    // either party.
+    const session = await getSession();
+    const senderId = session?.user?.id;
+
+    if (!senderId) {
+      return {
+        error: "Please sign in to send messages.",
+        code: "UNAUTHENTICATED",
+      };
+    }
+
     if (!body || !body.trim()) {
       return { error: "Message body cannot be empty." };
     }
 
+    if (body.trim().length > 5000) {
+      return { error: "Message is too long (maximum 5000 characters)." };
+    }
+
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
-      include: { 
+      include: {
         creator: { include: { user: true } },
-        customer: true 
+        customer: true
       },
     });
 
@@ -103,15 +111,12 @@ export async function sendMessageAction({
       return { error: "Conversation not found." };
     }
 
-    const session = await getSession();
-    let senderId = session?.user?.id;
-
-    if (!senderId) {
-      if (isCreatorSender) {
-        senderId = conversation.creator.userId;
-      } else {
-        senderId = conversation.customerId;
-      }
+    // Membership check: the sender must be a party to this conversation.
+    const isParticipant =
+      senderId === conversation.customerId ||
+      senderId === conversation.creator.userId;
+    if (!isParticipant) {
+      return { error: "You are not a participant in this conversation." };
     }
 
     const message = await prisma.message.create({

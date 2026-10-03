@@ -144,3 +144,17 @@
   font-weight: 600;
   text-decoration: none;
 }
+
+.signInNotice {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--color-cream, #faf6ef);
+  border: 1px solid var(--color-border, #e8ddcb);
+}
+
+.signInLink {
+  color: var(--color-primary, #b85d38);
+  font-weight: 600;
+  text-decoration: underline;
+}
