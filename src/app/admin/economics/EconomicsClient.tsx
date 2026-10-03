@@ -70,12 +70,28 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
   };
 
   const handleProcessPayout = (creatorId: string) => {
-    const confirmed = confirm("Process this payout batch? This will mark all pending earnings as settled.");
+    // Payouts are recorded here AFTER the real bank/UPI transfer is done.
+    // The reference is the transaction ID — required, never auto-generated.
+    const reference = prompt(
+      "Enter the bank/UPI transaction reference for this settlement (required).\n\nOnly continue AFTER completing the actual bank transfer — this action only records it."
+    );
+    if (!reference || !reference.trim()) {
+      alert(
+        "A settlement reference is required. Complete the bank transfer first, then record it here."
+      );
+      return;
+    }
+    const confirmed = confirm(
+      `Record payout as settled with reference "${reference.trim()}"?\n\nThis marks all pending earnings as settled. Only confirm if the bank transfer is complete.`
+    );
     if (!confirmed) return;
 
     setPayoutProcessingId(creatorId);
     startTransition(async () => {
-      const res = await processPayoutBatchAction({ creatorId });
+      const res = await processPayoutBatchAction({
+        creatorId,
+        reference: reference.trim(),
+      });
       if (res.success) {
         setData((prev) => ({
           ...prev,

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export interface SubmitReviewInput {
@@ -39,33 +40,46 @@ export async function submitReviewAction(input: SubmitReviewInput) {
       return { error: "Review is too long (maximum 5000 characters)." };
     }
 
-    // Check if orderItem exists or create a synthetic link for verified purchase
-    let orderItem = await prisma.orderItem.findFirst({
+    // A review requires a REAL, paid, confirmed purchase by the reviewer.
+    // The old code hijacked other customers' order items, or fabricated a
+    // fake address + fake order (ORD-REV-*) to stamp isVerifiedPurchase: true.
+    // Both paths are deleted: no purchase, no review.
+    const orderItem = await prisma.orderItem.findFirst({
       where: {
         artworkId,
-        order: { customerId: authorId },
+        order: {
+          customerId: authorId,
+          payment: { status: PaymentStatus.PAID },
+          status: {
+            in: [
+              OrderStatus.PAYMENT_CONFIRMED,
+              OrderStatus.ORDER_CONFIRMED,
+              OrderStatus.PREPARING,
+              OrderStatus.PACKED,
+              OrderStatus.SHIPPED,
+              OrderStatus.OUT_FOR_DELIVERY,
+              OrderStatus.DELIVERED,
+            ],
+          },
+        },
       },
+      orderBy: { order: { createdAt: "desc" } },
     });
 
     if (!orderItem) {
-      // Find any order item for this artwork or create a verified reviewer order linkage
-      const existingOrderItem = await prisma.orderItem.findFirst({
-        where: { artworkId },
-      });
-
-      if (existingOrderItem) {
-        // Check if this order item already has a review
-        const existingReview = await prisma.review.findUnique({
-          where: { orderItemId: existingOrderItem.id },
-        });
-
-        if (!existingReview) {
-          orderItem = existingOrderItem;
-        }
-      }
+      return {
+        error:
+          "Reviews are reserved for collectors with a confirmed, paid purchase of this artwork.",
+      };
     }
 
-    // If still no standalone orderItem, find the artwork to link creator
+    const existingReview = await prisma.review.findUnique({
+      where: { orderItemId: orderItem.id },
+    });
+    if (existingReview) {
+      return { error: "You have already reviewed this purchase." };
+    }
+
     const artwork = await prisma.artwork.findUnique({
       where: { id: artworkId },
       include: { creator: true },
@@ -75,54 +89,13 @@ export async function submitReviewAction(input: SubmitReviewInput) {
       return { error: "Artwork not found." };
     }
 
-    let orderItemId = orderItem?.id;
-    if (!orderItemId) {
-      // Create a dummy address & order to satisfy foreign key constraints for direct review
-      const addr = await prisma.address.create({
-        data: {
-          userId: authorId,
-          fullName: session.user.name || "Verified Collector",
-          phone: "+91 9876543210",
-          line1: "Artisanal Studio Guild",
-          city: "Mumbai",
-          state: "Maharashtra",
-          postalCode: "400001",
-          country: "India",
-        },
-      });
-
-      const order = await prisma.order.create({
-        data: {
-          orderNumber: `ORD-REV-${Date.now().toString().slice(-6)}`,
-          customerId: authorId,
-          addressId: addr.id,
-          subtotal: artwork.price,
-          grandTotal: artwork.price,
-          currency: artwork.currency,
-        },
-      });
-
-      const newOrderItem = await prisma.orderItem.create({
-        data: {
-          orderId: order.id,
-          artworkId: artwork.id,
-          creatorId: artwork.creatorId,
-          titleSnapshot: artwork.title,
-          unitPrice: artwork.price,
-          lineTotal: artwork.price,
-          creatorAmount: artwork.price,
-        },
-      });
-      orderItemId = newOrderItem.id;
-    }
-
     const review = await prisma.review.create({
       data: {
-        orderItemId,
+        orderItemId: orderItem.id,
         artworkId,
         authorId,
         rating,
-        text,
+        text: text.trim(),
         imageUrl: imageUrl || null,
         isVerifiedPurchase: true,
       },
