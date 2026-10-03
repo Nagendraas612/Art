@@ -59,3 +59,17 @@ BEGIN
       CHECK ("percentage" >= 0 AND "percentage" <= 100);
   END IF;
 END $$;
+
+-- 6. Edition counters stay sane: sold can never be negative, and a sized
+--    edition must have a positive size.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'artwork_edition_sold_nonneg') THEN
+    ALTER TABLE "Artwork" ADD CONSTRAINT artwork_edition_sold_nonneg
+      CHECK ("editionSold" IS NULL OR "editionSold" >= 0);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'artwork_edition_size_positive') THEN
+    ALTER TABLE "Artwork" ADD CONSTRAINT artwork_edition_size_positive
+      CHECK ("editionSize" IS NULL OR "editionSize" > 0);
+  END IF;
+END $$;

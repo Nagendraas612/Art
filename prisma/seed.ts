@@ -33,6 +33,7 @@ async function main() {
   console.log("🧹 Cleaning old seed data...");
   await prisma.artworkImage.deleteMany({});
   await prisma.wishlistItem.deleteMany({});
+  await prisma.review.deleteMany({}); // before orderItem: Review.orderItemId is a required FK
   await prisma.orderItem.deleteMany({});
   await prisma.payment.deleteMany({});
   await prisma.order.deleteMany({});
@@ -40,7 +41,6 @@ async function main() {
   await prisma.conversation.deleteMany({});
   await prisma.notification.deleteMany({});
   await prisma.customRequest.deleteMany({});
-  await prisma.review.deleteMany({});
   await prisma.artistReview.deleteMany({});
   await prisma.creatorEarning.deleteMany({});
   await prisma.payout.deleteMany({});

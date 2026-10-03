@@ -728,12 +728,25 @@ export async function updatePlatformCommissionAction(params: {
     }
 
     // Create new Commission rule
+    // Close out any currently-active rules in the same scope first, so
+    // exactly one rule is active per (creator, category) scope. The fee
+    // resolver picks the latest effectiveFrom, but overlapping actives are
+    // ambiguous data — effective-dating means the new rule supersedes.
+    const now = new Date();
+    await prisma.platformCommission.updateMany({
+      where: {
+        creatorId: creatorId || null,
+        categoryId: categoryId || null,
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+      },
+      data: { effectiveTo: now },
+    });
     const rule = await prisma.platformCommission.create({
       data: {
         percentage: new Prisma.Decimal(percentage),
         creatorId: creatorId || null,
         categoryId: categoryId || null,
-        effectiveFrom: new Date(),
+        effectiveFrom: now,
       },
     });
 

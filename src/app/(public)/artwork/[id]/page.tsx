@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: ArtworkDetailPageProps) {
       status: ArtworkStatus.PUBLISHED,
     },
     include: {
-      creator: { include: { user: true } },
+      creator: { include: { user: { select: { id: true, name: true, image: true } } } },
       images: { orderBy: { sortOrder: "asc" }, take: 1 },
     },
   });
@@ -71,14 +71,14 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
       },
       creator: {
         include: {
-          user: true,
+          user: { select: { id: true, name: true, image: true } },
         },
       },
       category: true,
       reviews: {
         where: { isHidden: false },
         include: {
-          author: true,
+          author: { select: { id: true, name: true, image: true } },
         },
         orderBy: { createdAt: "desc" },
       },
@@ -101,7 +101,7 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
     take: 3,
     include: {
       images: { orderBy: { sortOrder: "asc" }, take: 1 },
-      creator: { include: { user: true } },
+      creator: { include: { user: { select: { id: true, name: true, image: true } } } },
     },
   });
 

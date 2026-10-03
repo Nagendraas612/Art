@@ -26,7 +26,7 @@ export default function FAQPage() {
 
           <p><strong>Are prices inclusive of tax?</strong></p>
           <p>
-            Listed prices are the artwork price set by the creator. Applicable taxes (GST) will be calculated and displayed at checkout before you confirm your order.
+            Yes — the price you see is the price you pay. Applicable taxes (GST) are included in the listed artwork price, and you will see the full breakdown, including insured logistics, at checkout before you confirm your order.
           </p>
 
           <p><strong>Can I commission a custom piece?</strong></p>

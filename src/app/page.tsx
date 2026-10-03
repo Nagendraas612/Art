@@ -25,7 +25,7 @@ export default async function Home() {
     take: 6,
     include: {
       images: { orderBy: { sortOrder: "asc" }, take: 1 },
-      creator: { include: { user: true } },
+      creator: { include: { user: { select: { id: true, name: true, image: true } } } },
       category: true,
     },
   });
