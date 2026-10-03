@@ -315,7 +315,8 @@ export async function reviewCreatorApplicationAction(params: {
 
     const creator = await prisma.creatorProfile.findUnique({
       where: { id: creatorId },
-      include: { user: true },
+      // Narrow user select: never serialize full User rows (passwordHash).
+      include: { user: { select: { id: true, email: true, name: true, role: true } } },
     });
 
     if (!creator) throw new Error("Creator profile not found");
@@ -514,7 +515,7 @@ export async function moderateArtworkAction(params: {
 
     const artwork = await prisma.artwork.findUnique({
       where: { id: artworkId },
-      include: { creator: { include: { user: true } } },
+      include: { creator: { include: { user: { select: { id: true, email: true, name: true } } } } },
     });
 
     if (!artwork) throw new Error("Artwork not found");
@@ -801,7 +802,7 @@ export async function processPayoutBatchAction(params: {
 
     const unpaidEarnings = await prisma.creatorEarning.findMany({
       where: whereClause,
-      include: { creator: { include: { user: true } } },
+      include: { creator: { include: { user: { select: { id: true, email: true, name: true } } } } },
     });
 
     if (unpaidEarnings.length === 0) {

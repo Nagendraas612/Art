@@ -5,6 +5,7 @@ import { ArtworkStatus, Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
 import { firstIssue, searchArtworksSchema, toClientError } from "@/lib/validation";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 
 export interface SearchInput {
   query?: string;
@@ -92,16 +93,7 @@ export async function searchArtworksAction(input: SearchInput) {
           images: { orderBy: { sortOrder: "asc" }, take: 1 },
           creator: {
             include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  image: true,
-                  avatarUrl: true,
-                  role: true,
-                },
-              },
+              user: { select: SAFE_USER_SELECT },
             },
           },
           category: true,

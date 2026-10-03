@@ -46,8 +46,8 @@ export default function PrivacyPage() {
             All network communication and transactional data are encrypted via TLS/HTTPS. Payment credentials are tokenized directly with certified PCI-DSS compliant gateways.
           </p>
 
-          <Link href="/sign-in" className={styles.backLink}>
-            ← Return to Sign In
+          <Link href="/" className={styles.backLink}>
+            ← Back to Home
           </Link>
         </div>
       </div>

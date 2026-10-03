@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { revalidatePath } from "next/cache";
 import { cuidSchema, firstIssue } from "@/lib/validation";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 
 /**
  * Get the current session user ID or null if unauthenticated.
@@ -101,16 +102,7 @@ export async function getWishlistItemsAction() {
                 images: { orderBy: { sortOrder: "asc" }, take: 1 },
                 creator: {
                   include: {
-                    user: {
-                      select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        image: true,
-                        avatarUrl: true,
-                        role: true,
-                      },
-                    },
+                    user: { select: SAFE_USER_SELECT },
                   },
                 },
               },

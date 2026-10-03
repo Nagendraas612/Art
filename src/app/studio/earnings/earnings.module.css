@@ -166,3 +166,13 @@
   background: #fef8eb;
   color: #b45309;
 }
+
+.statusPaid {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #ecfdf5;
+  color: #047857;
+}

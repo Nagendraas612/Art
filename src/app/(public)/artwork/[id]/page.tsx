@@ -8,6 +8,7 @@ import Link from "next/link";
 import styles from "./artwork.module.css";
 import { ArtworkProductType, ArtworkStatus, StockStatus } from "@prisma/client";
 import { AddToCartCTA } from "@/components/ui/AddToCartCTA";
+import { ArtworkGallery } from "@/components/artwork/ArtworkGallery";
 
 import { ReviewsSection } from "@/components/ui/ReviewsSection";
 
@@ -168,42 +169,13 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
           </nav>
 
           <div className={styles.layout}>
-            {/* Gallery Column */}
-            <div className={styles.galleryCol}>
-              <div className={styles.mainImageWrap}>
-                {mainImage ? (
-                  <Image
-                    src={mainImage}
-                    alt={artwork.images[0]?.altText || artwork.title}
-                    fill
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 60vw"
-                    className={styles.mainImage}
-                  />
-                ) : (
-                  <div className={styles.placeholderImage}>No image available</div>
-                )}
-                {artwork.productType === ArtworkProductType.ORIGINAL && (
-                  <span className={styles.badgeFloating}>Unique 1/1 Original</span>
-                )}
-              </div>
-
-              {detailImages.length > 0 && (
-                <div className={styles.detailGrid}>
-                  {detailImages.map((img, idx) => (
-                    <div key={img.id || idx} className={styles.detailImageWrap}>
-                      <Image
-                        src={img.url}
-                        alt={img.altText || `Detail ${idx + 1}`}
-                        fill
-                        sizes="(max-width: 1024px) 33vw, 20vw"
-                        className={styles.detailImage}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Gallery Column — client component so thumbnails switch the main image */}
+            <ArtworkGallery
+              mainImage={mainImage || null}
+              mainAlt={artwork.images[0]?.altText || artwork.title}
+              detailImages={detailImages}
+              isOriginal={artwork.productType === ArtworkProductType.ORIGINAL}
+            />
 
             {/* Product Info Column */}
             <div className={styles.infoCol}>

@@ -16,11 +16,14 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
   const [trackingNumber, setTrackingNumber] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showDispatchForm, setShowDispatchForm] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const handleStatusChange = async (newStatus: OrderStatus) => {
     setIsUpdating(true);
     setSuccess(false);
+    setError(null);
 
     const res = await updateStudioOrderStatusAction({
       orderId,
@@ -34,9 +37,21 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
       setStatus(newStatus);
       setSuccess(true);
       setShowDispatchForm(false);
+      setConfirmingCancel(false);
       setTimeout(() => setSuccess(false), 3000);
+    } else if (res.error) {
+      setError(res.error);
+      setConfirmingCancel(false);
     }
   };
+
+  // Cancellation is offered pre-shipment only, matching the server map.
+  // The server reverses stock/earnings and alerts the team for the refund.
+  const cancellable =
+    status === OrderStatus.PAYMENT_CONFIRMED ||
+    status === OrderStatus.ORDER_CONFIRMED ||
+    status === OrderStatus.PREPARING ||
+    status === OrderStatus.PACKED;
 
   return (
     <div className={styles.container}>
@@ -44,6 +59,11 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
         <span className={styles.currentBadge}>{status}</span>
         {success && <span className={styles.successNote}>Updated ✓</span>}
       </div>
+      {error && (
+        <div className={styles.errorNote} role="alert">
+          {error}
+        </div>
+      )}
 
       <div className={styles.actions}>
         {status === OrderStatus.ORDER_CONFIRMED && (
@@ -68,7 +88,9 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
           </button>
         )}
 
-        {(status === OrderStatus.PREPARING || status === OrderStatus.PACKED) && !showDispatchForm && (
+        {/* Dispatch is only valid from PACKED — the server rejects
+            PREPARING → SHIPPED, so the form must not offer it. */}
+        {status === OrderStatus.PACKED && !showDispatchForm && (
           <button
             type="button"
             onClick={() => setShowDispatchForm(true)}
@@ -125,7 +147,9 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
           </button>
         )}
 
-        {(status === OrderStatus.SHIPPED || status === OrderStatus.OUT_FOR_DELIVERY) && (
+        {/* DELIVERED is only reachable from OUT_FOR_DELIVERY per the
+            server transition map — never directly from SHIPPED. */}
+        {status === OrderStatus.OUT_FOR_DELIVERY && (
           <button
             type="button"
             disabled={isUpdating}
@@ -134,6 +158,43 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
           >
             Confirm Final Hand-Delivery ✓
           </button>
+        )}
+
+        {/* Cancellation reverses stock/earnings server-side and triggers the
+            refund workflow — two-click confirm to prevent accidents. */}
+        {cancellable && !confirmingCancel && (
+          <button
+            type="button"
+            disabled={isUpdating}
+            onClick={() => setConfirmingCancel(true)}
+            className={styles.cancelOrderBtn}
+          >
+            Cancel Order &amp; Refund Buyer
+          </button>
+        )}
+        {cancellable && confirmingCancel && (
+          <div className={styles.cancelConfirmBox}>
+            <p className={styles.cancelConfirmText}>
+              Cancel this order? Stock will be restored and the buyer refunded.
+            </p>
+            <div className={styles.dispatchActions}>
+              <button
+                type="button"
+                disabled={isUpdating}
+                onClick={() => handleStatusChange(OrderStatus.CANCELLED)}
+                className={styles.confirmCancelBtn}
+              >
+                {isUpdating ? "Cancelling..." : "Yes, Cancel Order"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingCancel(false)}
+                className={styles.cancelBtn}
+              >
+                Keep Order
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

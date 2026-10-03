@@ -42,6 +42,10 @@ export default async function StudioEarningsPage() {
 
   const pendingPayout = totalNet - paidOut;
 
+  // Honest per-row payout status: an order item's earning row tells whether
+  // the studio has actually been paid for it (never hardcode one status).
+  const earningByOrderItemId = new Map(earnings.map((e) => [e.orderItemId, e]));
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -68,7 +72,7 @@ export default async function StudioEarningsPage() {
           <div className={`${styles.metricValue} ${styles.pendingVal}`}>
             ₹{pendingPayout.toLocaleString("en-IN")}
           </div>
-          <span className={styles.metricSub}>Next settlement cycle: Friday</span>
+          <span className={styles.metricSub}>Settled by the Kalaa Bhadra team after each sale</span>
         </div>
 
         <div className={styles.metricCard}>
@@ -117,6 +121,7 @@ export default async function StudioEarningsPage() {
                   const gross = parseFloat(item.lineTotal.toString());
                   const fee = parseFloat(item.platformCommission.toString());
                   const net = parseFloat(item.creatorAmount.toString());
+                  const earning = earningByOrderItemId.get(item.id);
 
                   const txDate = new Intl.DateTimeFormat("en-IN", {
                     dateStyle: "medium",
@@ -137,9 +142,19 @@ export default async function StudioEarningsPage() {
                         <strong>₹{net.toLocaleString("en-IN")}</strong>
                       </td>
                       <td>
-                        <span className={styles.statusPending}>
-                          Queued for Settlement
-                        </span>
+                        {earning?.isPaidOut ? (
+                          <span className={styles.statusPaid}>
+                            Settled{earning.payout?.settlementReference ? ` (Ref ${earning.payout.settlementReference})` : ""}
+                          </span>
+                        ) : earning ? (
+                          <span className={styles.statusPending}>
+                            Queued for Settlement
+                          </span>
+                        ) : (
+                          <span className={styles.statusPending}>
+                            Awaiting Payment Confirmation
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );

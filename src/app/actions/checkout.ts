@@ -1,14 +1,17 @@
 "use server";
 
-import { randomInt } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { cashfree, isCashfreeConfigured } from "@/lib/cashfree";
 import { sendEmail, generateOrderConfirmationEmail } from "@/lib/email";
 import { dispatchAdminAlert } from "@/lib/admin-alerts";
 import { resolvePlatformFeeRate } from "@/lib/commissions";
+import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
 import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, StockStatus, Prisma } from "@prisma/client";
 import { checkoutInputSchema, firstIssue, toClientError } from "@/lib/validation";
+import { z } from "zod";
+import { headers } from "next/headers";
 
 export interface CheckoutInput {
   items: Array<{
@@ -40,6 +43,16 @@ export async function processCheckout(input: CheckoutInput) {
       return { error: firstIssue(parsed.error) };
     }
     const { items: cartItems, customer, shippingAddress } = parsed.data;
+
+    // Rate-limit checkout attempts: money movement must not be spammable.
+    // Keyed on both the buyer email and the caller IP so neither rotating
+    // emails nor a shared inbox defeats the limit.
+    const ip =
+      (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rlEmail = checkRateLimit(`checkout:email:${customer.email.toLowerCase()}`, 10, 10 * 60_000);
+    if (!rlEmail.allowed) return { error: rateLimitExceeded(rlEmail.retryAfterMs) };
+    const rlIp = checkRateLimit(`checkout:ip:${ip}`, 20, 10 * 60_000);
+    if (!rlIp.allowed) return { error: rateLimitExceeded(rlIp.retryAfterMs) };
 
     // 1. Fetch live artwork data from database
     const artworkIds = cartItems.map((i) => i.id);
@@ -103,21 +116,35 @@ export async function processCheckout(input: CheckoutInput) {
     let userId = session?.user?.id;
 
     if (!userId) {
-      // Find or create guest user
-      let user = await prisma.user.findUnique({
+      // Guest checkout: NEVER bind an order to a real account based on an
+      // unverified email. Anyone can type anyone's address; attaching the
+      // order to the real account would leak the buyer's name, address and
+      // phone into someone else's order history (and vice versa).
+      // Repeat guest buyers reuse their own guest row (isGuest), so a
+      // second purchase with the same address keeps working.
+      const existing = await prisma.user.findUnique({
         where: { email: customer.email },
+        select: { id: true, isGuest: true },
       });
-
-      if (!user) {
-        user = await prisma.user.create({
+      if (existing && !existing.isGuest) {
+        return {
+          error:
+            "An account with this email already exists. Please sign in to complete your purchase.",
+        };
+      }
+      if (existing) {
+        userId = existing.id;
+      } else {
+        const user = await prisma.user.create({
           data: {
             email: customer.email,
             name: customer.fullName,
             phone: customer.phone,
+            isGuest: true,
           },
         });
+        userId = user.id;
       }
-      userId = user.id;
     }
 
     // 4. Create Address record
@@ -157,6 +184,13 @@ export async function processCheckout(input: CheckoutInput) {
       return { error: "Could not generate an order reference. Please try again." };
     }
 
+    // 5b. Guest access token — an unguessable 256-bit secret that lets a
+    // guest buyer open their own order page (/orders/<n>?t=<token>). It is
+    // delivered ONLY to the buyer's email and is never derivable from the
+    // order number. Signed-in owners, owning creators and admins keep their
+    // session-based access regardless of this token.
+    const guestAccessToken = randomBytes(32).toString("hex");
+
     // 6. Decide payment mode SERVER-SIDE ONLY. Never derive this from client
     // input: a client-controlled flag here meant anyone could mark orders
     // PAID with zero money moved. SANDBOX_CHECKOUT_ENABLED=true is for local
@@ -174,6 +208,7 @@ export async function processCheckout(input: CheckoutInput) {
           orderNumber,
           customerId: userId!,
           addressId: address.id,
+          guestAccessToken,
           status: isSandbox ? OrderStatus.ORDER_CONFIRMED : OrderStatus.PENDING_PAYMENT,
           subtotal: new Prisma.Decimal(subtotalNum.toFixed(2)),
           shippingTotal: new Prisma.Decimal(shippingFeeNum.toFixed(2)),
@@ -185,7 +220,12 @@ export async function processCheckout(input: CheckoutInput) {
       });
 
       // Create OrderItems & Earnings
-      for (const item of validatedItems) {
+      // Lock rows in a deterministic (id-sorted) order so two concurrent
+      // checkouts touching overlapping carts cannot deadlock each other.
+      const lockOrderedItems = [...validatedItems].sort((a, b) =>
+        a.artwork.id.localeCompare(b.artwork.id)
+      );
+      for (const item of lockOrderedItems) {
         // Atomic stock verification with SELECT FOR UPDATE row-level locking
         const [liveArtwork] = await tx.$queryRaw<Array<{ id: string; stock: number; stockStatus: StockStatus }>>`
           SELECT id, stock, "stockStatus" FROM "Artwork" WHERE id = ${item.artwork.id} FOR UPDATE
@@ -315,7 +355,7 @@ export async function processCheckout(input: CheckoutInput) {
             lineTotal: item.lineTotal,
             creatorName: item.artwork.creator.storeName,
           })),
-          trackingUrl: `${domain}/orders/${createdOrder.orderNumber}`,
+          trackingUrl: `${domain}/orders/${createdOrder.orderNumber}?t=${guestAccessToken}`,
         });
 
         // 1. Send customer confirmation email
@@ -409,7 +449,7 @@ export async function processCheckout(input: CheckoutInput) {
           customer_phone: customer.phone.replace(/[^0-9]/g, "").slice(-10),
         },
         order_meta: {
-          return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${createdOrder.orderNumber}?success=true`,
+          return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${createdOrder.orderNumber}?t=${guestAccessToken}&success=true`,
         },
       };
 
@@ -419,6 +459,8 @@ export async function processCheckout(input: CheckoutInput) {
         success: true,
         orderNumber: createdOrder.orderNumber,
         paymentSessionId: response.data.payment_session_id,
+        // Guest buyers need this to open their order page after payment.
+        guestAccessToken,
       };
     }
 
@@ -426,7 +468,7 @@ export async function processCheckout(input: CheckoutInput) {
     return {
       success: true,
       orderNumber: createdOrder.orderNumber,
-      redirectUrl: `/orders/${createdOrder.orderNumber}`,
+      redirectUrl: `/orders/${createdOrder.orderNumber}?t=${guestAccessToken}`,
     };
   } catch (error: any) {
     return { error: toClientError("Checkout process error", error, "An unexpected error occurred during checkout.") };
@@ -492,15 +534,44 @@ export async function getCustomerOrdersAction() {
   }
 }
 
-export async function retryOrderPaymentAction(orderNumber: string) {
+/**
+ * Retry payment for a PENDING_PAYMENT / PAYMENT_FAILED order.
+ *
+ * Auth: the caller must be the order's owner (signed-in) or present the
+ * order's guest access token. Rate-limited per order and per IP so a
+ * double-click cannot mint duplicate Cashfree orders.
+ */
+export async function retryOrderPaymentAction(orderNumber: string, guestToken?: string) {
   try {
+    const parsed = z
+      .object({
+        orderNumber: z
+          .string()
+          .trim()
+          .min(1)
+          .max(40)
+          .regex(/^ORD-\d{4}-[A-Z2-9]{10}$/, "Invalid order reference."),
+        guestToken: z
+          .string()
+          .trim()
+          .length(64)
+          .regex(/^[a-f0-9]+$/)
+          .optional(),
+      })
+      .safeParse({ orderNumber, guestToken });
+    if (!parsed.success) {
+      return { error: firstIssue(parsed.error) };
+    }
+    orderNumber = parsed.data.orderNumber;
+    guestToken = parsed.data.guestToken;
+
     const order = await prisma.order.findUnique({
       where: { orderNumber },
       include: {
-        customer: true,
+        customer: { select: { id: true, name: true, email: true, phone: true } },
         payment: true,
         items: {
-          include: { artwork: true, creator: { include: { user: true } } },
+          include: { artwork: true },
         },
       },
     });
@@ -509,21 +580,83 @@ export async function retryOrderPaymentAction(orderNumber: string) {
       return { error: "Order not found." };
     }
 
+    // Ownership: signed-in owner, or guest presenting the order's token.
+    const session = await getSession();
+    const isOwner = !!session?.user?.id && session.user.id === order.customerId;
+    const hasGuestToken =
+      !!guestToken && !!order.guestAccessToken && guestToken === order.guestAccessToken;
+    if (!isOwner && !hasGuestToken) {
+      return { error: "Unauthorized." };
+    }
+
     if (order.payment?.status === PaymentStatus.PAID || order.status === OrderStatus.ORDER_CONFIRMED) {
       return { error: "This order has already been paid and confirmed." };
     }
 
-    // Verify stock availability
-    for (const item of order.items) {
-      if (item.artwork.stockStatus === StockStatus.SOLD || item.artwork.stock < item.quantity) {
-        return { error: `"${item.artwork.title}" is no longer available in stock.` };
-      }
+    if (order.status !== OrderStatus.PENDING_PAYMENT && order.status !== OrderStatus.PAYMENT_FAILED) {
+      return { error: "This order can no longer be paid." };
     }
+
+    // Rate-limit retries: 3 attempts per 5 minutes per order and per IP.
+    const ip =
+      (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rlOrder = checkRateLimit(`retry:order:${order.id}`, 3, 5 * 60_000);
+    if (!rlOrder.allowed) return { error: rateLimitExceeded(rlOrder.retryAfterMs) };
+    const rlIp = checkRateLimit(`retry:ip:${ip}`, 10, 5 * 60_000);
+    if (!rlIp.allowed) return { error: rateLimitExceeded(rlIp.retryAfterMs) };
 
     const isSandbox = process.env.SANDBOX_CHECKOUT_ENABLED === "true";
     if (isSandbox) {
-      // Mark paid in sandbox
+      // Sandbox simulator: confirm instantly. Stock is re-checked under row
+      // locks inside the transaction, and creator earnings are booked here —
+      // the pre-fix version skipped earnings entirely (money bug).
       await prisma.$transaction(async (tx) => {
+        const lockOrdered = [...order.items].sort((a, b) =>
+          a.artworkId.localeCompare(b.artworkId)
+        );
+        for (const item of lockOrdered) {
+          const [live] = await tx.$queryRaw<Array<{ stock: number; stockStatus: StockStatus }>>`
+            SELECT stock, "stockStatus" FROM "Artwork" WHERE id = ${item.artworkId} FOR UPDATE
+          `;
+          if (!live || live.stockStatus === StockStatus.SOLD || live.stock < item.quantity) {
+            throw new Error(`"${item.titleSnapshot}" is no longer available in stock.`);
+          }
+          if (item.artwork.productType === ArtworkProductType.ORIGINAL) {
+            await tx.artwork.update({
+              where: { id: item.artworkId },
+              data: { stock: 0, stockStatus: StockStatus.SOLD },
+            });
+          } else {
+            await tx.artwork.update({
+              where: { id: item.artworkId },
+              data: {
+                stock: Math.max(0, live.stock - item.quantity),
+                editionSold: { increment: item.quantity },
+                stockStatus: live.stock - item.quantity <= 0 ? StockStatus.OUT_OF_STOCK : StockStatus.AVAILABLE,
+              },
+            });
+          }
+
+          // Book the creator earning (idempotent — one row per order item).
+          const feeRate = await resolvePlatformFeeRate(tx, {
+            creatorId: item.creatorId,
+            categoryId: item.artwork.categoryId,
+          });
+          const creatorAmount = new Prisma.Decimal(
+            (Number(item.lineTotal) * (1 - feeRate)).toFixed(2)
+          );
+          await tx.creatorEarning.upsert({
+            where: { orderItemId: item.id },
+            update: {},
+            create: {
+              creatorId: item.creatorId,
+              orderItemId: item.id,
+              amount: creatorAmount,
+              isPaidOut: false,
+            },
+          });
+        }
+
         await tx.order.update({
           where: { id: order.id },
           data: { status: OrderStatus.ORDER_CONFIRMED },
@@ -536,36 +669,35 @@ export async function retryOrderPaymentAction(orderNumber: string) {
           });
         }
 
-        for (const item of order.items) {
-          if (item.artwork.productType === ArtworkProductType.ORIGINAL) {
-            await tx.artwork.update({
-              where: { id: item.artwork.id },
-              data: { stock: 0, stockStatus: StockStatus.SOLD },
-            });
-          } else {
-            await tx.artwork.update({
-              where: { id: item.artwork.id },
-              data: {
-                stock: Math.max(0, item.artwork.stock - item.quantity),
-                editionSold: { increment: item.quantity },
-                stockStatus: item.artwork.stock - item.quantity <= 0 ? StockStatus.OUT_OF_STOCK : StockStatus.AVAILABLE,
-              },
-            });
-          }
-        }
+        await tx.orderStatusEvent.create({
+          data: {
+            orderId: order.id,
+            status: OrderStatus.ORDER_CONFIRMED,
+            note: "Payment completed via retry (sandbox simulator).",
+          },
+        });
       });
 
-      return { success: true, redirectUrl: `/orders/${order.orderNumber}` };
+      const tokenParam = hasGuestToken && guestToken ? `?t=${guestToken}` : "";
+      return { success: true, redirectUrl: `/orders/${order.orderNumber}${tokenParam}` };
     }
 
     if (!isCashfreeConfigured()) {
       return { error: "Cashfree gateway is not configured." };
     }
 
+    // Cashfree requires a fresh order_id per attempt. The suffix is stripped
+    // by the webhook when reconciling (digits only, matching /_R\d+$/), and
+    // the mapping is also recorded as a PaymentTransaction so the audit
+    // trail is complete. Millisecond timestamp + random makes collisions
+    // across rapid retries practically impossible.
+    const cashfreeOrderId = `${order.orderNumber}_R${Date.now()}${randomInt(100, 1000)}`;
+    const tokenParam = hasGuestToken && guestToken ? `?t=${guestToken}&` : "?";
+
     const orderRequest = {
       order_amount: Number(order.grandTotal),
       order_currency: "INR",
-      order_id: `${order.orderNumber}_R${Date.now().toString().slice(-4)}`,
+      order_id: cashfreeOrderId,
       customer_details: {
         customer_id: order.customerId,
         customer_name: order.customer.name,
@@ -573,11 +705,23 @@ export async function retryOrderPaymentAction(orderNumber: string) {
         customer_phone: (order.customer.phone || "9999999999").replace(/[^0-9]/g, "").slice(-10),
       },
       order_meta: {
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}?success=true`,
+        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}${tokenParam}success=true`,
       },
     };
 
     const response = await cashfree.PGCreateOrder(orderRequest as any);
+
+    if (order.payment) {
+      await prisma.paymentTransaction.create({
+        data: {
+          paymentId: order.payment.id,
+          gatewayOrderId: cashfreeOrderId,
+          gatewayEventId: `retry:${cashfreeOrderId}`,
+          status: PaymentStatus.INITIATED,
+          rawPayload: { orderNumber: order.orderNumber, cashfreeOrderId },
+        },
+      });
+    }
 
     return {
       success: true,

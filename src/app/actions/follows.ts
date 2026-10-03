@@ -5,18 +5,16 @@ import { getSession } from "@/modules/auth/guards";
 import { revalidatePath } from "next/cache";
 import { cuidSchema } from "@/lib/validation";
 
-async function resolveUserId(): Promise<string> {
+/**
+ * Resolve the current user id, or null for guests.
+ *
+ * Follows used to fall back to a shared "collector@example.com" row, which
+ * meant every guest's follows leaked into one bucket (and inflated counts).
+ * Following is now a signed-in action like wishlist and inquiry.
+ */
+async function resolveUserId(): Promise<string | null> {
   const session = await getSession();
-  if (session?.user?.id) return session.user.id;
-
-  const email = "collector@example.com";
-  let user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: { email, name: "Art Collector", emailVerified: true },
-    });
-  }
-  return user.id;
+  return session?.user?.id ?? null;
 }
 
 /**
@@ -30,6 +28,9 @@ export async function toggleFollowAction(creatorId: string) {
   creatorId = parsed.data;
   try {
     const userId = await resolveUserId();
+    if (!userId) {
+      return { error: "AUTH_REQUIRED" };
+    }
 
     const existing = await prisma.follow.findUnique({
       where: {
@@ -60,6 +61,7 @@ export async function toggleFollowAction(creatorId: string) {
 export async function getFollowingAction(): Promise<string[]> {
   try {
     const userId = await resolveUserId();
+    if (!userId) return [];
     const follows = await prisma.follow.findMany({
       where: { followerId: userId },
       select: { creatorId: true },
@@ -87,6 +89,7 @@ export async function getFollowerCountAction(creatorId: string): Promise<number>
 export async function isFollowingAction(creatorId: string): Promise<boolean> {
   try {
     const userId = await resolveUserId();
+    if (!userId) return false;
     const follow = await prisma.follow.findUnique({
       where: {
         followerId_creatorId: { followerId: userId, creatorId },

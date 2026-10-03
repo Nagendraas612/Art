@@ -5,9 +5,11 @@ import { retryOrderPaymentAction } from "@/app/actions/checkout";
 
 interface RetryPaymentButtonProps {
   orderNumber: string;
+  /** Guest access token from ?t= — echoed back so guests can retry too. */
+  guestToken?: string;
 }
 
-export function RetryPaymentButton({ orderNumber }: RetryPaymentButtonProps) {
+export function RetryPaymentButton({ orderNumber, guestToken }: RetryPaymentButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +17,7 @@ export function RetryPaymentButton({ orderNumber }: RetryPaymentButtonProps) {
     setLoading(true);
     setError(null);
 
-    const res = await retryOrderPaymentAction(orderNumber);
+    const res = await retryOrderPaymentAction(orderNumber, guestToken);
     setLoading(false);
 
     if (res?.error) {
@@ -28,13 +30,27 @@ export function RetryPaymentButton({ orderNumber }: RetryPaymentButtonProps) {
       return;
     }
 
-    if (res?.paymentSessionId && (window as any).Cashfree) {
-      const cashfree = (window as any).Cashfree({ mode: "sandbox" });
+    if (res?.paymentSessionId) {
+      const cashfreeSdk = (window as any).Cashfree;
+      if (!cashfreeSdk) {
+        setError("Payment gateway failed to load. Please refresh the page and try again.");
+        return;
+      }
+      // Mode must match the server-side gateway configuration — never
+      // hardcoded. NEXT_PUBLIC_CASHFREE_ENVIRONMENT=PRODUCTION means live.
+      const mode =
+        process.env.NEXT_PUBLIC_CASHFREE_ENVIRONMENT === "PRODUCTION"
+          ? "production"
+          : "sandbox";
+      const cashfree = cashfreeSdk({ mode });
       cashfree.checkout({
         paymentSessionId: res.paymentSessionId,
         redirectTarget: "_self",
       });
+      return;
     }
+
+    setError("Could not start the payment. Please try again.");
   };
 
   return (

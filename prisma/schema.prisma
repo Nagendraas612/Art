@@ -167,6 +167,10 @@ model User {
   phoneVerifiedAt   DateTime?
   role              Role      @default(CUSTOMER)
   isActive          Boolean   @default(true)
+  // True for rows auto-created by guest checkout (no password, never
+  // verified). A repeat guest purchase with the same email reuses the row;
+  // a real account with the same email is never bound to a guest order.
+  isGuest           Boolean   @default(false)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -560,6 +564,12 @@ model Order {
   grandTotal     Decimal     @db.Decimal(12, 2)
   currency       String      @default("INR")
 
+  // Unguessable per-order token that lets a GUEST buyer view their own
+  // order via /orders/<number>?t=<token>. Never derived from the order
+  // number; issued at checkout and delivered only to the buyer's email.
+  // Null for orders created before this field existed (guests then have no
+  // token access; signed-in owners/creators/admins are unaffected).
+  guestAccessToken String?   @unique
 
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt

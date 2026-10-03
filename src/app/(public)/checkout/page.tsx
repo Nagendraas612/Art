@@ -116,14 +116,17 @@ export default function CheckoutPage() {
           if (result.error) {
             console.error("Payment failed", result.error);
             setErrorMessage(result.error.message || "Payment failed. Please try again.");
+            setIsSubmitting(false);
           }
           if (result.redirect) {
             console.log("Payment will be redirected");
           }
           if (result.paymentDetails) {
             console.log("Payment has been completed, Check for Payment Status");
-            // Verify payment and redirect
-            router.push(`/orders/${res.orderNumber}?success=true`);
+            // Verify payment and redirect. Guests carry their order token —
+            // without it the order page would 404 for them.
+            const tokenParam = res.guestAccessToken ? `?t=${res.guestAccessToken}&` : "?";
+            router.push(`/orders/${res.orderNumber}${tokenParam}success=true`);
           }
         });
       } else if (res.redirectUrl) {

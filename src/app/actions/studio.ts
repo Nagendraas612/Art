@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import { ArtworkProductType, ArtworkStatus, OrderStatus, Prisma, StockStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { artworkFormSchema, cuidSchema, firstIssue, toClientError } from "@/lib/validation";
+import { artworkFormSchema, cuidSchema, firstIssue, toClientError, uploadedImageUrlSchema } from "@/lib/validation";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
+import { dispatchAdminAlert } from "@/lib/admin-alerts";
 import { z } from "zod";
 
 export interface ArtworkFormData {
@@ -131,16 +133,7 @@ export async function createArtworkAction(data: ArtworkFormData) {
         category: true,
         creator: {
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-                avatarUrl: true,
-                role: true,
-              },
-            },
+            user: { select: SAFE_USER_SELECT },
           },
         },
       },
@@ -216,7 +209,16 @@ export async function updateArtworkAction(id: string, data: Partial<ArtworkFormD
   try {
     // P8: creators can NEVER self-publish via this action. `status` is not
     // part of the validation schema, so any smuggled value is stripped here.
-    const parsed = artworkFormSchema.partial().safeParse(data);
+    //
+    // The update schema drops galleryImageUrls' `.default([])`: with the
+    // default, an omitted key parses to `[]` and the image logic below
+    // cannot distinguish "not provided" from "clear the gallery" — every
+    // edit without explicit gallery data would silently wipe detail images.
+    const updateSchema = artworkFormSchema
+      .omit({ galleryImageUrls: true })
+      .extend({ galleryImageUrls: z.array(uploadedImageUrlSchema).max(10).optional() })
+      .partial();
+    const parsed = updateSchema.safeParse(data);
     if (!parsed.success) {
       return { error: firstIssue(parsed.error) };
     }
@@ -288,6 +290,54 @@ export async function updateArtworkAction(id: string, data: Partial<ArtworkFormD
     revalidatePath("/studio/artworks");
     revalidatePath(`/artwork/${existing.slug}`);
     revalidatePath(`/creators/${creator.handle}`);
+
+    // Images: the edit form already sends primaryImageUrl / galleryImageUrls
+    // (validated upload-pipeline URLs via artworkFormSchema), but the action
+    // previously ignored them. Primary upserts the "main" image; the gallery
+    // list replaces the "detail" set when provided.
+    if (d.primaryImageUrl !== undefined) {
+      const mainImage = await prisma.artworkImage.findFirst({
+        where: { artworkId: id, kind: "main" },
+      });
+      if (mainImage) {
+        await prisma.artworkImage.update({
+          where: { id: mainImage.id },
+          data: {
+            url: d.primaryImageUrl,
+            altText: d.title ?? existing.title,
+          },
+        });
+      } else {
+        await prisma.artworkImage.create({
+          data: {
+            artworkId: id,
+            publicId: `studio_${Date.now()}_0`,
+            url: d.primaryImageUrl,
+            altText: d.title ?? existing.title,
+            kind: "main",
+            sortOrder: 0,
+          },
+        });
+      }
+    }
+    if (d.galleryImageUrls !== undefined) {
+      await prisma.artworkImage.deleteMany({
+        where: { artworkId: id, kind: "detail" },
+      });
+      const detailUrls = d.galleryImageUrls.filter(Boolean);
+      if (detailUrls.length > 0) {
+        await prisma.artworkImage.createMany({
+          data: detailUrls.map((url, idx) => ({
+            artworkId: id,
+            publicId: `studio_${Date.now()}_${idx + 1}`,
+            url,
+            altText: `${d.title ?? existing.title} detail ${idx + 1}`,
+            kind: "detail",
+            sortOrder: idx + 1,
+          })),
+        });
+      }
+    }
 
     return { success: true };
   } catch (error: any) {
@@ -372,7 +422,9 @@ export async function updateStudioOrderStatusAction({
     if (!ownsItem) return { error: "Order not found." };
 
     // P8: state-transition map — creators move fulfilment forward only.
-    // Cancellations/refunds/disputes/payment states are admin-handled.
+    // Cancellations are allowed pre-shipment but MUST reverse the money
+    // flow: stock is restored and unpaid earnings are voided (see below);
+    // an admin alert is raised so the team executes the actual refund.
     const allowedTransitions: Record<string, OrderStatus[]> = {
       [OrderStatus.PAYMENT_CONFIRMED]: [OrderStatus.ORDER_CONFIRMED, OrderStatus.CANCELLED],
       [OrderStatus.ORDER_CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
@@ -388,11 +440,68 @@ export async function updateStudioOrderStatusAction({
       };
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: orderId },
+    // Multi-studio guard: a cancel unwinds the whole order (stock + earnings),
+    // so one studio must not cancel an order containing another studio's
+    // work. Those go through support.
+    if (status === OrderStatus.CANCELLED) {
+      const distinctCreators = new Set(order.items.map((i) => i.artwork.creatorId));
+      if (distinctCreators.size > 1) {
+        return {
+          error:
+            "This order spans multiple studios. Please contact support to cancel it.",
+        };
+      }
+    }
+
+    const cancelSummary = await prisma.$transaction(async (tx) => {
+      // Re-verify the status INSIDE the transaction: the pre-tx transition
+      // check can race a concurrent webhook confirmation, which would
+      // otherwise double-restore stock. Zero matched rows => abort.
+      const updated = await tx.order.updateMany({
+        where: { id: orderId, status: order.status },
         data: { status },
       });
+      if (updated.count === 0) {
+        throw new Error("Order status changed. Please refresh and try again.");
+      }
+
+      // Cancellation reversal: the money flow must unwind. Cancel is only
+      // reachable pre-shipment, so every item's reserved stock comes back
+      // and unpaid creator earnings are voided. Earnings already paid out
+      // cannot be silently clawed back — they are left for manual handling
+      // and flagged in the admin alert below.
+      let paidOutEarningCount = 0;
+      if (status === OrderStatus.CANCELLED) {
+        const itemIds = order.items.map((i) => i.id);
+        for (const item of order.items) {
+          const isOriginal =
+            (await tx.artwork.findUnique({
+              where: { id: item.artworkId },
+              select: { productType: true },
+            }))?.productType === ArtworkProductType.ORIGINAL;
+          if (isOriginal) {
+            await tx.artwork.update({
+              where: { id: item.artworkId },
+              data: { stock: 1, stockStatus: StockStatus.AVAILABLE },
+            });
+          } else {
+            await tx.artwork.update({
+              where: { id: item.artworkId },
+              data: {
+                stock: { increment: item.quantity },
+                editionSold: { decrement: item.quantity },
+                stockStatus: StockStatus.AVAILABLE,
+              },
+            });
+          }
+        }
+        paidOutEarningCount = await tx.creatorEarning.count({
+          where: { orderItemId: { in: itemIds }, isPaidOut: true },
+        });
+        await tx.creatorEarning.deleteMany({
+          where: { orderItemId: { in: itemIds }, isPaidOut: false },
+        });
+      }
 
       await tx.orderStatusEvent.create({
         data: {
@@ -400,10 +509,33 @@ export async function updateStudioOrderStatusAction({
           status,
           note: trackingNumber
             ? `Dispatched by ${creator.storeName} via ${carrier || "Insured Courier"} (Tracking: ${trackingNumber})`
-            : `Status updated to ${status} by studio.`,
+            : status === OrderStatus.CANCELLED
+              ? `Order cancelled by ${creator.storeName}. Stock restored; unpaid earnings voided.`
+              : `Status updated to ${status} by studio.`,
         },
       });
+
+      return { paidOutEarningCount };
     });
+
+    // Refund alert AFTER the transaction commits: firing it inside would
+    // leave a phantom "refund required" alert if the commit later failed.
+    // Cancelling a paid order means real money must move back to the buyer.
+    // Creators cannot move funds — the team does.
+    if (status === OrderStatus.CANCELLED) {
+      const refundNote =
+        cancelSummary.paidOutEarningCount > 0
+          ? ` WARNING: ${cancelSummary.paidOutEarningCount} earning(s) were already paid out — manual clawback/adjustment required.`
+          : "";
+      dispatchAdminAlert({
+        type: "REFUND_REQUIRED",
+        message: `Order #${order.orderNumber} cancelled by ${creator.storeName}. Refund ₹${Number(order.grandTotal).toLocaleString("en-IN")} to ${order.customer.name || order.customer.email}.${refundNote}`,
+        refType: "ORDER",
+        refId: orderId,
+        actionUrl: "/admin",
+        actionText: "Review in Admin Panel",
+      }).catch((err) => console.error("[StudioCancel] admin alert error:", err));
+    }
 
     // P8: buyer gets a real transactional email for every status change
     // (shipment, out-for-delivery, delivered, ...).
@@ -415,7 +547,9 @@ export async function updateStudioOrderStatusAction({
         status: status.replace(/_/g, " "),
         message: trackingNumber
           ? `Your artwork is on its way via ${carrier || "insured courier"}. Tracking number: ${trackingNumber}.`
-          : undefined,
+          : status === OrderStatus.CANCELLED
+            ? `The studio has cancelled this order. Your payment of ₹${Number(order.grandTotal).toLocaleString("en-IN")} will be refunded in full within 5-7 business days.`
+            : undefined,
         trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}`,
       });
       const result = await sendEmail({

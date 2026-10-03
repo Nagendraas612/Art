@@ -72,11 +72,7 @@ export default async function CreatorProfilePage({ params }: CreatorProfilePageP
 
   const session = await getSession();
   let isFollowing = false;
-  let followerUserId = session?.user?.id;
-  if (!followerUserId) {
-    const defaultUser = await prisma.user.findUnique({ where: { email: "collector@example.com" } });
-    followerUserId = defaultUser?.id;
-  }
+  const followerUserId = session?.user?.id ?? null;
 
   if (followerUserId) {
     const followRecord = await prisma.follow.findUnique({

@@ -101,9 +101,10 @@ export function AddToCartCTA({ artwork }: AddToCartCTAProps) {
           type="button"
           onClick={handleDirectAcquire}
           className={styles.buyButton}
-          aria-label="Acquire this artwork directly"
+          aria-label="Buy this artwork now — adds to bag and goes to checkout"
+          title="Buy now: adds to your bag and takes you straight to checkout"
         >
-          Acquire Work &bull; {formattedPrice}
+          Buy Now &bull; {formattedPrice}
         </button>
 
         <button

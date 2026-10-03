@@ -51,8 +51,8 @@ async function fixArtworkImages() {
     },
     {
       slug: "totem-sculpture-no-02",
-      newUrl: "https://images.pexels.com/photos/26762152/pexels-photo-26762152.jpeg?auto=format&fit=crop&w=1000&q=80",
-      alt: "Monumental carved stone head sculpture against a mountain sky",
+      newUrl: "https://cdn.myportfolio.com/8985f249-9d9f-4121-81b4-71d74be0c12b/ebdeca9a-f767-4bb7-bcdd-ca668cd9d8f1_rw_1920.jpg?h=218b11b955a9e5f5d5b4b0f8b1a658a3",
+      alt: "Tall totem of stacked stoneware discs and rings on a dark base",
     },
     {
       slug: "botanical-strata-woven-tapestry",
@@ -154,6 +154,36 @@ async function fixArtworkImages() {
   }
 
   console.log(`Done. ${fixed} artwork(s) updated, ${updates.length - fixed} already correct/skipped.`);
+
+  // Detail-image repair: the terracotta painting shipped with an unrelated
+  // abstract "Texture close up" thumbnail (Unsplash photo-1541701494587).
+  // Replace it with a genuine weathered-terracotta texture.
+  const terra = await prisma.artwork.findUnique({
+    where: { slug: "solitude-in-terracotta-mist" },
+    select: { id: true, title: true },
+  });
+  if (terra) {
+    const badDetail = await prisma.artworkImage.findFirst({
+      where: {
+        artworkId: terra.id,
+        kind: "detail",
+        url: { contains: "1541701494587" },
+      },
+    });
+    if (badDetail) {
+      await prisma.artworkImage.update({
+        where: { id: badDetail.id },
+        data: {
+          url: "https://images.stockcake.com/public/c/e/2/ce222027-e55c-403c-b6f6-f348c0c716b9_large/weathered-terracotta-texture-stockcake.jpg",
+          altText: "Texture close up",
+          publicId: "fix_solitude-in-terracotta-mist_detail",
+        },
+      });
+      console.log(`+ Replaced wrong detail thumbnail for: ${terra.title}`);
+    } else {
+      console.log(`= Detail thumbnail already correct for: ${terra.title}`);
+    }
+  }
 }
 
 fixArtworkImages()

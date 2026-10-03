@@ -11,18 +11,22 @@ interface OrderConfirmationPageProps {
   params: Promise<{
     orderNumber: string;
   }>;
+  searchParams: Promise<{
+    t?: string;
+  }>;
 }
 
 export async function generateMetadata({ params }: OrderConfirmationPageProps) {
   const { orderNumber } = await params;
   return {
-    title: `Order ${orderNumber} Confirmed — Kalaa Bhadra`,
+    title: `Order ${orderNumber} — Kalaa Bhadra`,
     description: `Receipt and fulfillment tracking for order ${orderNumber}`,
   };
 }
 
-export default async function OrderConfirmationPage({ params }: OrderConfirmationPageProps) {
+export default async function OrderConfirmationPage({ params, searchParams }: OrderConfirmationPageProps) {
   const { orderNumber } = await params;
+  const { t: guestToken } = await searchParams;
 
   const order = await prisma.order.findUnique({
     where: { orderNumber },
@@ -38,7 +42,9 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
             },
           },
           creator: {
-            include: { user: true },
+            // Only the id is needed (owning-creator check below); never pull
+            // the full user row here.
+            include: { user: { select: { id: true } } },
           },
         },
       },
@@ -52,9 +58,11 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
     notFound();
   }
 
-  // Ownership check: order pages previously rendered full name, address and
-  // phone to anyone with the order number. Only the ordering customer,
-  // guest who holds the unguessable ORD token (14+ chars), a creator, or admin may view.
+  // Ownership check: order pages render full name, address and phone, so
+  // they are private to the ordering customer (signed in), an owning
+  // creator, or an admin. Guests prove ownership with the unguessable
+  // per-order token issued at checkout (?t=...), delivered only to the
+  // buyer's email. The order number alone grants nothing.
   const session = await getSession();
   const viewerId = session?.user?.id;
   const viewerEmail = session?.user?.email;
@@ -68,10 +76,13 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
     !!viewerId &&
     order.items.some((item) => item.creator?.user?.id === viewerId);
 
-  // High-entropy order numbers (ORD-YYYY-10alphanumeric) function as capability URLs for guest buyers
-  const isGuestCapabilityUrl = order.orderNumber.length >= 14;
+  const hasGuestToken =
+    typeof guestToken === "string" &&
+    guestToken.length > 0 &&
+    !!order.guestAccessToken &&
+    guestToken === order.guestAccessToken;
 
-  if (!isOwner && !isAdmin && !isOwningCreator && !isGuestCapabilityUrl) {
+  if (!isOwner && !isAdmin && !isOwningCreator && !hasGuestToken) {
     notFound();
   }
 
@@ -273,7 +284,7 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
                     <dd>{formattedGrandTotal}</dd>
                   </div>
                 </dl>
-                {!isPaid && <RetryPaymentButton orderNumber={order.orderNumber} />}
+                {!isPaid && <RetryPaymentButton orderNumber={order.orderNumber} guestToken={typeof guestToken === "string" ? guestToken : undefined} />}
               </div>
 
               {/* Next Actions */}

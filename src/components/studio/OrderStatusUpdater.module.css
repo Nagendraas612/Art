@@ -29,6 +29,63 @@
   color: #276738;
 }
 
+.errorNote {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.cancelOrderBtn {
+  margin-top: 4px;
+  padding: 0.6rem 1rem;
+  background: transparent;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.cancelOrderBtn:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.cancelConfirmBox {
+  margin-top: 4px;
+  padding: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+}
+
+.cancelConfirmText {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: #7f1d1d;
+}
+
+.confirmCancelBtn {
+  padding: 0.6rem 1rem;
+  background: #b91c1c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.confirmCancelBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .actions {
   display: flex;
   flex-direction: column;

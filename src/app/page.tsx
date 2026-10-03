@@ -43,7 +43,6 @@ export default async function Home() {
   // 4. Fetch active categories
   const categories = await prisma.artworkCategory.findMany({
     where: { isActive: true },
-    take: 4,
     orderBy: { sortOrder: "asc" },
     include: {
       _count: { select: { artworks: { where: { status: ArtworkStatus.PUBLISHED } } } },
@@ -55,7 +54,9 @@ export default async function Home() {
     where: { status: CreatorStatus.APPROVED },
     take: 3,
     include: {
-      user: true,
+      // Narrow: only the fields the cards render. Never pull full User rows
+      // (passwordHash) into page data.
+      user: { select: { id: true, name: true, image: true } },
     },
   });
 
@@ -122,7 +123,7 @@ export default async function Home() {
             </div>
             <div className={styles.statItem}>
               <span className={styles.statNum}>100%</span>
-              <span className={styles.statLabel}>Provenanced</span>
+              <span className={styles.statLabel}>Provenance</span>
             </div>
           </div>
         </section>
