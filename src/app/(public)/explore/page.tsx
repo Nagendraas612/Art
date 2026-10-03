@@ -42,6 +42,14 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     orderBy: { sortOrder: "asc" },
   });
 
+  // Human labels for the product-type filter, used in the page heading.
+  const typeLabels: Partial<Record<ArtworkProductType, string>> = {
+    [ArtworkProductType.ORIGINAL]: "Original Works",
+    [ArtworkProductType.LIMITED_EDITION]: "Limited Editions",
+    [ArtworkProductType.MADE_TO_ORDER]: "Made to Order",
+    [ArtworkProductType.DIGITAL]: "Digital Collectibles",
+  };
+
   // 2. Build where filter
   const where: any = {
     status: ArtworkStatus.PUBLISHED,
@@ -85,6 +93,11 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   // 4. Count total items and fetch paginated artworks
   const totalCount = await prisma.artwork.count({ where });
   const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
+  // The "All Works" pill always shows the full published catalogue size,
+  // regardless of the active filters.
+  const allWorksCount = await prisma.artwork.count({
+    where: { status: ArtworkStatus.PUBLISHED },
+  });
 
   const artworks = await prisma.artwork.findMany({
     where,
@@ -131,6 +144,8 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
                 ? `Search: "${searchQuery}"`
                 : activeCategory
                 ? activeCategory.name
+                : currentType && typeLabels[currentType]
+                ? typeLabels[currentType]
                 : "Discover All Pieces"}
             </h1>
             <p className={styles.subtitle}>
@@ -159,7 +174,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
                 href={searchQuery ? `/explore?q=${encodeURIComponent(searchQuery)}` : "/explore"}
                 className={`${styles.pill} ${!currentCategorySlug ? styles.activePill : ""}`}
               >
-                All Works ({artworks.length})
+                All Works ({allWorksCount})
               </Link>
               {categories.map((cat) => {
                 const isActive = currentCategorySlug === cat.slug;

@@ -28,8 +28,6 @@ export function Footer() {
               <li><Link href="/explore">All Collections</Link></li>
               <li><Link href="/explore?type=ORIGINAL">Original Works</Link></li>
               <li><Link href="/explore?type=LIMITED_EDITION">Limited Editions</Link></li>
-              <li><Link href="/explore?type=MADE_TO_ORDER">Made to Order</Link></li>
-              <li><Link href="/explore?type=DIGITAL">Digital Collectibles</Link></li>
             </ul>
           </div>
 

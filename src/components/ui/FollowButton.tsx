@@ -34,6 +34,11 @@ export function FollowButton({
     startTransition(async () => {
       const result = await toggleFollowAction(creatorId);
       if ("error" in result) {
+        // Guests are sent to sign in; following is a signed-in action.
+        if (result.error === "AUTH_REQUIRED") {
+          window.location.href = `/sign-in?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
         setFollowing((prev) => !prev);
         setCount((prev) => (following ? prev + 1 : prev - 1));
       } else {

@@ -60,14 +60,19 @@ export async function POST(req: Request) {
 
     const event = JSON.parse(rawBody) as CashfreeWebhookEvent;
     const eventType = event.type;
-    const orderNumber = event.data?.order?.order_id;
+    const rawOrderId = event.data?.order?.order_id;
 
-    if (!eventType || !orderNumber) {
+    if (!eventType || !rawOrderId) {
       return NextResponse.json(
         { error: "Malformed webhook payload" },
         { status: 400 }
       );
     }
+
+    // Payment retries mint Cashfree order ids as "<orderNumber>_R<random>".
+    // Strip the retry suffix to recover our order number. This is safe:
+    // our own order numbers (ORD-YYYY-XXXXXXXXXX) never contain "_R".
+    const orderNumber = rawOrderId.replace(/_R\d+$/, "");
 
     const cfPaymentId =
       event.data?.payment?.cf_payment_id?.toString() || null;
@@ -75,8 +80,9 @@ export async function POST(req: Request) {
     // Deterministic idempotency key per gateway event. The schema's
     // gatewayEventId exists for exactly this — it was never written before,
     // so Cashfree retries could double-process (double stock decrement,
-    // duplicate emails).
-    const gatewayEventId = `cashfree:${eventType}:${cfPaymentId || orderNumber}`;
+    // duplicate emails). Falls back to the RAW gateway order id (including
+    // any retry suffix) so two retry attempts for one order stay distinct.
+    const gatewayEventId = `cashfree:${eventType}:${cfPaymentId || rawOrderId}`;
     const alreadySeen = await prisma.paymentTransaction.findUnique({
       where: { gatewayEventId },
       select: { id: true },
@@ -175,11 +181,17 @@ async function handlePaymentSuccess(
     }
 
     // 2. Stock re-check at confirm time. Two PENDING_PAYMENT orders for the
-    // same 1/1 original must not both confirm and charge.
-    for (const item of order.items) {
-      const live = await tx.artwork.findUnique({
-        where: { id: item.artworkId },
-      });
+    // same 1/1 original must not both confirm and charge. Rows are locked
+    // with SELECT FOR UPDATE inside this transaction (in deterministic
+    // id order to avoid deadlocks), so a concurrent webhook for another
+    // order blocks here until this one commits instead of racing it.
+    const lockOrderedItems = [...order.items].sort((a, b) =>
+      a.artworkId.localeCompare(b.artworkId)
+    );
+    for (const item of lockOrderedItems) {
+      const [live] = await tx.$queryRaw<
+        Array<{ stock: number; stockStatus: StockStatus }>
+      >`SELECT stock, "stockStatus" FROM "Artwork" WHERE id = ${item.artworkId} FOR UPDATE`;
       if (
         !live ||
         live.stockStatus === StockStatus.SOLD ||
@@ -318,7 +330,9 @@ async function handlePaymentSuccess(
             lineTotal: Number(item.lineTotal),
             creatorName: item.artwork.creator.storeName,
           })),
-          trackingUrl: `${domain}/orders/${order.orderNumber}`,
+          trackingUrl: order.guestAccessToken
+            ? `${domain}/orders/${order.orderNumber}?t=${order.guestAccessToken}`
+            : `${domain}/orders/${order.orderNumber}`,
         });
         await sendEmail({
           to: order.customer.email,
@@ -477,7 +491,9 @@ async function handlePaymentFailure(
           orderNumber: order.orderNumber,
           status: "Payment Failed",
           message: `${reason} No amount was charged. You can safely try again from your bag.`,
-          trackingUrl: `${domain}/orders/${order.orderNumber}`,
+          trackingUrl: order.guestAccessToken
+            ? `${domain}/orders/${order.orderNumber}?t=${order.guestAccessToken}`
+            : `${domain}/orders/${order.orderNumber}`,
         });
         await sendEmail({
           to: order.customer.email,

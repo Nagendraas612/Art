@@ -264,7 +264,7 @@ async function main() {
       processingDays: 3,
       images: [
         { url: "https://images.pexels.com/photos/6818618/pexels-photo-6818618.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Abstract painting in warm terracotta and clay tones with bold brushstrokes" },
-        { url: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1000&q=80", kind: "detail", alt: "Texture close up" },
+        { url: "https://images.stockcake.com/public/c/e/2/ce222027-e55c-403c-b6f6-f348c0c716b9_large/weathered-terracotta-texture-stockcake.jpg", kind: "detail", alt: "Texture close up" },
       ],
     },
     {
@@ -449,7 +449,7 @@ async function main() {
       isFragile: true,
       processingDays: 5,
       images: [
-        { url: "https://images.pexels.com/photos/26762152/pexels-photo-26762152.jpeg?auto=format&fit=crop&w=1000&q=80", kind: "main", alt: "Monumental carved stone head sculpture against a mountain sky" },
+        { url: "https://cdn.myportfolio.com/8985f249-9d9f-4121-81b4-71d74be0c12b/ebdeca9a-f767-4bb7-bcdd-ca668cd9d8f1_rw_1920.jpg?h=218b11b955a9e5f5d5b4b0f8b1a658a3", kind: "main", alt: "Tall totem of stacked stoneware discs and rings on a dark base" },
       ],
     },
 

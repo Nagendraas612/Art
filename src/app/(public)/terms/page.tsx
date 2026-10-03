@@ -41,8 +41,8 @@ export default function TermsPage() {
             Artisans retain full copyright and artistic ownership over original works unless an explicit bespoke commercial transfer is executed.
           </p>
 
-          <Link href="/sign-in" className={styles.backLink}>
-            ← Return to Sign In
+          <Link href="/" className={styles.backLink}>
+            ← Back to Home
           </Link>
         </div>
       </div>

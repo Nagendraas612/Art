@@ -10,18 +10,9 @@ import { cuidSchema, firstIssue, toClientError } from "@/lib/validation";
 // lives in `@/lib/notify` (server-internal); this module only exposes
 // session-scoped reads and read-state updates.
 
-async function resolveUserId(): Promise<string> {
+async function resolveUserId(): Promise<string | null> {
   const session = await getSession();
-  if (session?.user?.id) return session.user.id;
-
-  const email = "collector@example.com";
-  let user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: { email, name: "Art Collector", emailVerified: true },
-    });
-  }
-  return user.id;
+  return session?.user?.id ?? null;
 }
 
 /**
@@ -30,6 +21,7 @@ async function resolveUserId(): Promise<string> {
 export async function getNotificationsAction() {
   try {
     const userId = await resolveUserId();
+    if (!userId) return { notifications: [] };
     const notifications = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -48,6 +40,7 @@ export async function getNotificationsAction() {
 export async function getUnreadCountAction(): Promise<number> {
   try {
     const userId = await resolveUserId();
+    if (!userId) return 0;
     return await prisma.notification.count({
       where: { userId, isRead: false },
     });
@@ -67,6 +60,7 @@ export async function markNotificationReadAction(notificationId: string) {
     if (!parsed.success) return { error: firstIssue(parsed.error) };
 
     const userId = await resolveUserId();
+    if (!userId) return { error: "Unauthorized." };
     const updated = await prisma.notification.updateMany({
       where: { id: parsed.data, userId },
       data: { isRead: true },
@@ -87,6 +81,7 @@ export async function markNotificationReadAction(notificationId: string) {
 export async function markAllNotificationsReadAction() {
   try {
     const userId = await resolveUserId();
+    if (!userId) return { error: "Unauthorized." };
     await prisma.notification.updateMany({
       where: { userId, isRead: false },
       data: { isRead: true },

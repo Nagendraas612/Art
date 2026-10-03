@@ -5,6 +5,7 @@ import { getSession } from "@/modules/auth/guards";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 import {
   firstIssue,
   submitReviewSchema,
@@ -102,7 +103,7 @@ export async function submitReviewAction(input: SubmitReviewInput) {
         isVerifiedPurchase: true,
       },
       include: {
-        author: true,
+        author: { select: SAFE_USER_SELECT },
       },
     });
 

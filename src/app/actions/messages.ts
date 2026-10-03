@@ -5,6 +5,7 @@ import { getSession } from "@/modules/auth/guards";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import { revalidatePath } from "next/cache";
 import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 import {
   firstIssue,
   startConversationSchema,
@@ -153,7 +154,7 @@ export async function sendMessageAction(input: {
           : undefined,
       },
       include: {
-        sender: true,
+        sender: { select: SAFE_USER_SELECT },
         attachments: true,
       },
     });

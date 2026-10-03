@@ -11,6 +11,7 @@ export function SearchBar() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
+  const [searchError, setSearchError] = useState(false);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -20,12 +21,15 @@ export function SearchBar() {
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
+      setSearchError(false);
       return;
     }
     const timer = setTimeout(() => {
       startTransition(async () => {
         const res = await searchArtworksAction({ query: query.trim() });
-        setResults(res.artworks.slice(0, 5) || []);
+        // Never present an error as "no results" — say the search failed.
+        setSearchError(!!res.error);
+        setResults(res.error ? [] : res.artworks.slice(0, 5) || []);
       });
     }, 300); // 300ms debounce
     return () => clearTimeout(timer);
@@ -123,6 +127,8 @@ export function SearchBar() {
         <div className={styles.dropdown}>
           {isPending ? (
             <div className={styles.loading}>Searching...</div>
+          ) : searchError ? (
+            <div className={styles.loading}>Search is unavailable right now. Please try again.</div>
           ) : results.length > 0 ? (
             <ul className={styles.resultList}>
               {results.map((art) => (
