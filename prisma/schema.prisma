@@ -649,7 +649,7 @@ model Payment {
   orderId      String   @unique
   order        Order    @relation(fields: [orderId], references: [id])
   status       PaymentStatus @default(INITIATED)
-  gateway      String   @default("CASHFREE")
+  gateway      String   @default("RAZORPAY")
   gatewayAmount Decimal @db.Decimal(12, 2)
   gatewayFee   Decimal? @db.Decimal(12, 2)
   createdAt    DateTime @default(now())
