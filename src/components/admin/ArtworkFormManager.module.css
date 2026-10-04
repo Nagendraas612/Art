@@ -1,0 +1,357 @@
+/* Artwork Form Schema manager — admin theme. */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1080px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.title {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--ink, #1f1e1d);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14.5px;
+  color: #6b665c;
+  max-width: 640px;
+  margin-top: 6px;
+}
+
+.card {
+  background: var(--paper-0, #fff);
+  border: 1px solid #e8e4db;
+  border-radius: 14px;
+  padding: 22px;
+}
+
+.cardTitle {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0 0 4px;
+  color: var(--ink, #1f1e1d);
+}
+
+.cardHint {
+  font-size: 13px;
+  color: #6b665c;
+  margin: 0 0 14px;
+}
+
+.alertError {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.alertOk {
+  background: var(--moss-tint, #dee3d3);
+  border: 1px solid #c6cdb4;
+  color: #3f4a2e;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8a8478;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e8e4db;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid #f1ede3;
+  vertical-align: middle;
+}
+
+.hiddenRow {
+  opacity: 0.55;
+}
+
+.labelCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.keyHint {
+  font-size: 11px;
+  color: #a39d90;
+  font-family: monospace;
+}
+
+.lockBadge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #f1ede3;
+  color: #8a8478;
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
+.typeBadge {
+  font-size: 11px;
+  font-family: monospace;
+  background: var(--clay-tint, #ebd9ce);
+  color: var(--clay, #a6532e);
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin-right: 6px;
+}
+
+.countBadge {
+  font-size: 12px;
+  background: #f1ede3;
+  color: #6b665c;
+  border-radius: 20px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+.inlineEdit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inlineEdit input {
+  border: 1px solid #d8d2c4;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  min-width: 180px;
+}
+
+.miniBtn {
+  background: var(--ink, #211d16);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.miniBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.miniBtnGhost {
+  background: transparent;
+  border: 1px solid #d8d2c4;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #6b665c;
+  white-space: nowrap;
+}
+
+.miniBtnGhost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.miniBtnDanger {
+  background: transparent;
+  border: 1px solid #e7b4b4;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #b3261e;
+  white-space: nowrap;
+}
+
+.miniBtnDanger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toggleOn,
+.toggleOff {
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.toggleOn {
+  background: var(--moss-tint, #dee3d3);
+  border-color: #c6cdb4;
+  color: #3f4a2e;
+}
+
+.toggleOff {
+  background: #f5f2ea;
+  border-color: #e0dacd;
+  color: #8a8478;
+}
+
+.toggleOn:disabled,
+.toggleOff:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.orderBtns {
+  display: flex;
+  gap: 4px;
+}
+
+.rowActions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Dropdown option groups */
+.optionGroup {
+  border: 1px solid #ece7da;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.optionGroupHead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #faf8f2;
+  border: none;
+  padding: 12px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--ink, #1f1e1d);
+}
+
+.optionGroupHead span:last-child {
+  margin-left: auto;
+  color: #8a8478;
+}
+
+.optionList {
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #faf8f2;
+  border-radius: 8px;
+}
+
+.optionLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.addRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.addRow input,
+.dialog select {
+  flex: 1;
+  border: 1px solid #d8d2c4;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* Delete dialog */
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(33, 29, 22, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.dialog {
+  background: var(--paper-0, #fff);
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.dialog h3 {
+  margin: 0 0 8px;
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 20px;
+}
+
+.dialog p {
+  font-size: 14px;
+  color: #6b665c;
+  margin: 0 0 14px;
+}
+
+.dialogLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

@@ -67,6 +67,15 @@ export default async function AdminLayout({
               Artwork Curation
             </span>
           </Link>
+          <Link href="/admin/artwork-form" className={styles.navLink}>
+            <span className={styles.navLinkLeft}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              Artwork Form Schema
+            </span>
+          </Link>
 
           <div className={styles.sectionHeading}>Finance &amp; Operations</div>
           <Link href="/admin/economics" className={styles.navLink}>

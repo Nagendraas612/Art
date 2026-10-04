@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import { ArtworkForm } from "@/components/studio/ArtworkForm";
+import { getArtworkFormConfig } from "@/lib/form-schema";
 import styles from "../artworks.module.css";
 
 export default async function NewArtworkPage() {
@@ -11,10 +11,7 @@ export default async function NewArtworkPage() {
     return <div className={styles.emptyCard}>Studio not found.</div>;
   }
 
-  const categories = await prisma.artworkCategory.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: "asc" },
-  });
+  const formConfig = await getArtworkFormConfig();
 
   return (
     <div className={styles.container}>
@@ -32,9 +29,7 @@ export default async function NewArtworkPage() {
         </div>
       </div>
 
-      <ArtworkForm
-        categories={categories.map((c) => ({ id: c.id, name: c.name }))}
-      />
+      <ArtworkForm formConfig={formConfig} />
     </div>
   );
 }

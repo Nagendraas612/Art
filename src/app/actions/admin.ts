@@ -394,13 +394,13 @@ export async function reviewCreatorApplicationAction(params: {
     // Dispatch Status Email
     if (creator.user.email) {
       try {
-        const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const { appUrl } = await import("@/lib/app-url");
         const emailHtml = generateCreatorStatusEmail({
           creatorName: creator.user.name || creator.storeName,
           status: newStatus as "APPROVED" | "REJECTED" | "SUSPENDED",
           storeName: creator.storeName,
           reason,
-          studioUrl: `${domain}/studio`,
+          studioUrl: appUrl("/studio"),
         });
 
         sendEmail({
