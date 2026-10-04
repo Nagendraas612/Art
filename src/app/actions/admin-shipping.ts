@@ -24,6 +24,13 @@ const shippingSettingsSchema = z.object({
     .finite()
     .min(0, "Threshold cannot be negative")
     .max(100000000, "Threshold looks unrealistically high"),
+  defaultPickupPincode: z
+    .string()
+    .trim()
+    .max(6)
+    .refine((v) => v === "" || /^\d{6}$/.test(v), "Pincode must be 6 digits")
+    .optional()
+    .default(""),
 });
 
 export type ShippingSettingsInput = z.infer<typeof shippingSettingsSchema>;
@@ -38,6 +45,7 @@ export async function getShippingSettingsAction() {
     freeThreshold: row
       ? Number(row.freeThreshold)
       : DEFAULT_SHIPPING_SETTINGS.freeThreshold,
+    defaultPickupPincode: row?.defaultPickupPincode ?? "",
     updatedAt: row?.updatedAt.toISOString() ?? null,
   };
 }
@@ -51,16 +59,19 @@ export async function updateShippingSettingsAction(input: ShippingSettingsInput)
     return { ok: false as const, error: firstIssue(parsed.error) };
   }
 
+  const pincode = parsed.data.defaultPickupPincode?.trim() || null;
   await prisma.shippingSettings.upsert({
     where: { id: "default" },
     create: {
       id: "default",
       flatFee: parsed.data.flatFee,
       freeThreshold: parsed.data.freeThreshold,
+      defaultPickupPincode: pincode,
     },
     update: {
       flatFee: parsed.data.flatFee,
       freeThreshold: parsed.data.freeThreshold,
+      defaultPickupPincode: pincode,
     },
   });
 

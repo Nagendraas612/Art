@@ -1,58 +1,23 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { useCart } from "@/context/CartContext";
-import {
-  calculateShippingFee,
-  DEFAULT_SHIPPING_SETTINGS,
-  type ShippingSettingsData,
-} from "@/lib/shipping-shared";
 import styles from "./cart.module.css";
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, itemCount, subtotal, isHydrated } = useCart();
 
-  // Live insured-logistics settings from /admin/shipping (via API).
-  // Falls back to the documented defaults if the API is unreachable.
-  const [shipSettings, setShipSettings] = useState<ShippingSettingsData | null>(null);
-  useEffect(() => {
-    fetch("/api/shipping-settings")
-      .then((r) => (r.ok ? r.json() : DEFAULT_SHIPPING_SETTINGS))
-      .then((s) =>
-        setShipSettings({
-          flatFee: Number(s.flatFee) || 0,
-          freeThreshold: Number(s.freeThreshold) || 0,
-        }),
-      )
-      .catch(() => setShipSettings(DEFAULT_SHIPPING_SETTINGS));
-  }, []);
+  // Insured logistics are now live courier rates, which need the delivery
+  // pincode — only known at checkout. The bag shows the honest
+  // "Calculated at checkout" instead of a stale estimate.
 
   const formattedSubtotal = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(subtotal);
-
-  const formatINR = (n: number) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(n);
-
-  const shippingFee =
-    shipSettings === null ? null : calculateShippingFee(subtotal, shipSettings);
-  const formattedShipping =
-    shippingFee === null
-      ? "—"
-      : shippingFee === 0
-        ? "Complimentary"
-        : formatINR(shippingFee);
-  const grandTotal = shippingFee === null ? null : subtotal + shippingFee;
-  const formattedGrandTotal =
-    grandTotal === null ? "—" : formatINR(grandTotal);
 
   if (!isHydrated) {
     return (
@@ -223,9 +188,7 @@ export default function CartPage() {
                   </div>
                   <div className={styles.summaryRow}>
                     <dt>Insured Art Logistics</dt>
-                    <dd className={shippingFee === 0 ? styles.complimentary : ""}>
-                      {formattedShipping}
-                    </dd>
+                    <dd>Calculated at checkout</dd>
                   </div>
                   <div className={styles.summaryRow}>
                     <dt>Estimated Tax &amp; GST</dt>
@@ -234,8 +197,8 @@ export default function CartPage() {
                 </dl>
 
                 <div className={styles.totalRow}>
-                  <span>Total</span>
-                  <span className={styles.totalAmount}>{formattedGrandTotal}</span>
+                  <span>Subtotal</span>
+                  <span className={styles.totalAmount}>{formattedSubtotal}</span>
                 </div>
 
                 <Link href="/checkout" className={styles.checkoutBtn}>

@@ -24,6 +24,10 @@ interface Creator {
   createdAt: string;
   artworksCount: number;
   followersCount: number;
+  pickupAddressLine: string | null;
+  pickupPincode: string | null;
+  pickupCity: string | null;
+  pickupState: string | null;
 }
 
 export function CreatorModerationClient({ initialCreators }: { initialCreators: Creator[] }) {
@@ -163,6 +167,20 @@ export function CreatorModerationClient({ initialCreators }: { initialCreators: 
                   </div>
 
                   {creator.bio && <p className={styles.bio}>{creator.bio}</p>}
+
+                  {(creator.pickupPincode || creator.pickupCity) && (
+                    <p className={styles.bio}>
+                      <strong>Pickup:</strong>{" "}
+                      {[
+                        creator.pickupAddressLine,
+                        creator.pickupCity,
+                        creator.pickupState,
+                        creator.pickupPincode,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  )}
 
                   {creator.disciplines?.length > 0 && (
                     <div className={styles.disciplinesList}>

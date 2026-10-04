@@ -58,6 +58,10 @@ export default async function BecomeACreatorPage() {
                       coverImageUrl: existingProfile.coverImageUrl,
                       profileImageUrl: existingProfile.profileImageUrl,
                       acceptsCustomOrders: existingProfile.acceptsCustomOrders,
+                      pickupAddressLine: existingProfile.pickupAddressLine,
+                      pickupPincode: existingProfile.pickupPincode,
+                      pickupCity: existingProfile.pickupCity,
+                      pickupState: existingProfile.pickupState,
                     }
                   : null
               }

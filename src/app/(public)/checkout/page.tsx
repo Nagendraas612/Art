@@ -1,17 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { useCart } from "@/context/CartContext";
 import { processCheckout } from "@/app/actions/checkout";
-import {
-  calculateShippingFee,
-  DEFAULT_SHIPPING_SETTINGS,
-  type ShippingSettingsData,
-} from "@/lib/shipping-shared";
+import { usePincodeLookup } from "@/hooks/usePincodeLookup";
 import styles from "./checkout.module.css";
 
 export default function CheckoutPage() {
@@ -33,20 +29,61 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Live insured-logistics settings from /admin/shipping (via API).
-  // Falls back to the documented defaults if the API is unreachable.
-  const [shipSettings, setShipSettings] = useState<ShippingSettingsData | null>(null);
+  // Live insured-logistics quote from /api/shipping-quote: cheapest
+  // Shiprocket rate per creator pickup location, summed. The server action
+  // recomputes this independently at order time — this is display only.
+  const [quote, setQuote] = useState<{ fee: number; live: boolean } | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const quoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Pincode -> city/state auto-fill for the delivery address.
+  const pincodeLookup = usePincodeLookup(formData.postalCode);
+  const [cityTouched, setCityTouched] = useState(false);
+  const [stateTouched, setStateTouched] = useState(false);
   useEffect(() => {
-    fetch("/api/shipping-settings")
-      .then((r) => (r.ok ? r.json() : DEFAULT_SHIPPING_SETTINGS))
-      .then((s) =>
-        setShipSettings({
-          flatFee: Number(s.flatFee) || 0,
-          freeThreshold: Number(s.freeThreshold) || 0,
-        }),
-      )
-      .catch(() => setShipSettings(DEFAULT_SHIPPING_SETTINGS));
-  }, []);
+    if (pincodeLookup.city && !cityTouched) {
+      setFormData((prev) => ({ ...prev, city: pincodeLookup.city }));
+    }
+    if (pincodeLookup.state && !stateTouched) {
+      setFormData((prev) => ({ ...prev, state: pincodeLookup.state }));
+    }
+  }, [pincodeLookup.city, pincodeLookup.state, cityTouched, stateTouched]);
+
+  useEffect(() => {
+    if (quoteTimer.current) clearTimeout(quoteTimer.current);
+    const code = formData.postalCode.trim();
+    if (!/^\d{6}$/.test(code) || items.length === 0) {
+      setQuote(null);
+      setQuoteLoading(false);
+      return;
+    }
+    setQuoteLoading(true);
+    quoteTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/shipping-quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+            pincode: code,
+          }),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as { fee: number; live: boolean };
+          setQuote({ fee: Math.round(Number(data.fee) || 0), live: !!data.live });
+        } else {
+          setQuote(null);
+        }
+      } catch {
+        setQuote(null);
+      } finally {
+        setQuoteLoading(false);
+      }
+    }, 600);
+    return () => {
+      if (quoteTimer.current) clearTimeout(quoteTimer.current);
+    };
+  }, [formData.postalCode, items]);
 
   const formatINR = (n: number) =>
     new Intl.NumberFormat("en-IN", {
@@ -55,8 +92,7 @@ export default function CheckoutPage() {
       maximumFractionDigits: 0,
     }).format(n);
 
-  const shippingFee =
-    shipSettings === null ? null : calculateShippingFee(subtotal, shipSettings);
+  const shippingFee = quote === null ? null : quote.fee;
   const grandTotal = shippingFee === null ? null : subtotal + shippingFee;
 
   const formattedSubtotal = new Intl.NumberFormat("en-IN", {
@@ -66,11 +102,13 @@ export default function CheckoutPage() {
   }).format(subtotal);
 
   const formattedShipping =
-    shippingFee === null
-      ? "—"
-      : shippingFee === 0
-        ? "Complimentary"
-        : formatINR(shippingFee);
+    quoteLoading && quote === null
+      ? "Calculating…"
+      : shippingFee === null
+        ? "Enter delivery pincode"
+        : shippingFee === 0
+          ? "Complimentary"
+          : formatINR(shippingFee);
 
   const formattedGrandTotal =
     grandTotal === null ? "—" : formatINR(grandTotal);
@@ -90,7 +128,7 @@ export default function CheckoutPage() {
     }
 
     if (grandTotal === null) {
-      setErrorMessage("Shipping details are still loading. Please wait a moment.");
+      setErrorMessage("Enter your 6-digit delivery pincode to calculate insured logistics.");
       return;
     }
 
@@ -351,7 +389,10 @@ export default function CheckoutPage() {
                       required
                       placeholder="e.g. Mumbai"
                       value={formData.city}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setCityTouched(true);
+                      }}
                     />
                   </div>
 
@@ -364,7 +405,10 @@ export default function CheckoutPage() {
                       required
                       placeholder="e.g. Maharashtra"
                       value={formData.state}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setStateTouched(true);
+                      }}
                     />
                   </div>
 
@@ -375,10 +419,23 @@ export default function CheckoutPage() {
                       id="postalCode"
                       name="postalCode"
                       required
+                      inputMode="numeric"
+                      maxLength={6}
                       placeholder="400001"
                       value={formData.postalCode}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setFormData((prev) => ({ ...prev, postalCode: digits }));
+                        setCityTouched(false);
+                        setStateTouched(false);
+                      }}
                     />
+                    {pincodeLookup.loading && (
+                      <small className={styles.hint}>Looking up city &amp; state…</small>
+                    )}
+                    {pincodeLookup.error && (
+                      <small className={styles.hint}>{pincodeLookup.error}</small>
+                    )}
                   </div>
 
                   <div>
@@ -421,7 +478,7 @@ export default function CheckoutPage() {
 
               <button
                 type="submit"
-                disabled={isSubmitting || shipSettings === null}
+                disabled={isSubmitting || grandTotal === null}
                 className={styles.submitOrderBtn}
               >
                 {isSubmitting ? (

@@ -14,6 +14,12 @@ export interface CreateCreatorProfileInput {
   coverImageUrl?: string;
   profileImageUrl?: string;
   acceptsCustomOrders?: boolean;
+  // Pickup address for courier dispatch (Shiprocket). The pincode is the
+  // Shiprocket pickup_postcode; city/state are auto-resolved from it.
+  pickupAddressLine?: string;
+  pickupPincode: string;
+  pickupCity: string;
+  pickupState: string;
 }
 
 export async function createCreatorProfile(data: CreateCreatorProfileInput) {
@@ -32,6 +38,26 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
   if (!data.storeName.trim()) {
     return { success: false, error: "Studio/Store name is required." };
   }
+
+  // Pickup address: required — it doubles as the courier pickup location.
+  const pickupPincode = (data.pickupPincode || "").trim();
+  const pickupCity = (data.pickupCity || "").trim();
+  const pickupState = (data.pickupState || "").trim();
+  if (!/^\d{6}$/.test(pickupPincode)) {
+    return { success: false, error: "A valid 6-digit pickup pincode is required." };
+  }
+  if (!pickupCity) {
+    return { success: false, error: "Pickup city is required." };
+  }
+  if (!pickupState) {
+    return { success: false, error: "Pickup state is required." };
+  }
+  const pickupData = {
+    pickupAddressLine: data.pickupAddressLine?.trim() || null,
+    pickupPincode,
+    pickupCity,
+    pickupState,
+  };
 
   // Check if handle is already taken
   const existingHandle = await prisma.creatorProfile.findUnique({
@@ -61,6 +87,7 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
           coverImageUrl: data.coverImageUrl?.trim() || null,
           profileImageUrl: data.profileImageUrl?.trim() || null,
           acceptsCustomOrders: !!data.acceptsCustomOrders,
+          ...pickupData,
           status: existingProfile.status === CreatorStatus.APPROVED ? CreatorStatus.APPROVED : CreatorStatus.PENDING,
         },
       });
@@ -75,6 +102,7 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
           bio: data.bio?.trim() || null,
           disciplines: data.disciplines.length > 0 ? data.disciplines : ["Handmade Crafts"],
           acceptsCustomOrders: !!data.acceptsCustomOrders,
+          ...pickupData,
           status: CreatorStatus.PENDING, 
         },
       });

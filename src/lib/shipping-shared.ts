@@ -9,6 +9,8 @@
 export interface ShippingSettingsData {
   flatFee: number;
   freeThreshold: number;
+  /** Fallback pickup pincode for live courier rating (admin-set). */
+  defaultPickupPincode?: string | null;
 }
 
 /** Last-resort fallback. The seed script + admin page own the real values. */

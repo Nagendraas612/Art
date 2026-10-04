@@ -13,12 +13,16 @@
  *   npx tsx scripts/seed-form-schema.ts
  */
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import {
   FORM_FIELD_REGISTRY,
   PRODUCT_TYPE_OPTIONS,
 } from "../src/lib/artwork-form-config";
 
-const prisma = new PrismaClient();
+// Prisma 7 requires a driver adapter; mirrors src/lib/prisma.ts.
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 function slugify(text: string): string {
   return text
