@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { createHash } from "node:crypto";
 import { getSession } from "@/modules/auth/guards";
-import { getCurrentCreator } from "@/lib/studio-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -110,17 +109,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2. Authorization — approved creators and admins only.
-  // getCurrentCreator() returns null unless the creator is APPROVED.
-  const role = session.user.role;
-  const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
-  const creator = await getCurrentCreator();
-  if (!isAdmin && !creator) {
-    return NextResponse.json(
-      { error: "Only approved creators can upload images." },
-      { status: 403 }
-    );
-  }
+  // 2. Authorization — any authenticated user may upload (the become-a-creator
+  // onboarding form requires uploads before a creator profile exists).
+  // Abuse is mitigated by rate limiting (step 3) + magic-byte validation (step 4).
 
   // 3. Rate limit per user (IP as an extra key segment).
   const ip =
