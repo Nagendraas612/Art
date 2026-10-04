@@ -9,19 +9,102 @@ interface RetryPaymentButtonProps {
   guestToken?: string;
 }
 
+/** Load Razorpay Checkout.js on demand (the order page has no global script tag). */
+function ensureRazorpayScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).Razorpay) return resolve();
+    const existing = document.querySelector(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+    );
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () =>
+        reject(new Error("Payment gateway failed to load."))
+      );
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Payment gateway failed to load."));
+    document.body.appendChild(s);
+  });
+}
+
 export function RetryPaymentButton({ orderNumber, guestToken }: RetryPaymentButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const openRazorpay = (razorpayOrderId: string, orderNum: string) => {
+    const RazorpayCtor = (window as any).Razorpay;
+    if (!RazorpayCtor) {
+      setError("Payment gateway failed to load. Please refresh the page and try again.");
+      setLoading(false);
+      return;
+    }
+    const rzp = new RazorpayCtor({
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      order_id: razorpayOrderId,
+      name: "Kalaa Bhadra",
+      description: `Order ${orderNum}`,
+      handler: async function (response: any) {
+        // Verify the payment signature server-side before redirecting.
+        try {
+          const verifyRes = await fetch("/api/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderNumber: orderNum,
+            }),
+          });
+          const data = await verifyRes.json();
+          if (data.verified) {
+            const tokenParam = guestToken ? `?t=${guestToken}&` : "?";
+            window.location.href = `/orders/${orderNum}${tokenParam}success=true`;
+          } else {
+            setError(data.error || "Payment verification failed. Please try again.");
+            setLoading(false);
+          }
+        } catch {
+          setError("Payment verification failed. Please try again.");
+          setLoading(false);
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          setError("Payment was cancelled. You can retry from this page.");
+          setLoading(false);
+        },
+      },
+    });
+    rzp.on("payment.failed", function (resp: any) {
+      setError(resp?.error?.description || "Payment failed. Please try again.");
+      setLoading(false);
+    });
+    rzp.open();
+  };
 
   const handleRetry = async () => {
     setLoading(true);
     setError(null);
 
+    try {
+      await ensureRazorpayScript();
+    } catch {
+      setLoading(false);
+      setError("Payment gateway failed to load. Please refresh the page and try again.");
+      return;
+    }
+
     const res = await retryOrderPaymentAction(orderNumber, guestToken);
-    setLoading(false);
 
     if (res?.error) {
       setError(res.error);
+      setLoading(false);
       return;
     }
 
@@ -30,27 +113,13 @@ export function RetryPaymentButton({ orderNumber, guestToken }: RetryPaymentButt
       return;
     }
 
-    if (res?.paymentSessionId) {
-      const cashfreeSdk = (window as any).Cashfree;
-      if (!cashfreeSdk) {
-        setError("Payment gateway failed to load. Please refresh the page and try again.");
-        return;
-      }
-      // Mode must match the server-side gateway configuration — never
-      // hardcoded. NEXT_PUBLIC_CASHFREE_ENVIRONMENT=PRODUCTION means live.
-      const mode =
-        process.env.NEXT_PUBLIC_CASHFREE_ENVIRONMENT === "PRODUCTION"
-          ? "production"
-          : "sandbox";
-      const cashfree = cashfreeSdk({ mode });
-      cashfree.checkout({
-        paymentSessionId: res.paymentSessionId,
-        redirectTarget: "_self",
-      });
+    if (res?.razorpayOrderId) {
+      openRazorpay(res.razorpayOrderId, res.orderNumber || orderNumber);
       return;
     }
 
     setError("Could not start the payment. Please try again.");
+    setLoading(false);
   };
 
   return (
