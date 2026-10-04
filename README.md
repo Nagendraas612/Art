@@ -1,4 +1,4 @@
-# Atelier & Co.
+# Kalaa Bhadra
 
 Atelier & Co. is a multi-creator marketplace for original art and handmade work. It brings together a gallery-style shopping experience, creator storefronts and studio tools, and an admin area for marketplace operations.
 
