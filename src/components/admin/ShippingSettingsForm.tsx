@@ -11,6 +11,7 @@ interface Props {
   initialFlatFee: number;
   initialFreeThreshold: number;
   initialDefaultPickupPincode: string;
+  initialDefaultPickupLocation: string;
   initialUpdatedAt: string | null;
 }
 
@@ -26,12 +27,16 @@ export function ShippingSettingsForm({
   initialFlatFee,
   initialFreeThreshold,
   initialDefaultPickupPincode,
+  initialDefaultPickupLocation,
   initialUpdatedAt,
 }: Props) {
   const [flatFee, setFlatFee] = useState(String(initialFlatFee));
   const [freeThreshold, setFreeThreshold] = useState(String(initialFreeThreshold));
   const [defaultPickupPincode, setDefaultPickupPincode] = useState(
     initialDefaultPickupPincode,
+  );
+  const [defaultPickupLocation, setDefaultPickupLocation] = useState(
+    initialDefaultPickupLocation,
   );
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
   const [saving, setSaving] = useState(false);
@@ -59,6 +64,7 @@ export function ShippingSettingsForm({
         flatFee: flatFeeNum,
         freeThreshold: thresholdNum,
         defaultPickupPincode: defaultPickupPincode.trim(),
+        defaultPickupLocation: defaultPickupLocation.trim(),
       });
       if (res.ok) {
         const fresh = await getShippingSettingsAction();
@@ -142,6 +148,29 @@ export function ShippingSettingsForm({
           Used for live courier rates when a creator has not set their own
           pickup pincode yet. Leave blank to fall back to the flat fee for
           those orders.
+        </p>
+      </div>
+
+      <div className={styles.fieldGroup}>
+        <label className={styles.label} htmlFor="ship-default-pickup-location">
+          Default pickup location (Shiprocket)
+        </label>
+        <div className={styles.fieldRow}>
+          <input
+            id="ship-default-pickup-location"
+            className={styles.input}
+            type="text"
+            maxLength={80}
+            placeholder="e.g. Mysuru Studio"
+            value={defaultPickupLocation}
+            onChange={(e) => setDefaultPickupLocation(e.target.value)}
+          />
+        </div>
+        <p className={styles.hint}>
+          The pickup-location <em>nickname exactly as registered</em> in
+          Shiprocket → Settings → Pickup Addresses. Used for automatic
+          shipment creation after payment. Leave blank to keep manual studio
+          dispatch only.
         </p>
       </div>
 

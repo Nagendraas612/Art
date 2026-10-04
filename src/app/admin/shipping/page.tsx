@@ -23,6 +23,7 @@ export default async function AdminShippingPage() {
         initialFlatFee={settings.flatFee}
         initialFreeThreshold={settings.freeThreshold}
         initialDefaultPickupPincode={settings.defaultPickupPincode}
+        initialDefaultPickupLocation={settings.defaultPickupLocation}
         initialUpdatedAt={settings.updatedAt}
       />
     </div>

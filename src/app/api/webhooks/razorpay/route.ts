@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { processOrderShipments } from "@/lib/shipments";
 import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 import {
   generateCreatorNewOrderEmail,
@@ -397,6 +398,17 @@ async function handlePaymentSuccess(
       } catch (e) {
         console.error("[webhook] admin alert failed:", e);
       }
+
+      // Phase 2: Shiprocket auto-dispatch. Runs AFTER the webhook responds
+      // (after()), so a Shiprocket outage can never delay or fail the
+      // payment confirmation. processOrderShipments never throws and is
+      // idempotent; per-creator failures land on the Shipment row for
+      // studio retry.
+      after(() => {
+        processOrderShipments(order.id).catch((err) =>
+          console.error("[webhook] auto-dispatch failed:", err),
+        );
+      });
     }
   } else if (outcome.kind === "amount-mismatch") {
     try {

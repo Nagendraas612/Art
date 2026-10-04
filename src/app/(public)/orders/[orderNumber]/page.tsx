@@ -51,6 +51,12 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
       statusHistory: {
         orderBy: { createdAt: "desc" },
       },
+      // Phase 2: show the auto-dispatched courier/AWB on the timeline.
+      shipments: {
+        where: { awbCode: { not: null } },
+        select: { carrier: true, awbCode: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
@@ -162,7 +168,17 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
                     <div className={styles.stepDot}>3</div>
                     <div className={styles.stepContent}>
                       <h4>Insured Logistics Dispatch</h4>
-                      <p>Direct tracked shipping with temperature-controlled art care</p>
+                      {order.shipments.length > 0 ? (
+                        <p>
+                          Handed to {order.shipments[0]?.carrier || "courier"} —
+                          tracking <strong>{order.shipments[0]?.awbCode}</strong>
+                          {order.shipments.length > 1
+                            ? ` (+${order.shipments.length - 1} more)`
+                            : ""}
+                        </p>
+                      ) : (
+                        <p>Direct tracked shipping with temperature-controlled art care</p>
+                      )}
                     </div>
                   </div>
 
