@@ -3,7 +3,7 @@
 import { randomBytes, randomInt } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
-import { cashfree, isCashfreeConfigured } from "@/lib/cashfree";
+import { getRazorpay, isRazorpayConfigured } from "@/lib/razorpay";
 import { sendEmail, generateOrderConfirmationEmail } from "@/lib/email";
 import { dispatchAdminAlert } from "@/lib/admin-alerts";
 import { resolvePlatformFeeRate } from "@/lib/commissions";
@@ -195,9 +195,9 @@ export async function processCheckout(input: CheckoutInput) {
     // input: a client-controlled flag here meant anyone could mark orders
     // PAID with zero money moved. SANDBOX_CHECKOUT_ENABLED=true is for local
     // dev only — in production it must be unset, and checkout refuses to run
-    // without a configured Cashfree gateway (fail closed, never free orders).
+    // without a configured Razorpay gateway (fail closed, never free orders).
     const isSandbox = process.env.SANDBOX_CHECKOUT_ENABLED === "true";
-    if (!isSandbox && !isCashfreeConfigured()) {
+    if (!isSandbox && !isRazorpayConfigured()) {
       return { error: "Payments are currently unavailable. Please try again later." };
     }
 
@@ -259,7 +259,7 @@ export async function processCheckout(input: CheckoutInput) {
         });
 
         // Creator earnings are booked ONLY once payment is confirmed.
-        // In live mode the Cashfree webhook creates them on PAYMENT_SUCCESS;
+        // In live mode the Razorpay webhook creates them on payment.captured;
         // booking them here would create phantom earnings for every abandoned
         // PENDING_PAYMENT checkout. The sandbox path confirms instantly, so
         // earnings are booked here in that mode only.
@@ -302,7 +302,7 @@ export async function processCheckout(input: CheckoutInput) {
         data: {
           orderId: order.id,
           status: isSandbox ? PaymentStatus.PAID : PaymentStatus.INITIATED,
-          gateway: isSandbox ? "SANDBOX" : "CASHFREE",
+          gateway: isSandbox ? "SANDBOX" : "RAZORPAY",
           gatewayAmount: new Prisma.Decimal(grandTotalNum.toFixed(2)),
         },
       });
@@ -314,7 +314,7 @@ export async function processCheckout(input: CheckoutInput) {
           gatewayPaymentId: isSandbox ? `SIM_PAY_${Date.now()}` : null,
           status: isSandbox ? PaymentStatus.PAID : PaymentStatus.INITIATED,
           rawPayload: {
-            mode: isSandbox ? "sandbox_simulation" : "cashfree_checkout",
+            mode: isSandbox ? "sandbox_simulation" : "razorpay_checkout",
             customerName: customer.fullName,
             customerEmail: customer.email,
           },
@@ -328,7 +328,7 @@ export async function processCheckout(input: CheckoutInput) {
           status: isSandbox ? OrderStatus.ORDER_CONFIRMED : OrderStatus.PENDING_PAYMENT,
           note: isSandbox
             ? "Payment verified via Kalaa Bhadra Sandbox Simulator. Order placed with studio."
-            : "Awaiting payment via Cashfree.",
+            : "Awaiting payment via Razorpay.",
         },
       });
 
@@ -435,30 +435,58 @@ export async function processCheckout(input: CheckoutInput) {
       }
     }
 
-    // 7. Handle Cashfree Order when not in sandbox-simulator mode.
-    // (If Cashfree were unconfigured here we already returned above.)
+    // 7. Create the Razorpay order when not in sandbox-simulator mode.
+    // (If Razorpay were unconfigured here we already returned above.)
     if (!isSandbox) {
-      const orderRequest = {
-        order_amount: grandTotalNum,
-        order_currency: "INR",
-        order_id: createdOrder.orderNumber,
-        customer_details: {
-          customer_id: userId ? userId : `guest_${Date.now()}`,
-          customer_name: customer.fullName,
-          customer_email: customer.email,
-          customer_phone: customer.phone.replace(/[^0-9]/g, "").slice(-10),
-        },
-        order_meta: {
-          return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${createdOrder.orderNumber}?t=${guestAccessToken}&success=true`,
-        },
-      };
+      const rzp = await getRazorpay();
+      if (!rzp) {
+        return { error: "Payments are currently unavailable. Please try again later." };
+      }
 
-      const response = await cashfree.PGCreateOrder(orderRequest as any);
-      
+      // Razorpay works in paise; the gateway minimum is 100 paise (₹1).
+      const amountPaise = Math.round(grandTotalNum * 100);
+      if (!Number.isFinite(amountPaise) || amountPaise < 100) {
+        return { error: "Order total is below the minimum payable amount." };
+      }
+
+      let rzpOrder: { id: string };
+      try {
+        rzpOrder = await rzp.orders.create({
+          amount: amountPaise,
+          currency: "INR",
+          receipt: createdOrder.orderNumber,
+          notes: {
+            orderNumber: createdOrder.orderNumber,
+            customerEmail: customer.email,
+          },
+        });
+      } catch (err) {
+        console.error("[checkout] Razorpay order creation failed:", err);
+        return { error: "Payment gateway error. Please try again." };
+      }
+
+      // Record the gateway order id so the webhook and the verify endpoint
+      // can reconcile this payment with our order.
+      await prisma.paymentTransaction.updateMany({
+        where: {
+          payment: { orderId: createdOrder.id },
+          gatewayOrderId: createdOrder.orderNumber,
+        },
+        data: {
+          gatewayOrderId: rzpOrder.id,
+          rawPayload: {
+            mode: "razorpay_checkout",
+            razorpayOrderId: rzpOrder.id,
+            customerName: customer.fullName,
+            customerEmail: customer.email,
+          },
+        },
+      });
+
       return {
         success: true,
         orderNumber: createdOrder.orderNumber,
-        paymentSessionId: response.data.payment_session_id,
+        razorpayOrderId: rzpOrder.id,
         // Guest buyers need this to open their order page after payment.
         guestAccessToken,
       };
@@ -539,7 +567,7 @@ export async function getCustomerOrdersAction() {
  *
  * Auth: the caller must be the order's owner (signed-in) or present the
  * order's guest access token. Rate-limited per order and per IP so a
- * double-click cannot mint duplicate Cashfree orders.
+ * double-click cannot mint duplicate Razorpay orders.
  */
 export async function retryOrderPaymentAction(orderNumber: string, guestToken?: string) {
   try {
@@ -682,43 +710,47 @@ export async function retryOrderPaymentAction(orderNumber: string, guestToken?: 
       return { success: true, redirectUrl: `/orders/${order.orderNumber}${tokenParam}` };
     }
 
-    if (!isCashfreeConfigured()) {
-      return { error: "Cashfree gateway is not configured." };
+    if (!isRazorpayConfigured()) {
+      return { error: "Razorpay gateway is not configured." };
     }
 
-    // Cashfree requires a fresh order_id per attempt. The suffix is stripped
-    // by the webhook when reconciling (digits only, matching /_R\d+$/), and
-    // the mapping is also recorded as a PaymentTransaction so the audit
-    // trail is complete. Millisecond timestamp + random makes collisions
-    // across rapid retries practically impossible.
-    const cashfreeOrderId = `${order.orderNumber}_R${Date.now()}${randomInt(100, 1000)}`;
-    const tokenParam = hasGuestToken && guestToken ? `?t=${guestToken}&` : "?";
+    // Razorpay needs a fresh order per attempt. The receipt carries our order
+    // number plus a retry marker; the webhook reconciles via notes.orderNumber,
+    // and the mapping is also recorded as a PaymentTransaction so the audit
+    // trail is complete. Millisecond timestamp makes collisions across rapid
+    // retries practically impossible.
+    const retryReceipt = `${order.orderNumber}-R${Date.now()}`;
 
-    const orderRequest = {
-      order_amount: Number(order.grandTotal),
-      order_currency: "INR",
-      order_id: cashfreeOrderId,
-      customer_details: {
-        customer_id: order.customerId,
-        customer_name: order.customer.name,
-        customer_email: order.customer.email,
-        customer_phone: (order.customer.phone || "9999999999").replace(/[^0-9]/g, "").slice(-10),
-      },
-      order_meta: {
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}${tokenParam}success=true`,
-      },
-    };
+    const rzp = await getRazorpay();
+    if (!rzp) {
+      return { error: "Razorpay gateway is not configured." };
+    }
 
-    const response = await cashfree.PGCreateOrder(orderRequest as any);
+    const amountPaise = Math.round(Number(order.grandTotal) * 100);
+    let rzpOrder: { id: string };
+    try {
+      rzpOrder = await rzp.orders.create({
+        amount: amountPaise,
+        currency: "INR",
+        receipt: retryReceipt,
+        notes: {
+          orderNumber: order.orderNumber,
+          customerEmail: order.customer.email,
+        },
+      });
+    } catch (err) {
+      console.error("[checkout] Razorpay retry order creation failed:", err);
+      return { error: "Payment gateway error. Please try again." };
+    }
 
     if (order.payment) {
       await prisma.paymentTransaction.create({
         data: {
           paymentId: order.payment.id,
-          gatewayOrderId: cashfreeOrderId,
-          gatewayEventId: `retry:${cashfreeOrderId}`,
+          gatewayOrderId: rzpOrder.id,
+          gatewayEventId: `retry:${rzpOrder.id}`,
           status: PaymentStatus.INITIATED,
-          rawPayload: { orderNumber: order.orderNumber, cashfreeOrderId },
+          rawPayload: { orderNumber: order.orderNumber, razorpayOrderId: rzpOrder.id },
         },
       });
     }
@@ -726,7 +758,7 @@ export async function retryOrderPaymentAction(orderNumber: string, guestToken?: 
     return {
       success: true,
       orderNumber: order.orderNumber,
-      paymentSessionId: response.data.payment_session_id,
+      razorpayOrderId: rzpOrder.id,
     };
   } catch (error: any) {
     return { error: toClientError("retryOrderPaymentAction error", error, "Payment retry failed.") };
