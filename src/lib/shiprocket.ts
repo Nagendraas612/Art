@@ -288,3 +288,186 @@ export async function calculateLiveShippingFee(
 export function isShiprocketConfigured(): boolean {
   return credentialsConfigured();
 }
+
+// ── Phase 2: auto-dispatch (order creation, AWB, pickup) ──────────────────
+// These run AFTER payment is confirmed (webhook `after()`), one shipment
+// per creator pickup location. Every function returns null/false on
+// failure instead of throwing — the orchestrator in src/lib/shipments.ts
+// records failures on the Shipment row so the studio can retry. Payment
+// confirmation must never depend on logistics.
+
+export interface ShiprocketOrderItem {
+  name: string;
+  sku: string;
+  units: number;
+  sellingPrice: number; // INR per unit
+}
+
+export interface ShiprocketOrderInput {
+  /** Our idempotency key, e.g. "ORD-2026-00013-a1b2c3". Reused on retry. */
+  orderId: string;
+  orderDate: string; // YYYY-MM-DD
+  /** Nickname EXACTLY as registered in Shiprocket Settings → Pickup Addresses. */
+  pickupLocation: string;
+  // Buyer (billing == shipping for the marketplace checkout).
+  customerName: string;
+  addressLine: string;
+  city: string;
+  pincode: string;
+  state: string;
+  country: string;
+  email: string;
+  phone: string; // digits; last 10 used
+  // Parcel.
+  items: ShiprocketOrderItem[];
+  subTotal: number;
+  weightKg: number;
+  lengthCm: number;
+  breadthCm: number;
+  heightCm: number;
+}
+
+export interface ShiprocketCreatedOrder {
+  shiprocketOrderId: number;
+  shipmentId: number;
+}
+
+/**
+ * POST /v1/external/orders/create/adhoc — creates the Shiprocket order
+ * and returns its order_id + shipment_id. All downstream steps key off
+ * shipment_id.
+ */
+export async function createShiprocketOrder(
+  input: ShiprocketOrderInput,
+): Promise<ShiprocketCreatedOrder | null> {
+  if (!credentialsConfigured()) return null;
+  try {
+    const digits = input.phone.replace(/\D/g, "").slice(-10);
+    const body = {
+      order_id: input.orderId,
+      order_date: input.orderDate,
+      pickup_location: input.pickupLocation,
+      billing_customer_name: input.customerName.slice(0, 60),
+      billing_address: input.addressLine.slice(0, 120),
+      billing_city: input.city.slice(0, 50),
+      billing_pincode: input.pincode,
+      billing_state: input.state.slice(0, 50),
+      billing_country: input.country.slice(0, 50),
+      billing_email: input.email,
+      billing_phone: digits,
+      shipping_is_billing: true,
+      order_items: input.items.map((it) => ({
+        name: it.name.slice(0, 120),
+        sku: it.sku.slice(0, 50),
+        units: it.units,
+        selling_price: it.sellingPrice,
+      })),
+      payment_method: "Prepaid",
+      sub_total: input.subTotal,
+      length: input.lengthCm,
+      breadth: input.breadthCm,
+      height: input.heightCm,
+      weight: Math.max(0.5, Math.round(input.weightKg * 100) / 100),
+    };
+    const res = await shiprocketFetch("/orders/create/adhoc", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error(
+        `[shiprocket] order create failed HTTP ${res.status}: ${text.slice(0, 300)}`,
+      );
+      return null;
+    }
+    const data = (await res.json()) as {
+      order_id?: number;
+      shipment_id?: number;
+    };
+    if (!data.order_id || !data.shipment_id) {
+      console.error("[shiprocket] order create: missing order_id/shipment_id");
+      return null;
+    }
+    return { shiprocketOrderId: data.order_id, shipmentId: data.shipment_id };
+  } catch (e) {
+    console.error("[shiprocket] order create failed:", e);
+    return null;
+  }
+}
+
+export interface ShiprocketAwb {
+  awbCode: string;
+  courierName: string;
+}
+
+/**
+ * POST /v1/external/courier/assign/awb — assigns the courier and returns
+ * the AWB (tracking number). Pass a courier_id to pin the courier that
+ * was quoted at checkout; omit it and Shiprocket auto-assigns per the
+ * account's courier rules.
+ */
+export async function assignAwb(
+  shipmentId: number,
+  courierId?: number,
+): Promise<ShiprocketAwb | null> {
+  if (!credentialsConfigured()) return null;
+  try {
+    const body: Record<string, unknown> = { shipment_id: shipmentId };
+    if (courierId) body.courier_id = courierId;
+    const res = await shiprocketFetch("/courier/assign/awb", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error(
+        `[shiprocket] AWB assign failed HTTP ${res.status}: ${text.slice(0, 300)}`,
+      );
+      return null;
+    }
+    const data = (await res.json()) as {
+      response?: { data?: { awb_code?: string; courier_name?: string } };
+      awb_code?: string;
+      courier_name?: string;
+    };
+    const awb =
+      data.response?.data?.awb_code || data.awb_code || null;
+    if (!awb) {
+      console.error("[shiprocket] AWB assign: no awb_code in response");
+      return null;
+    }
+    return {
+      awbCode: awb,
+      courierName:
+        data.response?.data?.courier_name || data.courier_name || "Shiprocket",
+    };
+  } catch (e) {
+    console.error("[shiprocket] AWB assign failed:", e);
+    return null;
+  }
+}
+
+/**
+ * POST /v1/external/courier/generate/pickup — requests the courier
+ * pickup for the shipment. Requires an assigned AWB.
+ */
+export async function schedulePickup(shipmentId: number): Promise<boolean> {
+  if (!credentialsConfigured()) return false;
+  try {
+    const res = await shiprocketFetch("/courier/generate/pickup", {
+      method: "POST",
+      body: JSON.stringify({ shipment_id: [shipmentId] }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error(
+        `[shiprocket] pickup schedule failed HTTP ${res.status}: ${text.slice(0, 300)}`,
+      );
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[shiprocket] pickup schedule failed:", e);
+    return false;
+  }
+}

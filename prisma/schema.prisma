@@ -797,6 +797,17 @@ model Shipment {
   deliveredAt    DateTime?
   createdAt      DateTime       @default(now())
 
+  // Phase 2: Shiprocket auto-dispatch. Populated when the shipment is
+  // created via the Shiprocket API after payment capture. A row can exist
+  // without these (manual studio dispatch); shipmentError records the
+  // last auto-dispatch failure so the studio can retry.
+  shiprocketOrderId    String?
+  shiprocketShipmentId String?
+  awbCode              String?
+  courierId            String?
+  pickupLocation       String?
+  shipmentError        String?
+
   trackingEvents ShipmentTracking[]
 
   @@index([orderId])
@@ -1044,5 +1055,10 @@ model ShippingSettings {
   // has not set their own pickup pincode. Also the emergency source of
   // truth while Shiprocket credentials are not configured.
   defaultPickupPincode String?
+  // Phase 2: Shiprocket panel pickup-location NICKNAME used for
+  // auto-dispatch (must match EXACTLY the name registered in Shiprocket
+  // Settings → Pickup Addresses). One location for all creators for now;
+  // per-creator nicknames can be added to CreatorProfile later.
+  defaultPickupLocation String?
   updatedAt     DateTime @updatedAt
 }

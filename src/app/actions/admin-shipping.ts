@@ -31,6 +31,13 @@ const shippingSettingsSchema = z.object({
     .refine((v) => v === "" || /^\d{6}$/.test(v), "Pincode must be 6 digits")
     .optional()
     .default(""),
+  // Phase 2: Shiprocket panel pickup-location nickname (exact match).
+  defaultPickupLocation: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .default(""),
 });
 
 export type ShippingSettingsInput = z.infer<typeof shippingSettingsSchema>;
@@ -46,6 +53,7 @@ export async function getShippingSettingsAction() {
       ? Number(row.freeThreshold)
       : DEFAULT_SHIPPING_SETTINGS.freeThreshold,
     defaultPickupPincode: row?.defaultPickupPincode ?? "",
+    defaultPickupLocation: row?.defaultPickupLocation ?? "",
     updatedAt: row?.updatedAt.toISOString() ?? null,
   };
 }
@@ -60,6 +68,7 @@ export async function updateShippingSettingsAction(input: ShippingSettingsInput)
   }
 
   const pincode = parsed.data.defaultPickupPincode?.trim() || null;
+  const pickupLocation = parsed.data.defaultPickupLocation?.trim() || null;
   await prisma.shippingSettings.upsert({
     where: { id: "default" },
     create: {
@@ -67,11 +76,13 @@ export async function updateShippingSettingsAction(input: ShippingSettingsInput)
       flatFee: parsed.data.flatFee,
       freeThreshold: parsed.data.freeThreshold,
       defaultPickupPincode: pincode,
+      defaultPickupLocation: pickupLocation,
     },
     update: {
       flatFee: parsed.data.flatFee,
       freeThreshold: parsed.data.freeThreshold,
       defaultPickupPincode: pincode,
+      defaultPickupLocation: pickupLocation,
     },
   });
 

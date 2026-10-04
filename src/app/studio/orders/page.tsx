@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import { OrderStatusUpdater } from "@/components/studio/OrderStatusUpdater";
+import { RetryShipmentButton } from "@/components/studio/RetryShipmentButton";
 import styles from "./orders.module.css";
 
 export default async function StudioOrdersPage() {
@@ -18,6 +19,7 @@ export default async function StudioOrdersPage() {
         include: {
           address: true,
           payment: true,
+          shipments: { orderBy: { createdAt: "desc" } },
           statusHistory: { orderBy: { createdAt: "desc" }, take: 1 },
         },
       },
@@ -131,6 +133,55 @@ export default async function StudioOrdersPage() {
                       orderId={item.order.id}
                       currentStatus={item.order.status}
                     />
+                    {/* Phase 2: Shiprocket auto-dispatch state */}
+                    <div style={{ marginTop: 12 }}>
+                      <h4 style={{ marginBottom: 6 }}>Courier Dispatch</h4>
+                      {item.order.shipments.length === 0 ? (
+                        <div>
+                          <p style={{ fontSize: 13, color: "#6b5d4f" }}>
+                            No courier shipment yet — dispatch manually below,
+                            or retry auto-dispatch.
+                          </p>
+                          <div style={{ marginTop: 6 }}>
+                            <RetryShipmentButton orderId={item.order.id} />
+                          </div>
+                        </div>
+                      ) : (
+                        item.order.shipments.map((s) => (
+                          <div
+                            key={s.id}
+                            style={{
+                              fontSize: 13,
+                              color: "#5a4632",
+                              marginBottom: 8,
+                            }}
+                          >
+                            {s.awbCode ? (
+                              <p>
+                                <strong>{s.carrier || "Courier"}</strong> — AWB{" "}
+                                <code>{s.awbCode}</code>
+                                {s.pickupLocation
+                                  ? ` · via ${s.pickupLocation}`
+                                  : ""}
+                              </p>
+                            ) : (
+                              <div>
+                                <p style={{ color: "#a33" }}>
+                                  Auto-dispatch pending
+                                  {s.shipmentError
+                                    ? `: ${s.shipmentError}`
+                                    : ""}
+                                  .
+                                </p>
+                                <div style={{ marginTop: 6 }}>
+                                  <RetryShipmentButton orderId={item.order.id} />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

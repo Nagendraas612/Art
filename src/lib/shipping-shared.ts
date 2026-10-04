@@ -11,6 +11,11 @@ export interface ShippingSettingsData {
   freeThreshold: number;
   /** Fallback pickup pincode for live courier rating (admin-set). */
   defaultPickupPincode?: string | null;
+  /**
+   * Phase 2: Shiprocket panel pickup-location nickname used for
+   * auto-dispatch (admin-set). Must match the Shiprocket panel exactly.
+   */
+  defaultPickupLocation?: string | null;
 }
 
 /** Last-resort fallback. The seed script + admin page own the real values. */
