@@ -11,7 +11,7 @@ Atelier & Co. is a multi-creator marketplace for original art and handmade work.
 - **Collector accounts:** email/password and Google sign-in, wishlist, creator follows, direct messages, notifications, and artwork and artist reviews.
 - **Creator studio:** creator applications, artwork listings, order management, commissions, messaging, and earnings.
 - **Marketplace administration:** creator and artwork moderation, order oversight, trust and safety tools, platform economics, payouts, and audit history.
-- **Commerce foundations:** product types for originals, editions, made-to-order and digital work; shipping and order records; Cashfree checkout and webhook handling; sandbox checkout when live payment credentials are not configured.
+- **Commerce foundations:** product types for originals, editions, made-to-order and digital work; shipping and order records; Razorpay checkout and webhook handling; sandbox checkout when live payment credentials are not configured.
 
 The interface follows a warm, editorial gallery design system. Product, architecture, and visual design details are documented in [PRODUCT_SPEC.md](PRODUCT_SPEC.md), [ARCHITECTURE.md](ARCHITECTURE.md), and [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
 
@@ -20,7 +20,7 @@ The interface follows a warm, editorial gallery design system. Product, architec
 - Next.js 16 App Router, React 19, and TypeScript
 - PostgreSQL with Prisma 7
 - Better Auth for sessions, email/password, and Google OAuth
-- Cashfree PG for online payments
+- Razorpay for online payments
 - Optional Cloudinary image uploads, with a data-URI fallback
 - Transactional email through Gmail SMTP or Resend
 - CSS Modules for page and component styling
@@ -71,8 +71,8 @@ See `.env.example` for the variable names and example values.
 | `BETTER_AUTH_URL` | Optional auth base URL; defaults to `NEXT_PUBLIC_APP_URL` |
 | `NEXT_PUBLIC_APP_URL` | Canonical app URL, used for auth callbacks and generated links |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Optional Google sign-in credentials |
-| `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY` | Cashfree payment credentials; without them checkout uses the sandbox flow |
-| `CASHFREE_ENVIRONMENT` | `SANDBOX` or `PRODUCTION` |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Razorpay payment credentials; without them checkout uses the sandbox flow |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Public Razorpay key id for the client-side checkout (key id only, never the secret) |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Optional Resend transactional email setup |
 | `GMAIL_USER`, `GMAIL_APP_PASSWORD` | Optional Gmail SMTP email setup; see [Gmail SMTP setup](docs/GMAIL_SMTP_SETUP.md) |
 | `SMTP_USER`, `SMTP_PASS` | Alternate SMTP credential names supported by the email dispatcher |
@@ -99,7 +99,7 @@ npm run lint      # Run ESLint
 | Authentication | `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password` |
 | Creator studio | `/studio`, `/studio/artworks`, `/studio/orders`, `/studio/commissions`, `/studio/messages`, `/studio/earnings` |
 | Administration | `/admin`, `/admin/creators`, `/admin/artworks`, `/admin/economics`, `/admin/trust-safety`, `/admin/audit` |
-| API endpoints | `/api/auth/*`, `/api/upload`, `/api/webhooks/cashfree` |
+| API endpoints | `/api/auth/*`, `/api/upload`, `/api/webhooks/razorpay`, `/api/verify-payment` |
 
 ## Project structure
 
@@ -116,4 +116,4 @@ scripts/          Maintenance and QA scripts
 
 ## Deployment
 
-The app is deployed at [kalaabhadra.vercel.app](https://kalaabhadra.vercel.app/). A deployment needs a reachable PostgreSQL database and the corresponding environment variables configured in Vercel. Configure Cashfree credentials and its webhook URL at `/api/webhooks/cashfree` to enable live payment processing. Configure an email provider for transactional email delivery.
+The app is deployed at [kalaabhadra.vercel.app](https://kalaabhadra.vercel.app/). A deployment needs a reachable PostgreSQL database and the corresponding environment variables configured in Vercel. Configure Razorpay credentials and its webhook URL at `/api/webhooks/razorpay` (events: `payment.captured`, `payment.failed`) to enable live payment processing. Configure an email provider for transactional email delivery.

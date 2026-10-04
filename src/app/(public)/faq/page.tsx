@@ -21,7 +21,7 @@ export default function FAQPage() {
 
           <p><strong>What payment methods do you accept?</strong></p>
           <p>
-            We accept all major credit and debit cards, UPI, net banking, and select wallets through our secure payment partner, Cashfree Payments. All transactions are encrypted and PCI-DSS compliant.
+            We accept all major credit and debit cards, UPI, net banking, and select wallets through our secure payment partner, Razorpay. All transactions are encrypted and PCI-DSS compliant.
           </p>
 
           <p><strong>Are prices inclusive of tax?</strong></p>

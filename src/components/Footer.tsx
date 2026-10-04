@@ -60,7 +60,7 @@ export function Footer() {
           </p>
           <div className={styles.legalLinks}>
             <span className={styles.trustBadge}>
-              🔒 Secure Payments via Cashfree Payments
+              🔒 Secure Payments via Razorpay
             </span>
           </div>
         </div>
