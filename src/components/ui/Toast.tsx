@@ -83,7 +83,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 const QUERY_TOASTS: Record<string, { message: string; type: ToastType }> = {
   "signup-verify": {
     message:
-      "Account created! We've sent a verification link to your inbox — click it to sign in.",
+      "Account created! We've sent a verification link — check your inbox (and spam folder) to sign in.",
     type: "success",
   },
   "welcome-back": {
@@ -91,7 +91,11 @@ const QUERY_TOASTS: Record<string, { message: string; type: ToastType }> = {
     type: "success",
   },
   "verification-resent": {
-    message: "Verification email sent — check your inbox.",
+    message: "Verification email sent — check your inbox (and spam folder).",
+    type: "success",
+  },
+  "email-verified": {
+    message: "Email verified — welcome to Kalaa Bhadra!",
     type: "success",
   },
 };

@@ -2,7 +2,7 @@
 
 .viewport {
   position: fixed;
-  bottom: 24px;
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
@@ -85,7 +85,7 @@
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(-12px);
   }
   to {
     opacity: 1;
