@@ -33,6 +33,10 @@ export default function SignUpPage() {
         name,
         email,
         password,
+        // After the user clicks the verification link, better-auth signs
+        // them in (autoSignInAfterVerification) and lands them here —
+        // the toast confirms the loop is closed.
+        callbackURL: "/?toast=email-verified",
       });
 
       if (result.error) {

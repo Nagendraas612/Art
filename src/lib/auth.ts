@@ -56,6 +56,11 @@ export const auth = betterAuth({
 
   emailVerification: {
     sendOnSignUp: true,
+    // After the user clicks the verification link, create the session
+    // immediately — landing verified-but-logged-out on the homepage
+    // looks broken. better-auth sets the session cookie on the
+    // verify-email response, then redirects to the callbackURL.
+    autoSignInAfterVerification: true,
     async sendVerificationEmail({ user, url }) {
       const { sendEmail, generateVerificationEmail } = await import(
         "@/lib/email"

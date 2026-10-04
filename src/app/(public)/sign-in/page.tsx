@@ -46,7 +46,7 @@ export default function SignInPage() {
         return;
       }
       setCooldown(RESEND_COOLDOWN_S);
-      toast("Verification email sent — check your inbox.", "success");
+      toast("Verification email sent — check your inbox (and spam folder).", "success");
     } catch {
       setError("Could not resend the email. Please try again.");
     } finally {
