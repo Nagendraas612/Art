@@ -45,7 +45,12 @@ export const auth = betterAuth({
     accountLinking: {
       enabled: true,
       trustedProviders: ["google"],
-      requireLocalEmailVerified: true,
+      // Google cryptographically proves email ownership, so its verification
+      // is the trust anchor here. Requiring the *local* row to be verified
+      // would lock out every guest-checkout buyer (isGuest rows are never
+      // email-verified) the first time they use Google login — better-auth
+      // rejects the link with ?error=account_not_linked.
+      requireLocalEmailVerified: false,
     },
   },
 
