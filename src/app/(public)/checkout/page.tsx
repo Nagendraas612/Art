@@ -381,6 +381,32 @@ export default function CheckoutPage() {
                   </div>
 
                   <div>
+                    <label htmlFor="postalCode">Postal / ZIP Code *</label>
+                    <input
+                      type="text"
+                      id="postalCode"
+                      name="postalCode"
+                      required
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="400001"
+                      value={formData.postalCode}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setFormData((prev) => ({ ...prev, postalCode: digits }));
+                        setCityTouched(false);
+                        setStateTouched(false);
+                      }}
+                    />
+                    {pincodeLookup.loading && (
+                      <small className={styles.hint}>Looking up city &amp; state…</small>
+                    )}
+                    {pincodeLookup.error && (
+                      <small className={styles.hint}>{pincodeLookup.error}</small>
+                    )}
+                  </div>
+
+                  <div>
                     <label htmlFor="city">City *</label>
                     <input
                       type="text"
@@ -410,32 +436,6 @@ export default function CheckoutPage() {
                         setStateTouched(true);
                       }}
                     />
-                  </div>
-
-                  <div>
-                    <label htmlFor="postalCode">Postal / ZIP Code *</label>
-                    <input
-                      type="text"
-                      id="postalCode"
-                      name="postalCode"
-                      required
-                      inputMode="numeric"
-                      maxLength={6}
-                      placeholder="400001"
-                      value={formData.postalCode}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
-                        setFormData((prev) => ({ ...prev, postalCode: digits }));
-                        setCityTouched(false);
-                        setStateTouched(false);
-                      }}
-                    />
-                    {pincodeLookup.loading && (
-                      <small className={styles.hint}>Looking up city &amp; state…</small>
-                    )}
-                    {pincodeLookup.error && (
-                      <small className={styles.hint}>{pincodeLookup.error}</small>
-                    )}
                   </div>
 
                   <div>
