@@ -133,6 +133,12 @@ export interface RateRequest {
   depthCm?: number;
 }
 
+// Rates below this are treated as bogus API data and ignored — a real
+// courier rate is never this low. Without this guard, a malformed API
+// response could show the buyer a ₹1 shipping fee. Ignored rates fall
+// through to the flat-fee fallback instead.
+const MIN_SANE_RATE = 20;
+
 // Short in-memory cache: rates barely move within minutes, and checkout
 // can trigger several lookups in quick succession.
 const rateCache = new Map<string, { at: number; rates: CourierRate[] }>();
@@ -179,8 +185,19 @@ export async function getCourierRates(req: RateRequest): Promise<CourierRate[] |
       .map(toCourierRate)
       .filter((r): r is CourierRate => r !== null)
       .sort((a, b) => a.rate - b.rate);
-    rateCache.set(cacheKey, { at: Date.now(), rates });
-    return rates;
+    // Drop bogus rates (see MIN_SANE_RATE). If every courier is bogus,
+    // the caller falls back to the flat fee.
+    const sane = rates.filter((r) => {
+      if (r.rate < MIN_SANE_RATE) {
+        console.warn(
+          `[shiprocket] ignoring bogus rate ₹${r.rate} from ${r.courierName} (${req.pickupPincode}→${req.deliveryPincode})`,
+        );
+        return false;
+      }
+      return true;
+    });
+    rateCache.set(cacheKey, { at: Date.now(), rates: sane });
+    return sane;
   } catch (e) {
     console.error("[shiprocket] serviceability failed:", e);
     return null;
