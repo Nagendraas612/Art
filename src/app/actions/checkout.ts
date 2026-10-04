@@ -110,11 +110,54 @@ export async function processCheckout(input: CheckoutInput) {
       });
     }
 
-    // Insured-logistics fee comes from the admin-configured shipping
-    // settings (DB), never hardcoded. This is the authoritative fee stored
-    // on the order; the cart/checkout pages mirror it for display only.
+    // Insured-logistics fee: live Shiprocket courier rates per creator
+    // pickup location, summed into one figure. Falls back to the
+    // admin-configured flat fee when live rating is impossible (no
+    // credentials, API failure) or the order ships free above the
+    // threshold. This is the authoritative fee stored on the order; the
+    // checkout page mirrors it for display only via /api/shipping-quote.
     const shippingSettings = await getShippingSettings();
-    const shippingFeeNum = calculateShippingFee(subtotalNum, shippingSettings);
+    let shippingFeeNum: number;
+    if (subtotalNum > shippingSettings.freeThreshold) {
+      shippingFeeNum = 0;
+    } else {
+      const groups = new Map<
+        string,
+        {
+          pickupPincode: string | null;
+          weightGrams: number;
+          widthCm: number | null;
+          heightCm: number | null;
+          depthCm: number | null;
+        }
+      >();
+      for (const { artwork, quantity } of validatedItems) {
+        const g = groups.get(artwork.creatorId) || {
+          pickupPincode:
+            (artwork.creator as { pickupPincode?: string | null })?.pickupPincode ||
+            shippingSettings.defaultPickupPincode ||
+            null,
+          weightGrams: 0,
+          widthCm: null,
+          heightCm: null,
+          depthCm: null,
+        };
+        g.weightGrams += Number(artwork.weightGrams || 0) * quantity;
+        g.widthCm = Math.max(g.widthCm || 0, Number(artwork.widthCm || 0)) || null;
+        g.heightCm = Math.max(g.heightCm || 0, Number(artwork.heightCm || 0)) || null;
+        g.depthCm = Math.max(g.depthCm || 0, Number(artwork.depthCm || 0)) || null;
+        groups.set(artwork.creatorId, g);
+      }
+      const { calculateLiveShippingFee } = await import("@/lib/shiprocket");
+      const live = await calculateLiveShippingFee(
+        [...groups.values()],
+        shippingAddress.postalCode,
+      );
+      shippingFeeNum =
+        live.fee !== null
+          ? live.fee
+          : calculateShippingFee(subtotalNum, shippingSettings);
+    }
     const grandTotalNum = subtotalNum + shippingFeeNum;
 
     // 3. Resolve User

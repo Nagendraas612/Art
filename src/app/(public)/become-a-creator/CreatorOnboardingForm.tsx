@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createCreatorProfile } from "@/modules/creator/actions";
 import { DragDropUploader } from "@/components/ui/DragDropUploader";
+import { usePincodeLookup } from "@/hooks/usePincodeLookup";
 import styles from "./become-a-creator.module.css";
 import Link from "next/link";
 
@@ -36,6 +37,10 @@ interface CreatorOnboardingFormProps {
     coverImageUrl?: string | null;
     profileImageUrl?: string | null;
     acceptsCustomOrders: boolean;
+    pickupAddressLine?: string | null;
+    pickupPincode?: string | null;
+    pickupCity?: string | null;
+    pickupState?: string | null;
   } | null;
 }
 
@@ -57,6 +62,20 @@ export function CreatorOnboardingForm({ user, existingProfile }: CreatorOnboardi
   );
   const [acceptsCustomOrders, setAcceptsCustomOrders] = useState(existingProfile?.acceptsCustomOrders ?? true);
   const [submitted, setSubmitted] = useState(false);
+
+  // Pickup address for courier dispatch (Shiprocket). Pincode drives the
+  // city/state auto-fill; both stay editable afterwards.
+  const [pickupAddressLine, setPickupAddressLine] = useState(existingProfile?.pickupAddressLine || "");
+  const [pickupPincode, setPickupPincode] = useState(existingProfile?.pickupPincode || "");
+  const [pickupCity, setPickupCity] = useState(existingProfile?.pickupCity || "");
+  const [pickupState, setPickupState] = useState(existingProfile?.pickupState || "");
+  const [cityTouched, setCityTouched] = useState(!!existingProfile?.pickupCity);
+  const [stateTouched, setStateTouched] = useState(!!existingProfile?.pickupState);
+  const pincodeLookup = usePincodeLookup(pickupPincode);
+  useEffect(() => {
+    if (pincodeLookup.city && !cityTouched) setPickupCity(pincodeLookup.city);
+    if (pincodeLookup.state && !stateTouched) setPickupState(pincodeLookup.state);
+  }, [pincodeLookup.city, pincodeLookup.state, cityTouched, stateTouched]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +122,10 @@ export function CreatorOnboardingForm({ user, existingProfile }: CreatorOnboardi
         coverImageUrl,
         profileImageUrl,
         acceptsCustomOrders,
+        pickupAddressLine,
+        pickupPincode,
+        pickupCity,
+        pickupState,
       });
 
       if (!res.success) {
@@ -261,6 +284,79 @@ export function CreatorOnboardingForm({ user, existingProfile }: CreatorOnboardi
             value={coverImageUrl}
             onChange={(url) => setCoverImageUrl(url)}
           />
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <h2 className={styles.sectionHeading}>Pickup Address</h2>
+        <p className={styles.sectionHint}>
+          Where your artworks ship from. Couriers collect from this address, and it is used to
+          calculate live delivery rates for collectors.
+        </p>
+        <div className={styles.field}>
+          <label htmlFor="pickupAddressLine" className={styles.label}>
+            Street Address
+          </label>
+          <input
+            id="pickupAddressLine"
+            type="text"
+            value={pickupAddressLine}
+            onChange={(e) => setPickupAddressLine(e.target.value)}
+            placeholder="e.g. 14, 3rd Cross, Kuvempunagar"
+            className={styles.input}
+          />
+        </div>
+        <div className={styles.fieldGrid}>
+          <div className={styles.field}>
+            <label htmlFor="pickupPincode" className={styles.label}>
+              Pincode *
+            </label>
+            <input
+              id="pickupPincode"
+              type="text"
+              inputMode="numeric"
+              required
+              maxLength={6}
+              value={pickupPincode}
+              onChange={(e) => {
+                setPickupPincode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                setCityTouched(false);
+                setStateTouched(false);
+              }}
+              placeholder="e.g. 570023"
+              className={styles.input}
+            />
+            {pincodeLookup.loading && <span className={styles.hint}>Looking up city &amp; state…</span>}
+            {pincodeLookup.error && <span className={styles.hint}>{pincodeLookup.error}</span>}
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="pickupCity" className={styles.label}>
+              City *
+            </label>
+            <input
+              id="pickupCity"
+              type="text"
+              required
+              value={pickupCity}
+              onChange={(e) => { setPickupCity(e.target.value); setCityTouched(true); }}
+              placeholder="Auto-filled from pincode"
+              className={styles.input}
+            />
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="pickupState" className={styles.label}>
+              State *
+            </label>
+            <input
+              id="pickupState"
+              type="text"
+              required
+              value={pickupState}
+              onChange={(e) => { setPickupState(e.target.value); setStateTouched(true); }}
+              placeholder="Auto-filled from pincode"
+              className={styles.input}
+            />
+          </div>
         </div>
       </div>
 

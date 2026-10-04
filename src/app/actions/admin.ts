@@ -284,6 +284,10 @@ export async function getCreatorApplicationsAction(filter?: { status?: CreatorSt
         createdAt: c.createdAt.toISOString(),
         artworksCount: c._count.artworks,
         followersCount: c._count.followers,
+        pickupAddressLine: c.pickupAddressLine,
+        pickupPincode: c.pickupPincode,
+        pickupCity: c.pickupCity,
+        pickupState: c.pickupState,
       })),
     };
   } catch (error: any) {

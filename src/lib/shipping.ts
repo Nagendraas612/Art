@@ -12,11 +12,12 @@ import {
 export async function getShippingSettings(): Promise<ShippingSettingsData> {
   const row = await prisma.shippingSettings.findUnique({
     where: { id: "default" },
-    select: { flatFee: true, freeThreshold: true },
+    select: { flatFee: true, freeThreshold: true, defaultPickupPincode: true },
   });
   if (!row) return DEFAULT_SHIPPING_SETTINGS;
   return {
     flatFee: Number(row.flatFee),
     freeThreshold: Number(row.freeThreshold),
+    defaultPickupPincode: row.defaultPickupPincode,
   };
 }

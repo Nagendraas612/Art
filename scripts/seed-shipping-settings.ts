@@ -11,8 +11,13 @@
  *   npx tsx scripts/seed-shipping-settings.ts
  */
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  // Prisma 7 requires a driver adapter; mirrors src/lib/prisma.ts.
+  adapter: new PrismaPg(new Pool({ connectionString: process.env.DATABASE_URL })),
+});
 
 async function main() {
   const existing = await prisma.shippingSettings.findUnique({

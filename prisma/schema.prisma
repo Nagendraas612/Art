@@ -264,6 +264,12 @@ model CreatorProfile {
   status             CreatorStatus @default(PENDING)
   acceptsCustomOrders Boolean      @default(false)
   rejectionReason    String?
+  // Pickup address for courier dispatch (Shiprocket). Collected on the
+  // creator application; doubles as the shipment pickup location.
+  pickupAddressLine String?
+  pickupPincode    String?
+  pickupCity       String?
+  pickupState      String?
   approvedAt         DateTime?
   suspendedAt        DateTime?
   createdAt          DateTime      @default(now())
@@ -1034,5 +1040,9 @@ model ShippingSettings {
   id            String   @id @default("default")
   flatFee       Decimal  @db.Decimal(10, 2) // Charged when subtotal <= freeThreshold
   freeThreshold Decimal  @db.Decimal(10, 2) // Subtotals above this ship free ("Complimentary")
+  // Fallback pickup pincode for live courier rating, used when a creator
+  // has not set their own pickup pincode. Also the emergency source of
+  // truth while Shiprocket credentials are not configured.
+  defaultPickupPincode String?
   updatedAt     DateTime @updatedAt
 }

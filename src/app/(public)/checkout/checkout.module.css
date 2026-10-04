@@ -415,3 +415,10 @@
   color: var(--color-primary, #b85d38);
   flex-shrink: 0;
 }
+
+.hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--color-muted, #7c7267);
+}
