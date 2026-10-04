@@ -1,0 +1,149 @@
+/* Shipping Settings — matches the admin hub visual language. */
+
+.page {
+  padding: 32px;
+  max-width: 760px;
+}
+
+.header {
+  margin-bottom: 28px;
+}
+
+.title {
+  font-family: var(--serif, "Playfair Display", serif);
+  font-size: 32px;
+  font-weight: 500;
+  color: var(--ink, #1f1e1d);
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  font-size: 14.5px;
+  color: #6b665c;
+  margin: 0;
+  max-width: 620px;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #e8e4db;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.currencyPrefix {
+  font-size: 18px;
+  color: #6b665c;
+  font-weight: 500;
+}
+
+.input {
+  width: 200px;
+  padding: 10px 14px;
+  font-size: 16px;
+  border: 1px solid #d8d2c4;
+  border-radius: 8px;
+  background: #fbfaf8;
+  color: var(--ink, #1f1e1d);
+}
+
+.input:focus {
+  outline: none;
+  border-color: #b08d57;
+  box-shadow: 0 0 0 3px rgba(176, 141, 87, 0.15);
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink, #1f1e1d);
+}
+
+.hint {
+  font-size: 13px;
+  color: #8a8478;
+  margin: 0;
+}
+
+.preview {
+  background: #fbfaf8;
+  border: 1px dashed #d8d2c4;
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: 14px;
+  color: #6b665c;
+  margin: 4px 0 24px;
+}
+
+.preview strong {
+  color: var(--ink, #1f1e1d);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.saveButton {
+  padding: 11px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: #1f1e1d;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.saveButton:hover:not(:disabled) {
+  background: #3a3835;
+}
+
+.saveButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.status {
+  font-size: 14px;
+}
+
+.statusOk {
+  color: #2e7d32;
+}
+
+.statusErr {
+  color: #b3261e;
+}
+
+.updatedNote {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: #a49e91;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 20px;
+  }
+  .panel {
+    padding: 20px;
+  }
+}

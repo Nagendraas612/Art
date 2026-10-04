@@ -87,6 +87,18 @@ export default async function AdminLayout({
               Economics &amp; Payouts
             </span>
           </Link>
+          <Link href="/admin/shipping" className={styles.navLink}>
+            <span className={styles.navLinkLeft}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="M5 12a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2" />
+                <path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+                <circle cx="7.5" cy="17.5" r="1.5" />
+                <circle cx="16.5" cy="17.5" r="1.5" />
+              </svg>
+              Shipping Settings
+            </span>
+          </Link>
 
           <div className={styles.sectionHeading}>Governance</div>
           <Link href="/admin/trust-safety" className={styles.navLink}>

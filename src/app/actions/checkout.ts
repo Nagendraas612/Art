@@ -10,6 +10,8 @@ import { resolvePlatformFeeRate } from "@/lib/commissions";
 import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
 import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, StockStatus, Prisma } from "@prisma/client";
 import { checkoutInputSchema, firstIssue, toClientError } from "@/lib/validation";
+import { getShippingSettings } from "@/lib/shipping";
+import { calculateShippingFee } from "@/lib/shipping-shared";
 import { z } from "zod";
 import { headers } from "next/headers";
 
@@ -108,7 +110,11 @@ export async function processCheckout(input: CheckoutInput) {
       });
     }
 
-    const shippingFeeNum = subtotalNum > 10000 ? 0 : 500;
+    // Insured-logistics fee comes from the admin-configured shipping
+    // settings (DB), never hardcoded. This is the authoritative fee stored
+    // on the order; the cart/checkout pages mirror it for display only.
+    const shippingSettings = await getShippingSettings();
+    const shippingFeeNum = calculateShippingFee(subtotalNum, shippingSettings);
     const grandTotalNum = subtotalNum + shippingFeeNum;
 
     // 3. Resolve User
