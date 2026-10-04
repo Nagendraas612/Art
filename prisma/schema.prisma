@@ -1023,3 +1023,16 @@ model EmailLog {
   @@index([templateType])
   @@index([createdAt])
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// 20. SHIPPING SETTINGS (Admin-configurable insured-logistics fee)
+// ─────────────────────────────────────────────────────────────────────────
+// Singleton row (id = "default"). The storefront and checkout read the live
+// values from here — nothing about shipping fees is hardcoded in the app.
+
+model ShippingSettings {
+  id            String   @id @default("default")
+  flatFee       Decimal  @db.Decimal(10, 2) // Charged when subtotal <= freeThreshold
+  freeThreshold Decimal  @db.Decimal(10, 2) // Subtotals above this ship free ("Complimentary")
+  updatedAt     DateTime @updatedAt
+}

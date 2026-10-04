@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Script from "next/script";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { useCart } from "@/context/CartContext";
 import { processCheckout } from "@/app/actions/checkout";
+import {
+  calculateShippingFee,
+  DEFAULT_SHIPPING_SETTINGS,
+  type ShippingSettingsData,
+} from "@/lib/shipping-shared";
 import styles from "./checkout.module.css";
 
 export default function CheckoutPage() {
@@ -28,8 +33,31 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const shippingFee = subtotal > 10000 || subtotal === 0 ? 0 : 500;
-  const grandTotal = subtotal + shippingFee;
+  // Live insured-logistics settings from /admin/shipping (via API).
+  // Falls back to the documented defaults if the API is unreachable.
+  const [shipSettings, setShipSettings] = useState<ShippingSettingsData | null>(null);
+  useEffect(() => {
+    fetch("/api/shipping-settings")
+      .then((r) => (r.ok ? r.json() : DEFAULT_SHIPPING_SETTINGS))
+      .then((s) =>
+        setShipSettings({
+          flatFee: Number(s.flatFee) || 0,
+          freeThreshold: Number(s.freeThreshold) || 0,
+        }),
+      )
+      .catch(() => setShipSettings(DEFAULT_SHIPPING_SETTINGS));
+  }, []);
+
+  const formatINR = (n: number) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(n);
+
+  const shippingFee =
+    shipSettings === null ? null : calculateShippingFee(subtotal, shipSettings);
+  const grandTotal = shippingFee === null ? null : subtotal + shippingFee;
 
   const formattedSubtotal = new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -37,13 +65,15 @@ export default function CheckoutPage() {
     maximumFractionDigits: 0,
   }).format(subtotal);
 
-  const formattedShipping = shippingFee === 0 ? "Complimentary" : "₹500";
+  const formattedShipping =
+    shippingFee === null
+      ? "—"
+      : shippingFee === 0
+        ? "Complimentary"
+        : formatINR(shippingFee);
 
-  const formattedGrandTotal = new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(grandTotal);
+  const formattedGrandTotal =
+    grandTotal === null ? "—" : formatINR(grandTotal);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -56,6 +86,11 @@ export default function CheckoutPage() {
 
     if (items.length === 0) {
       setErrorMessage("Your bag is empty. Please add artworks before checkout.");
+      return;
+    }
+
+    if (grandTotal === null) {
+      setErrorMessage("Shipping details are still loading. Please wait a moment.");
       return;
     }
 
@@ -386,7 +421,7 @@ export default function CheckoutPage() {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || shipSettings === null}
                 className={styles.submitOrderBtn}
               >
                 {isSubmitting ? (
