@@ -2,7 +2,7 @@
 
 Atelier & Co. is a multi-creator marketplace for original art and handmade work. It brings together a gallery-style shopping experience, creator storefronts and studio tools, and an admin area for marketplace operations.
 
-**Live site:** [ateliernco.vercel.app](https://ateliernco.vercel.app/)\
+**Live site:** [kalaabhadra.vercel.app](https://kalaabhadra.vercel.app/)\
 **Source:** [github.com/Nagendraas612/Art](https://github.com/Nagendraas612/Art)
 
 ## What’s in the app
@@ -116,4 +116,4 @@ scripts/          Maintenance and QA scripts
 
 ## Deployment
 
-The app is deployed at [ateliernco.vercel.app](https://ateliernco.vercel.app/). A deployment needs a reachable PostgreSQL database and the corresponding environment variables configured in Vercel. Configure Cashfree credentials and its webhook URL at `/api/webhooks/cashfree` to enable live payment processing. Configure an email provider for transactional email delivery.
+The app is deployed at [kalaabhadra.vercel.app](https://kalaabhadra.vercel.app/). A deployment needs a reachable PostgreSQL database and the corresponding environment variables configured in Vercel. Configure Cashfree credentials and its webhook URL at `/api/webhooks/cashfree` to enable live payment processing. Configure an email provider for transactional email delivery.
