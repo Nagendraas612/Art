@@ -108,7 +108,7 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
         message: `${session.user.name} has submitted a new creator application for the store: "${data.storeName.trim()}".`,
         refType: "CREATOR",
         refId: newProfile.id,
-        actionUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/admin/creators`,
+        actionUrl: "/admin/creators",
         actionText: "Review Application",
       });
     }

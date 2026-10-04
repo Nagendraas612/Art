@@ -66,6 +66,24 @@ export async function createArtworkAction(data: ArtworkFormData) {
     }
     const d = parsed.data;
 
+    // Admin-configured required fields (labels/required managed in
+    // /admin/artwork-form). The static schema above can't know about them.
+    const { checkDynamicRequired } = await import("@/lib/form-schema");
+    const dynamicError = await checkDynamicRequired(d as Record<string, unknown>);
+    if (dynamicError) {
+      return { error: dynamicError };
+    }
+
+    // The category must exist (it may be inactive — edits to older artworks
+    // keep working; the form only offers active ones for new selection).
+    const categoryExists = await prisma.artworkCategory.findUnique({
+      where: { id: d.categoryId },
+      select: { id: true },
+    });
+    if (!categoryExists) {
+      return { error: "The selected category no longer exists. Please choose another." };
+    }
+
     let baseSlug = slugify(d.title);
     if (!baseSlug) baseSlug = "artwork";
 
@@ -227,6 +245,29 @@ export async function updateArtworkAction(id: string, data: Partial<ArtworkFormD
       return { error: "Invalid artwork." };
     }
     const d = parsed.data;
+
+    // Same admin-configured required checks as create, but only for keys
+    // the caller actually provided (updates are partial — the form always
+    // sends every key, with `undefined` for empty optionals).
+    const { checkDynamicRequired } = await import("@/lib/form-schema");
+    const providedData: Record<string, unknown> = {};
+    for (const k of Object.keys(data as Record<string, unknown>)) {
+      providedData[k] = (data as Record<string, unknown>)[k];
+    }
+    const dynamicError = await checkDynamicRequired(providedData);
+    if (dynamicError) {
+      return { error: dynamicError };
+    }
+
+    if (d.categoryId) {
+      const categoryExists = await prisma.artworkCategory.findUnique({
+        where: { id: d.categoryId },
+        select: { id: true },
+      });
+      if (!categoryExists) {
+        return { error: "The selected category no longer exists. Please choose another." };
+      }
+    }
 
     const creator = await getCurrentCreator();
     if (!creator) {

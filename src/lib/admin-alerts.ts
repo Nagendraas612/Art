@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { appUrl, getAppUrl } from "@/lib/app-url";
 import { Role } from "@prisma/client";
 
 export async function dispatchAdminAlert({
@@ -40,8 +41,9 @@ export async function dispatchAdminAlert({
     }
 
     // 2. Dispatch Email to all admin users
-    const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const fullActionUrl = actionUrl ? `${domain}${actionUrl}` : `${domain}/admin`;
+    // actionUrl is a path ("/admin/creators"); appUrl() also tolerates a
+    // full URL, so a caller passing one by mistake no longer mangles the link.
+    const fullActionUrl = actionUrl ? appUrl(actionUrl) : `${getAppUrl()}/admin`;
 
     for (const admin of admins) {
       if (admin.email) {

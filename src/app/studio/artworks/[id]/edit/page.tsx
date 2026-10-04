@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
 import { ArtworkForm } from "@/components/studio/ArtworkForm";
+import { getArtworkFormConfig } from "@/lib/form-schema";
 import styles from "@/app/studio/artworks/artworks.module.css";
 
 interface EditArtworkPageProps {
@@ -34,10 +35,7 @@ export default async function EditArtworkPage({ params }: EditArtworkPageProps) 
     notFound();
   }
 
-  const categories = await prisma.artworkCategory.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: "asc" },
-  });
+  const formConfig = await getArtworkFormConfig();
 
   const priceNum = typeof artwork.price === "number" ? artwork.price : parseFloat(artwork.price.toString());
 
@@ -58,7 +56,7 @@ export default async function EditArtworkPage({ params }: EditArtworkPageProps) 
       </div>
 
       <ArtworkForm
-        categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+        formConfig={formConfig}
         initialData={{
           id: artwork.id,
           title: artwork.title,

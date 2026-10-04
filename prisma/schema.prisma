@@ -340,6 +340,47 @@ model ArtworkTagOnArtwork {
   @@index([tagId])
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// ARTWORK FORM SCHEMA (admin-manageable)
+// The artwork form's fields are defined once in code
+// (src/lib/artwork-form-config.ts) and customized per-field in the DB:
+// label, required, visibility, order, and dropdown options. The artwork
+// data shape itself never changes — only its presentation.
+// ─────────────────────────────────────────────────────────────────────────
+
+model ArtworkFormField {
+  id           String   @id @default(cuid())
+  key          String   @unique // e.g. "title", "medium", "categoryId"
+  label        String
+  section      String   // "essentials" | "craft" | "dimensions"
+  inputType    String   // "text" | "textarea" | "number" | "price" | "select"
+  required     Boolean  @default(false)
+  visible      Boolean  @default(true)
+  position     Int      @default(0)
+  systemLocked Boolean  @default(false) // label editable; required/visible/order locked
+  options      ArtworkFormFieldOption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([section, position])
+}
+
+model ArtworkFormFieldOption {
+  id        String           @id @default(cuid())
+  fieldId   String
+  field     ArtworkFormField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  label     String
+  value     String
+  position  Int              @default(0)
+  isSystem  Boolean          @default(false) // e.g. edition enum values: relabel only, never delete
+
+  createdAt DateTime @default(now())
+
+  @@unique([fieldId, value])
+  @@index([fieldId, position])
+}
+
 model ArtworkCollection {
   id          String    @id @default(cuid())
   title       String

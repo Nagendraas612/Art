@@ -5,15 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArtworkProductType, ArtworkStatus } from "@prisma/client";
 import { createArtworkAction, updateArtworkAction, deleteArtworkAction } from "@/app/actions/studio";
+import type { ArtworkFormConfig, ResolvedFormField } from "@/lib/form-schema";
 import styles from "./ArtworkForm.module.css";
 
-interface CategoryOption {
-  id: string;
-  name: string;
-}
-
 interface ArtworkFormProps {
-  categories: CategoryOption[];
+  formConfig: ArtworkFormConfig;
   initialData?: {
     id: string;
     title: string;
@@ -38,13 +34,21 @@ interface ArtworkFormProps {
   };
 }
 
-export function ArtworkForm({ categories, initialData }: ArtworkFormProps) {
+export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
   const router = useRouter();
   const isEdit = Boolean(initialData);
 
+  const fieldsByKey = React.useMemo(() => {
+    const map = new Map<string, ResolvedFormField>();
+    for (const s of formConfig.sections) for (const f of s.fields) map.set(f.key, f);
+    return map;
+  }, [formConfig]);
+
+  const fieldLabel = (key: string) => fieldsByKey.get(key)?.label || key;
+
   const [formData, setFormData] = useState({
     title: initialData?.title || "",
-    categoryId: initialData?.categoryId || categories[0]?.id || "",
+    categoryId: initialData?.categoryId || formConfig.categories[0]?.id || "",
     productType: initialData?.productType || ArtworkProductType.ORIGINAL,
     status: initialData?.status || ArtworkStatus.PUBLISHED,
     price: initialData?.price || "",
@@ -134,8 +138,17 @@ export function ArtworkForm({ categories, initialData }: ArtworkFormProps) {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!formData.title || !formData.categoryId || !formData.price || !formData.description || !formData.primaryImageUrl) {
-      setErrorMessage("Please fill in all mandatory fields (Title, Category, Price, Description, Primary Image).");
+    // Mandatory fields come from the admin-managed form schema.
+    const missing = formConfig.requiredKeys.filter((k) => {
+      const v = (formData as Record<string, any>)[k];
+      return v === "" || v === undefined || v === null;
+    });
+    const missingLabels = missing.map(fieldLabel);
+    if (!formData.primaryImageUrl) missingLabels.push("Primary Image");
+    if (missingLabels.length > 0) {
+      setErrorMessage(
+        `Please fill in all mandatory fields: ${missingLabels.join(", ")}.`
+      );
       return;
     }
 
@@ -211,250 +224,158 @@ export function ArtworkForm({ categories, initialData }: ArtworkFormProps) {
     }
   };
 
+  /** Render one schema-managed field by its admin-configured input type. */
+  const renderField = (field: ResolvedFormField) => {
+    const rawValue = (formData as Record<string, any>)[field.key];
+    const value = rawValue ?? "";
+    const wide = field.key === "title" || field.key === "description" || field.inputType === "textarea";
+
+    let input: React.ReactNode = null;
+    if (field.inputType === "select") {
+      const opts = [...field.options];
+      // If the stored value is no longer among the options (e.g. admin
+      // removed it), keep it visible so edits don't silently wipe data.
+      if (value && !opts.some((o) => String(o.value) === String(value))) {
+        opts.unshift({ id: `__current_${field.key}`, label: String(value), value: String(value), isSystem: false });
+      }
+      const showEmpty = field.key !== "productType" && field.key !== "categoryId";
+      input = (
+        <select
+          id={field.key}
+          name={field.key}
+          required={field.required}
+          value={String(value)}
+          onChange={handleChange}
+        >
+          {showEmpty && <option value="">— Select —</option>}
+          {opts.map((o) => (
+            <option key={o.id} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      );
+    } else if (field.inputType === "textarea") {
+      input = (
+        <textarea
+          id={field.key}
+          name={field.key}
+          rows={4}
+          required={field.required}
+          placeholder={field.placeholder}
+          value={String(value)}
+          onChange={handleChange}
+        />
+      );
+    } else if (field.inputType === "price") {
+      input = (
+        <input
+          type="number"
+          id={field.key}
+          name={field.key}
+          required={field.required}
+          min="1"
+          step="1"
+          placeholder={field.placeholder}
+          value={value as any}
+          onChange={handleChange}
+        />
+      );
+    } else if (field.inputType === "number") {
+      input = (
+        <input
+          type="number"
+          id={field.key}
+          name={field.key}
+          required={field.required}
+          min="0"
+          step={field.key === "weightGrams" ? "1" : "0.5"}
+          placeholder={field.placeholder}
+          value={value as any}
+          onChange={handleChange}
+        />
+      );
+    } else {
+      input = (
+        <input
+          type="text"
+          id={field.key}
+          name={field.key}
+          required={field.required}
+          placeholder={field.placeholder}
+          value={String(value)}
+          onChange={handleChange}
+        />
+      );
+    }
+
+    return (
+      <div key={field.key} className={wide ? styles.colFull : undefined}>
+        <label htmlFor={field.key}>
+          {field.label}
+          {field.required && " *"}
+        </label>
+        {input}
+      </div>
+    );
+  };
+
+  const essentials = formConfig.sections.find((s) => s.key === "essentials")?.fields || [];
+  const craft = formConfig.sections.find((s) => s.key === "craft")?.fields || [];
+  const dimensions = formConfig.sections.find((s) => s.key === "dimensions")?.fields || [];
+
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
       {errorMessage && <div className={styles.errorAlert}>{errorMessage}</div>}
 
-      {/* Section 1: Overview & Type */}
+      {/* Section 1: Piece Essentials */}
       <div className={styles.card}>
         <h2 className={styles.sectionHeading}>Piece Essentials</h2>
         <div className={styles.grid}>
-          <div className={styles.colFull}>
-            <label htmlFor="title">Artwork Title *</label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              required
-              placeholder="e.g. Whispers of Indigo Mist"
-              value={formData.title}
-              onChange={handleChange}
-            />
-          </div>
+          {essentials.map((f) => (
+            <React.Fragment key={f.key}>
+              {renderField(f)}
+              {f.key === "productType" && formData.productType !== ArtworkProductType.ORIGINAL && (
+                <>
+                  <div>
+                    <label htmlFor="stock">Inventory Stock</label>
+                    <input
+                      type="number"
+                      id="stock"
+                      name="stock"
+                      min="0"
+                      value={formData.stock}
+                      onChange={handleChange}
+                    />
+                  </div>
 
-          <div>
-            <label htmlFor="categoryId">Curated Category *</label>
-            <select
-              id="categoryId"
-              name="categoryId"
-              required
-              value={formData.categoryId}
-              onChange={handleChange}
-            >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="productType">Edition / Type *</label>
-            <select
-              id="productType"
-              name="productType"
-              required
-              value={formData.productType}
-              onChange={handleChange}
-            >
-              <option value={ArtworkProductType.ORIGINAL}>Unique 1/1 Original</option>
-              <option value={ArtworkProductType.LIMITED_EDITION}>Limited Edition</option>
-              <option value={ArtworkProductType.OPEN_EDITION}>Open Edition</option>
-              <option value={ArtworkProductType.MADE_TO_ORDER}>Made to Order</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="price">Price (INR ₹) *</label>
-            <input
-              type="number"
-              id="price"
-              name="price"
-              required
-              min="100"
-              step="50"
-              placeholder="e.g. 24000"
-              value={formData.price}
-              onChange={handleChange}
-            />
-          </div>
-
-          {formData.productType !== ArtworkProductType.ORIGINAL && (
-            <>
-              <div>
-                <label htmlFor="stock">Inventory Stock</label>
-                <input
-                  type="number"
-                  id="stock"
-                  name="stock"
-                  min="0"
-                  value={formData.stock}
-                  onChange={handleChange}
-                />
-              </div>
-
-              {formData.productType === ArtworkProductType.LIMITED_EDITION && (
-                <div>
-                  <label htmlFor="editionSize">Total Edition Size</label>
-                  <input
-                    type="number"
-                    id="editionSize"
-                    name="editionSize"
-                    placeholder="e.g. 50"
-                    value={formData.editionSize}
-                    onChange={handleChange}
-                  />
-                </div>
+                  {formData.productType === ArtworkProductType.LIMITED_EDITION && (
+                    <div>
+                      <label htmlFor="editionSize">Total Edition Size</label>
+                      <input
+                        type="number"
+                        id="editionSize"
+                        name="editionSize"
+                        placeholder="e.g. 50"
+                        value={formData.editionSize}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  )}
+                </>
               )}
-            </>
-          )}
-
-          <div className={styles.colFull}>
-            <label htmlFor="description">Artisanal Narrative &amp; Description *</label>
-            <textarea
-              id="description"
-              name="description"
-              rows={4}
-              required
-              placeholder="Describe the conceptual background, technique, materials, and emotional resonance of this work..."
-              value={formData.description}
-              onChange={handleChange}
-            />
-          </div>
+            </React.Fragment>
+          ))}
         </div>
       </div>
 
-      {/* Section 2: Craft & Physical Specifications */}
+      {/* Section 2: Craft & Material Specifications */}
       <div className={styles.card}>
         <h2 className={styles.sectionHeading}>Craft &amp; Material Specifications</h2>
-        <div className={styles.grid}>
-          <div>
-            <label htmlFor="medium">Primary Medium</label>
-            <input
-              type="text"
-              id="medium"
-              name="medium"
-              placeholder="e.g. Oil on Canvas, High-Fire Ceramic"
-              value={formData.medium}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="surface">Surface / Base</label>
-            <input
-              type="text"
-              id="surface"
-              name="surface"
-              placeholder="e.g. Stretched Belgian Linen, Teak Board"
-              value={formData.surface}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="clayBody">Clay Body / Glaze (Ceramics)</label>
-            <input
-              type="text"
-              id="clayBody"
-              name="clayBody"
-              placeholder="e.g. Iron-rich stoneware, Celadon glaze"
-              value={formData.clayBody}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="timber">Timber Species (Woodwork)</label>
-            <input
-              type="text"
-              id="timber"
-              name="timber"
-              placeholder="e.g. Black Walnut, Reclaimed Rosewood"
-              value={formData.timber}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="fibers">Fibers &amp; Dyes (Textiles)</label>
-            <input
-              type="text"
-              id="fibers"
-              name="fibers"
-              placeholder="e.g. Hand-spun tussar silk, Indigo dye"
-              value={formData.fibers}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="paper">Archival Paper &amp; Printing</label>
-            <input
-              type="text"
-              id="paper"
-              name="paper"
-              placeholder="e.g. 310gsm Hahnemühle Rag, Linocut print"
-              value={formData.paper}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
+        <div className={styles.grid}>{craft.map(renderField)}</div>
 
         <h3 className={styles.subHeading}>Physical Dimensions &amp; Weight</h3>
-        <div className={styles.gridFour}>
-          <div>
-            <label htmlFor="heightCm">Height (cm)</label>
-            <input
-              type="number"
-              id="heightCm"
-              name="heightCm"
-              step="0.5"
-              placeholder="e.g. 60"
-              value={formData.heightCm}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="widthCm">Width (cm)</label>
-            <input
-              type="number"
-              id="widthCm"
-              name="widthCm"
-              step="0.5"
-              placeholder="e.g. 45"
-              value={formData.widthCm}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="depthCm">Depth (cm)</label>
-            <input
-              type="number"
-              id="depthCm"
-              name="depthCm"
-              step="0.5"
-              placeholder="e.g. 5"
-              value={formData.depthCm}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="weightGrams">Weight (Grams)</label>
-            <input
-              type="number"
-              id="weightGrams"
-              name="weightGrams"
-              placeholder="e.g. 1500"
-              value={formData.weightGrams}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
+        <div className={styles.gridFour}>{dimensions.map(renderField)}</div>
       </div>
 
       {/* Section 3: Visual Imagery */}
