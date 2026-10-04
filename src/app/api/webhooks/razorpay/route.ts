@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 import {
+  generateCreatorNewOrderEmail,
   generateOrderConfirmationEmail,
   generateOrderStatusEmail,
   sendEmail,
@@ -278,7 +279,15 @@ async function handlePaymentSuccess(
       where: { id: outcome.orderId },
       include: {
         items: {
-          include: { artwork: { include: { creator: true } } },
+          // Include the creator's user so the new-order email can be sent.
+          // (Previously only `creator: true`, which has no email address.)
+          include: {
+            artwork: {
+              include: {
+                creator: { include: { user: { select: { email: true, name: true } } } },
+              },
+            },
+          },
         },
         address: true,
         customer: true,
@@ -341,6 +350,39 @@ async function handlePaymentSuccess(
         }
       } catch (e) {
         console.error("[webhook] notification create failed:", e);
+      }
+
+      // Creator new-order emails — one per ordered item, using the same
+      // template as the sandbox checkout path. Fire-and-forget inside its
+      // own try/catch: an SMTP failure must never affect the webhook
+      // response (the payment is already confirmed). Webhook redeliveries
+      // are stopped by the idempotency check above, so no double emails.
+      try {
+        const customerName = order.customer.name || order.address.fullName;
+        const shippingAddress = `${order.address.line1}, ${order.address.city}, ${order.address.state} - ${order.address.postalCode}`;
+        for (const item of order.items) {
+          const creator = item.artwork.creator;
+          const creatorEmail = creator.user?.email;
+          if (!creatorEmail) continue;
+          await sendEmail({
+            to: creatorEmail,
+            subject: `🎉 Kalaa Bhadra Studio: New Order for "${item.titleSnapshot}" (#${order.orderNumber})`,
+            html: generateCreatorNewOrderEmail({
+              creatorName: creator.user?.name || creator.storeName,
+              orderNumber: order.orderNumber,
+              itemTitle: item.titleSnapshot,
+              quantity: item.quantity,
+              creatorPayout: Math.round(Number(item.creatorAmount)),
+              customerName,
+              shippingAddress,
+              studioUrl: `${domain}/studio/orders`,
+            }),
+            templateType: "CREATOR_NEW_ORDER",
+            metadata: { orderId: order.id, creatorId: creator.id },
+          });
+        }
+      } catch (e) {
+        console.error("[webhook] creator email failed:", e);
       }
 
       try {
