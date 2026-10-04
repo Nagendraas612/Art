@@ -18,8 +18,11 @@
   flex-direction: column;
   flex-shrink: 0;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  position: sticky;
+  /* Fixed (not sticky): body { overflow-x: hidden } in globals.css breaks
+     position: sticky in some browsers. Fixed is immune to that. */
+  position: fixed;
   top: 0;
+  left: 0;
   height: 100vh;
   z-index: 40;
 }
@@ -151,6 +154,8 @@
   flex-direction: column;
   min-width: 0;
   background: var(--paper, #fbfaf8);
+  /* Offset for the fixed sidebar. */
+  margin-left: 270px;
 }
 
 /* Topbar */
@@ -222,6 +227,9 @@
     width: 100%;
     height: auto;
     position: static;
+  }
+  .mainContent {
+    margin-left: 0;
   }
   .pageBody {
     padding: 20px;
