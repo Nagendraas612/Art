@@ -38,7 +38,11 @@ export default function SignUpPage() {
       if (result.error) {
         setError(result.error.message || "Sign up failed. Please try again.");
       } else {
-        router.push("/explore");
+        // Email verification is enforced: the account exists now, but the
+        // user has no session until they click the verification link.
+        // Redirect and announce it with a toast so the silent
+        // redirect doesn't look like a glitch.
+        router.push("/explore?toast=signup-verify");
         router.refresh();
       }
     } catch {
