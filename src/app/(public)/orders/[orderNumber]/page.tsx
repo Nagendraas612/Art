@@ -5,6 +5,7 @@ import { getSession } from "@/modules/auth/guards";
 import { Nav } from "@/components/Nav";
 import { RetryPaymentButton } from "@/components/checkout/RetryPaymentButton";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
+import { SHIPMENT_STATUS_LABELS } from "@/lib/shipments";
 import styles from "./order.module.css";
 
 interface OrderConfirmationPageProps {
@@ -52,9 +53,10 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
         orderBy: { createdAt: "desc" },
       },
       // Phase 2: show the auto-dispatched courier/AWB on the timeline.
+      // Phase 3: also show the live shipment status from tracking webhooks.
       shipments: {
         where: { awbCode: { not: null } },
-        select: { carrier: true, awbCode: true },
+        select: { carrier: true, awbCode: true, status: true },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -170,7 +172,10 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
                       <h4>Insured Logistics Dispatch</h4>
                       {order.shipments.length > 0 ? (
                         <p>
-                          Handed to {order.shipments[0]?.carrier || "courier"} —
+                          {order.shipments[0]?.status
+                            ? SHIPMENT_STATUS_LABELS[order.shipments[0].status]
+                            : "Handed to courier"}{" "}
+                          via {order.shipments[0]?.carrier || "courier"} —
                           tracking <strong>{order.shipments[0]?.awbCode}</strong>
                           {order.shipments.length > 1
                             ? ` (+${order.shipments.length - 1} more)`
