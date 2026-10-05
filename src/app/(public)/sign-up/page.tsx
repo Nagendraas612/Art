@@ -1,5 +1,7 @@
 "use client";
 
+import { Suspense } from "react";
+
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { SocialAuthButtons } from "@/components/ui/SocialAuthButtons";
 import styles from "../auth.module.css";
 
-export default function SignUpPage() {
+function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Preserve the page the user originally tried to reach, through the
@@ -139,5 +141,15 @@ export default function SignUpPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  // useSearchParams() must sit under a Suspense boundary, otherwise the
+  // static prerender fails the production build.
+  return (
+    <Suspense fallback={<div className={styles.page}><div className={styles.card} /></div>}>
+      <SignUpForm />
+    </Suspense>
   );
 }

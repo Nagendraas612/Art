@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
@@ -14,7 +14,7 @@ import styles from "../auth.module.css";
 // stricter server-side limit (3 / 15 min / email+IP).
 const RESEND_COOLDOWN_S = 60;
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // The page the user originally tried to reach (same-origin only).
@@ -202,5 +202,15 @@ export default function SignInPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  // useSearchParams() must sit under a Suspense boundary, otherwise the
+  // static prerender fails the production build.
+  return (
+    <Suspense fallback={<div className={styles.page}><div className={styles.card} /></div>}>
+      <SignInForm />
+    </Suspense>
   );
 }
