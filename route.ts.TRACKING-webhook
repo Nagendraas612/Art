@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * POST /api/webhooks/shiprocket
+ * POST /api/webhooks/tracking
  *
  * Phase 3: receives shipment tracking updates from Shiprocket and advances
  * the Shipment status (forward-only) + records tracking events + notifies
@@ -18,7 +18,7 @@ export const runtime = "nodejs";
  * AWB) responding in ~1s instead of timing out on a cold start.
  *
  * Configure in the Shiprocket panel: Settings → API → Webhooks
- *   URL:             https://kalaabhadra.vercel.app/api/webhooks/shiprocket
+ *   URL:             https://kalaabhadra.vercel.app/api/webhooks/tracking
  *   Auth Token Type: x-api-key
  *   Token:           the same value as the SHIPROCKET_WEBHOOK_TOKEN env var
  *   Events:          PICKED_UP, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED,
