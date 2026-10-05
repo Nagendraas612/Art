@@ -224,7 +224,7 @@ export default function CheckoutPage() {
           theme: { color: "#1c1917" },
           modal: {
             ondismiss: function () {
-              setErrorMessage("Payment was cancelled. Your order is saved — you can retry from your bag.");
+              setErrorMessage("Payment was cancelled. Your order is saved — you can retry the payment from your Orders page.");
               setIsSubmitting(false);
             },
           },

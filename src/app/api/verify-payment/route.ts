@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifyRazorpayPaymentSignature } from "@/lib/razorpay";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,6 +28,20 @@ const verifySchema = z.object({
  * A signature mismatch is a 400 and nothing is marked paid.
  */
 export async function POST(req: Request) {
+  // Rate limit: unauthenticated endpoint that hits the DB per call.
+  // Signatures can't be forged, but unthrottled it is a cheap load amplifier
+  // against the checkout database.
+  const ip =
+    (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
+  const rl = await checkRateLimit(`verify-payment:${ip}`, 30, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { verified: false, error: "Too many attempts. Please wait and try again." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await req.json().catch(() => null);
     const parsed = verifySchema.safeParse(body);

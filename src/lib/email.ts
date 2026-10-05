@@ -18,6 +18,42 @@ interface SendEmailParams {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Escape a single value for interpolation into HTML email templates.
+ */
+function esc(value: string | number | null | undefined): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Recursively escape every string in a template's params object.
+ *
+ * Each generate*Email function calls this once on entry
+ * (`params = escDeep(params);`). Names, titles, messages, addresses and
+ * rejection reasons are all attacker-influenced, and these emails are sent
+ * from our own domain — unescaped interpolation is an HTML-injection /
+ * phishing vector. Numbers, booleans, arrays and optional (undefined)
+ * fields pass through untouched so `.toLocaleString()`, `.join()` and
+ * ternaries keep working exactly as before.
+ */
+function escDeep<T>(value: T): T {
+  if (typeof value === "string") return esc(value) as T;
+  if (Array.isArray(value)) return value.map(escDeep) as T;
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = escDeep(v);
+    }
+    return out as T;
+  }
+  return value;
+}
+
 export async function sendEmail({
   to,
   subject,
@@ -261,6 +297,7 @@ export function generateOrderConfirmationEmail(params: {
   items: Array<{ title: string; quantity: number; lineTotal: number; creatorName: string }>;
   trackingUrl: string;
 }) {
+  params = escDeep(params);
   const itemsHtml = params.items
     .map(
       (item) => `
@@ -351,6 +388,7 @@ export function generateCreatorNewOrderEmail(params: {
   shippingAddress: string;
   studioUrl: string;
 }) {
+  params = escDeep(params);
   return `
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
@@ -408,6 +446,7 @@ export function generateArtworkSubmittedAdminEmail(params: {
   category: string;
   reviewUrl: string;
 }) {
+  params = escDeep(params);
   return `
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
@@ -462,6 +501,7 @@ export function generateArtworkCurationResultEmail(params: {
   artworkUrl?: string;
   studioUrl: string;
 }) {
+  params = escDeep(params);
   return `
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
@@ -514,6 +554,7 @@ export function generateCreatorStatusEmail(params: {
   reason?: string;
   studioUrl: string;
 }) {
+  params = escDeep(params);
   const isApproved = params.status === "APPROVED";
 
   return `
@@ -560,6 +601,7 @@ export function generateNewMessageEmail(params: {
   messageExcerpt: string;
   conversationUrl: string;
 }) {
+  params = escDeep(params);
   return `
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
@@ -594,6 +636,7 @@ export function generatePasswordResetEmail(params: {
   userName: string;
   resetUrl: string;
 }) {
+  params = escDeep(params);
   return `
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
@@ -634,6 +677,7 @@ export function generateReviewRequestEmail(params: {
   artworkTitles: string[];
   reviewUrl: string;
 }) {
+  params = escDeep(params);
   const titles =
     params.artworkTitles.length > 0
       ? params.artworkTitles.join(", ")
@@ -671,6 +715,7 @@ export function generateVerificationEmail(params: {
   userName: string;
   verificationUrl: string;
 }) {
+  params = escDeep(params);
   return `
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
@@ -706,6 +751,7 @@ export function generateOrderStatusEmail(params: {
   message?: string;
   trackingUrl: string;
 }) {
+  params = escDeep(params);
   return `
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">
@@ -750,6 +796,7 @@ export function generatePayoutSettledEmail(params: {
   earningsCount: number;
   dashboardUrl: string;
 }) {
+  params = escDeep(params);
   return `
     <div style="${baseEmailStyles}">
       <div style="${containerStyles}">

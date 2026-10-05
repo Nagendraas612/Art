@@ -591,7 +591,7 @@ export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
             ) : isEdit ? (
               <span>Save Changes</span>
             ) : (
-              <span>Publish Artwork to Marketplace &rarr;</span>
+              <span>Submit for Review &rarr;</span>
             )}
           </button>
         </div>

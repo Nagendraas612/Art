@@ -62,7 +62,7 @@ function ResetPasswordForm() {
     <div className={styles.card}>
       <div className={styles.header}>
         <Link href="/" className={styles.mark}>
-          Atelier &amp; Co.
+          Kalaa Bhadra
         </Link>
         <h1 className={styles.title}>Set New Password</h1>
         <p className={styles.subtitle}>
@@ -145,7 +145,7 @@ export default function ResetPasswordPage() {
       <Suspense fallback={
         <div className={styles.card}>
           <div className={styles.header}>
-            <div className={styles.mark}>Atelier &amp; Co.</div>
+            <div className={styles.mark}>Kalaa Bhadra</div>
             <h1 className={styles.title}>Loading…</h1>
           </div>
         </div>

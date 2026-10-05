@@ -68,11 +68,11 @@ export async function POST(req: Request) {
     );
   }
 
+  // Token is accepted via header ONLY. A ?token= query fallback was removed:
+  // shared secrets in URLs leak into Vercel/proxy access logs, and anyone
+  // holding the token could forge tracking events.
   const provided =
-    req.headers.get("x-api-key") ||
-    req.headers.get("x-shiprocket-token") ||
-    new URL(req.url).searchParams.get("token") ||
-    "";
+    req.headers.get("x-api-key") || req.headers.get("x-shiprocket-token") || "";
   if (!tokensEqual(provided, expected)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

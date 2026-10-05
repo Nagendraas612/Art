@@ -7,9 +7,10 @@ import { processOrderShipments } from "@/lib/shipments";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { cuidSchema } from "@/lib/validation";
 
 const retrySchema = z.object({
-  orderId: z.string().min(1).max(64),
+  orderId: cuidSchema,
 });
 
 /**

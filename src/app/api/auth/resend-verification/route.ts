@@ -56,16 +56,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "";
+    // Anti-enumeration: always answer success, even for already-verified
+    // addresses or send failures. The distinction is logged server-side only
+    // so an unauthenticated caller cannot learn which emails are registered.
     if (/already verified/i.test(msg)) {
-      return NextResponse.json(
-        { error: "This email is already verified. Please sign in." },
-        { status: 400 }
-      );
+      console.log("[resend-verification] already verified:", email);
+    } else {
+      console.error("[resend-verification] failed:", msg);
     }
-    console.error("[resend-verification] failed:", msg);
-    return NextResponse.json(
-      { error: "Could not send the email. Please try again later." },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true });
   }
 }

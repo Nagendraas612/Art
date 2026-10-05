@@ -435,9 +435,11 @@ const STATUS_RANK: Record<ShipmentStatus, number> = {
   [ShipmentStatus.PICKED_UP]: 1,
   [ShipmentStatus.IN_TRANSIT]: 2,
   [ShipmentStatus.OUT_FOR_DELIVERY]: 3,
-  [ShipmentStatus.DELIVERED]: 4,
   [ShipmentStatus.FAILED_DELIVERY]: 4,
   [ShipmentStatus.RETURNED]: 4,
+  // DELIVERED outranks FAILED_DELIVERY: a courier retry that succeeds after
+  // a failed attempt must update the buyer timeline instead of being dropped.
+  [ShipmentStatus.DELIVERED]: 5,
 };
 
 /** Buyer-facing label per status for the order timeline. */

@@ -10,6 +10,7 @@ import {
   CreatorStatus, 
   ArtworkStatus, 
   OrderStatus,
+  PaymentStatus,
   Role, 
   DisputeStatus, 
   ReportStatus, 
@@ -156,10 +157,26 @@ export async function updateOrderStatusAction(params: {
       where: { id: orderId },
       include: {
         customer: { select: { id: true, name: true, email: true } },
+        payment: { select: { status: true } },
       },
     });
 
     if (!order) throw new Error("Order not found");
+
+    // Guard: an admin must not confirm (or deliver) an unpaid order with one
+    // click. ORDER_CONFIRMED requires a captured payment; use the Razorpay
+    // dashboard + webhook for real money, not this button.
+    if (
+      (status === OrderStatus.ORDER_CONFIRMED ||
+        status === OrderStatus.DELIVERED) &&
+      order.payment?.status !== PaymentStatus.PAID
+    ) {
+      return {
+        success: false,
+        error:
+          "This order has no captured payment. Confirm it via the payment gateway first — this action cannot mark unpaid orders as confirmed.",
+      };
+    }
 
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },

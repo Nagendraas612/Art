@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
-import { ArtworkProductType, ArtworkStatus, OrderStatus, Prisma, StockStatus } from "@prisma/client";
+import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, Prisma, StockStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { artworkFormSchema, cuidSchema, firstIssue, toClientError, uploadedImageUrlSchema } from "@/lib/validation";
 import { SAFE_USER_SELECT } from "@/lib/safe-select";
@@ -541,6 +541,16 @@ export async function updateStudioOrderStatusAction({
         });
         await tx.creatorEarning.deleteMany({
           where: { orderItemId: { in: itemIds }, isPaidOut: false },
+        });
+
+        // The payment row must follow the order into a terminal state.
+        // Without this, a cancelled order keeps payment.status = PAID and
+        // every revenue/finance query overcounts. CANCELLED is honest here:
+        // the payment's purpose is void; the actual refund is a separate
+        // manual step tracked by the admin alert below.
+        await tx.payment.updateMany({
+          where: { orderId, status: { not: PaymentStatus.CANCELLED } },
+          data: { status: PaymentStatus.CANCELLED },
         });
       }
 
