@@ -120,11 +120,15 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
   // status alone — a buyer whose courier delivered the parcel must not see
   // "preparation" as the current step.
   const shipments = order.shipments;
-  const isPrepDone =
-    shipments.length > 0 ||
-    [OrderStatus.PACKED, OrderStatus.SHIPPED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED].includes(
-      order.status
-    );
+  // Typed as OrderStatus[] so .includes() accepts the full enum — a plain
+  // string array would reject every other order status at type-check time.
+  const pastPrepStatuses: OrderStatus[] = [
+    OrderStatus.PACKED,
+    OrderStatus.SHIPPED,
+    OrderStatus.OUT_FOR_DELIVERY,
+    OrderStatus.DELIVERED,
+  ];
+  const isPrepDone = shipments.length > 0 || pastPrepStatuses.includes(order.status);
   const isDispatched = shipments.length > 0;
   const isShipmentDelivered = shipments.some((s) => s.status === ShipmentStatus.DELIVERED);
   const isDelivered = order.status === OrderStatus.DELIVERED;
@@ -185,8 +189,9 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
                       <h4>Insured Logistics Dispatch</h4>
                       {isDispatched ? (
                         <div>
-                          {shipments.map((s) => (
-                            <p key={s.id}>
+                          {/* No s.id here: the query selects only carrier/awbCode/status. */}
+                          {shipments.map((s, idx) => (
+                            <p key={idx}>
                               {SHIPMENT_STATUS_LABELS[s.status] || "Handed to courier"}
                               {" "}via {s.carrier || "courier"}
                               {s.awbCode ? (
