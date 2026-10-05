@@ -277,33 +277,61 @@ async function dispatchCreatorShipment(args: {
     0,
   );
 
-  // 1. Create the Shiprocket order.
-  const created = await createShiprocketOrder({
-    orderId: srOrderId,
-    orderDate: new Date().toISOString().slice(0, 10),
-    pickupLocation,
-    customerName: address.fullName,
-    addressLine: [address.line1, address.line2].filter(Boolean).join(", "),
-    city: address.city,
-    pincode: deliveryPincode,
-    state: address.state,
-    country: address.country || "India",
-    email: customerEmail,
-    phone: address.phone,
-    items: items.map((it) => ({
-      name: it.titleSnapshot,
-      sku: it.id.slice(-12),
-      units: it.quantity,
-      sellingPrice: Math.round(Number(it.unitPrice)),
-    })),
-    subTotal: Math.round(subTotal),
-    weightKg,
-    lengthCm,
-    breadthCm,
-    heightCm,
+  // Resume: a previous attempt may have created the Shiprocket order (and
+  // saved its shipmentId) but failed before AWB assignment. Re-creating with
+  // the same order_id would be rejected — or double-booked — by Shiprocket,
+  // so resume from the saved shipment instead of creating a new order.
+  const partial = await prisma.shipment.findFirst({
+    where: {
+      orderId,
+      shiprocketOrderId: srOrderId,
+      shiprocketShipmentId: { not: null },
+      awbCode: null,
+    },
+    select: { shiprocketShipmentId: true },
   });
-  if (!created) {
-    return fail("Shiprocket order creation failed (see server logs).");
+  const parsedShipmentId =
+    partial?.shiprocketShipmentId != null
+      ? Number(partial.shiprocketShipmentId)
+      : NaN;
+  let shipmentId: number | null = Number.isFinite(parsedShipmentId)
+    ? parsedShipmentId
+    : null;
+
+  // 1. Create the Shiprocket order (skipped when resuming a partial attempt).
+  if (shipmentId === null) {
+    const created = await createShiprocketOrder({
+      orderId: srOrderId,
+      orderDate: new Date().toISOString().slice(0, 10),
+      pickupLocation,
+      customerName: address.fullName,
+      addressLine: [address.line1, address.line2].filter(Boolean).join(", "),
+      city: address.city,
+      pincode: deliveryPincode,
+      state: address.state,
+      country: address.country || "India",
+      email: customerEmail,
+      phone: address.phone,
+      items: items.map((it) => ({
+        name: it.titleSnapshot,
+        sku: it.id.slice(-12),
+        units: it.quantity,
+        sellingPrice: Math.round(Number(it.unitPrice)),
+      })),
+      subTotal: Math.round(subTotal),
+      weightKg,
+      lengthCm,
+      breadthCm,
+      heightCm,
+    });
+    if (!created) {
+      return fail("Shiprocket order creation failed (see server logs).");
+    }
+    shipmentId = created.shipmentId;
+  } else {
+    console.log(
+      `[shipments] order ${orderNumber}: resuming from saved Shiprocket shipment ${shipmentId} (skipping order re-creation).`
+    );
   }
 
   // 2. Assign AWB — pin the cheapest courier using the same logic the
@@ -317,11 +345,11 @@ async function dispatchCreatorShipment(args: {
         weightKg: Math.round(weightKg * 100) / 100,
       })
     : null;
-  const awb = await assignAwb(created.shipmentId, cheapest?.courierId);
+  const awb = await assignAwb(shipmentId, cheapest?.courierId);
   if (!awb) {
     await saveShipmentRow(srOrderId, {
       orderId,
-      shiprocketShipmentId: String(created.shipmentId),
+      shiprocketShipmentId: String(shipmentId),
       pickupLocation,
       shipmentError: "Shiprocket order created but AWB assignment failed.",
     });
@@ -335,10 +363,10 @@ async function dispatchCreatorShipment(args: {
 
   // 3. Schedule the pickup (non-fatal: the AWB exists, so the courier can
   // still be booked from the Shiprocket panel if this fails).
-  const pickupScheduled = await schedulePickup(created.shipmentId);
+  const pickupScheduled = await schedulePickup(shipmentId);
   if (!pickupScheduled) {
     console.warn(
-      `[shipments] order ${orderNumber}: pickup scheduling failed for shipment ${created.shipmentId}; AWB ${awb.awbCode} exists.`,
+      `[shipments] order ${orderNumber}: pickup scheduling failed for shipment ${shipmentId}; AWB ${awb.awbCode} exists.`
     );
   }
 
@@ -347,7 +375,7 @@ async function dispatchCreatorShipment(args: {
     orderId,
     carrier: awb.courierName,
     trackingNumber: awb.awbCode,
-    shiprocketShipmentId: String(created.shipmentId),
+    shiprocketShipmentId: String(shipmentId),
     awbCode: awb.awbCode,
     courierId: cheapest ? String(cheapest.courierId) : null,
     pickupLocation,

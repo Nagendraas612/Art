@@ -105,6 +105,11 @@ async function handlePaymentSuccess(
   const paidAmount = Number(paymentEntity.amount) / 100;
 
   const outcome: SuccessOutcome = await prisma.$transaction(async (tx) => {
+    // Lock the order row FIRST. Concurrent captured/failed webhook deliveries
+    // serialize here instead of racing: the loser re-reads status below and
+    // no-ops instead of overwriting the winner's terminal state.
+    await tx.$queryRaw`SELECT id FROM "Order" WHERE "orderNumber" = ${orderNumber} FOR UPDATE`;
+
     const order = await tx.order.findUnique({
       where: { orderNumber },
       include: {
@@ -119,7 +124,14 @@ async function handlePaymentSuccess(
 
     if (!order || !order.payment) throw new Error("Order or payment not found");
 
-    if (order.status !== OrderStatus.PENDING_PAYMENT) {
+    // Admit PENDING_PAYMENT (first attempt) and PAYMENT_FAILED (buyer retried
+    // after a failed attempt — the retry stamps notes.orderNumber on a fresh
+    // Razorpay order). A captured event for either means real money moved and
+    // the order must confirm; anything else is a replay or late duplicate.
+    if (
+      order.status !== OrderStatus.PENDING_PAYMENT &&
+      order.status !== OrderStatus.PAYMENT_FAILED
+    ) {
       return { kind: "already-processed" } as const;
     }
 
@@ -453,6 +465,11 @@ async function handlePaymentFailure(
   const reason = `The payment failed${paymentEntity.error_description ? `: ${paymentEntity.error_description}` : "."}`;
 
   const outcome: FailureOutcome = await prisma.$transaction(async (tx) => {
+    // Same row lock as the success path: concurrent captured/failed
+    // deliveries serialize here. The failure gate stays PENDING_PAYMENT-only —
+    // a late failure must never overwrite a confirmed order.
+    await tx.$queryRaw`SELECT id FROM "Order" WHERE "orderNumber" = ${orderNumber} FOR UPDATE`;
+
     const order = await tx.order.findUnique({
       where: { orderNumber },
       include: { payment: true },

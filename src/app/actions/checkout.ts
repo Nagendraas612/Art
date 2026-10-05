@@ -246,6 +246,15 @@ export async function processCheckout(input: CheckoutInput) {
     // dev only — in production it must be unset, and checkout refuses to run
     // without a configured Razorpay gateway (fail closed, never free orders).
     const isSandbox = process.env.SANDBOX_CHECKOUT_ENABLED === "true";
+    // Hard guard: a stale SANDBOX_CHECKOUT_ENABLED=true in production would
+    // confirm every order with zero money moved. Refuse loudly instead of
+    // failing open.
+    if (isSandbox && process.env.VERCEL_ENV === "production") {
+      console.error(
+        "[checkout] SANDBOX_CHECKOUT_ENABLED is set in production — refusing sandbox checkout."
+      );
+      return { error: "Payments are currently unavailable. Please try again later." };
+    }
     if (!isSandbox && !isRazorpayConfigured()) {
       return { error: "Payments are currently unavailable. Please try again later." };
     }
@@ -683,6 +692,14 @@ export async function retryOrderPaymentAction(orderNumber: string, guestToken?: 
     if (!rlIp.allowed) return { error: rateLimitExceeded(rlIp.retryAfterMs) };
 
     const isSandbox = process.env.SANDBOX_CHECKOUT_ENABLED === "true";
+    // Same production guard as processCheckout: the sandbox simulator must
+    // never confirm a real order.
+    if (isSandbox && process.env.VERCEL_ENV === "production") {
+      console.error(
+        "[checkout] SANDBOX_CHECKOUT_ENABLED is set in production — refusing sandbox retry."
+      );
+      return { error: "Payments are currently unavailable. Please try again later." };
+    }
     if (isSandbox) {
       // Sandbox simulator: confirm instantly. Stock is re-checked under row
       // locks inside the transaction, and creator earnings are booked here —

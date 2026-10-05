@@ -847,29 +847,42 @@ export async function processPayoutBatchAction(params: {
         if (e.createdAt > latest) latest = e.createdAt;
       }
 
-      // Create payout record. Status PAID here means "recorded as settled by
-      // the admin after an external transfer" — it is NOT itself a transfer.
-      const payout = await prisma.payout.create({
-        data: {
-          creatorId: cId,
-          amount: totalAmount,
-          status: PayoutStatus.PAID,
-          periodStart: earliest,
-          periodEnd: latest,
-          settlementReference: settlementRef,
-          processedAt: new Date(),
-        },
-      });
+      // Settle this creator inside ONE transaction with a concurrency guard.
+      // The earning update re-checks isPaidOut=false and the updated count
+      // must equal the selected count: a crash rolls everything back (no
+      // orphan payout row), and a concurrent double-run updates zero rows
+      // and aborts instead of paying the creator twice.
+      const earningIds = earningsList.map((e) => e.id);
+      const payout = await prisma.$transaction(async (tx) => {
+        // Create payout record. Status PAID here means "recorded as settled by
+        // the admin after an external transfer" — it is NOT itself a transfer.
+        const created = await tx.payout.create({
+          data: {
+            creatorId: cId,
+            amount: totalAmount,
+            status: PayoutStatus.PAID,
+            periodStart: earliest,
+            periodEnd: latest,
+            settlementReference: settlementRef,
+            processedAt: new Date(),
+          },
+        });
 
-      // Mark earnings as paid out
-      await prisma.creatorEarning.updateMany({
-        where: {
-          id: { in: earningsList.map((e) => e.id) },
-        },
-        data: {
-          isPaidOut: true,
-          payoutId: payout.id,
-        },
+        // Mark earnings as paid out — only rows that are still unpaid.
+        const updated = await tx.creatorEarning.updateMany({
+          where: { id: { in: earningIds }, isPaidOut: false },
+          data: {
+            isPaidOut: true,
+            payoutId: created.id,
+          },
+        });
+        if (updated.count !== earningIds.length) {
+          throw new Error(
+            "Payout aborted: some earnings were already settled by a concurrent run. Nothing was recorded."
+          );
+        }
+
+        return created;
       });
 
       // Log Audit
