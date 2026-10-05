@@ -11,7 +11,9 @@ import {
   nameSchema,
   optionalImageUrlSchema,
   shortTextSchema,
+  toClientError,
 } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export interface CreateCreatorProfileInput {
   handle: string;
@@ -60,6 +62,13 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
 
   if (!session?.user?.id) {
     return { success: false, error: "You must be signed in to apply as a creator." };
+  }
+
+  // Every application emails ALL admins + writes notifications — throttle
+  // so sock-puppets can't flood admin inboxes from our own domain.
+  const rl = await checkRateLimit(`creator-apply:${session.user.id}`, 3, 86_400_000);
+  if (!rl.allowed) {
+    return { success: false, error: "You've reached the application limit. Please try again tomorrow." };
   }
 
   // Format the handle the same way as before (lowercase, URL-safe), then
@@ -168,6 +177,8 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
     return { success: true, handle: cleanHandle };
   } catch (err: any) {
     console.error("Error creating creator profile:", err);
-    return { success: false, error: err.message || "Failed to create creator profile." };
+    // Never leak raw DB errors (constraint names, column details) to the
+    // client — Prisma P2002s become a friendly duplicate-handle message.
+    return { success: false, error: toClientError("createCreatorProfile error", err, "Failed to create creator profile.") };
   }
 }

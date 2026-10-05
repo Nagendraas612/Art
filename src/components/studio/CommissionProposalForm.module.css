@@ -28,6 +28,32 @@
   color: #276738;
 }
 
+.errorNote {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a32626;
+  background: #fdeeee;
+  border: 1px solid #f3c1c1;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.declineBtn {
+  background: transparent;
+  border: 1px solid #d8c9bc;
+  color: #7a5b4a;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.declineBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .actions {
   display: flex;
   flex-direction: column;

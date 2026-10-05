@@ -36,6 +36,25 @@ const upstashConfigured = !!(
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
 );
 
+/**
+ * The single client-IP extractor every rate limit must use. Proxies APPEND
+ * to X-Forwarded-For, so the leftmost entry is client-claimed and trivially
+ * spoofable — every IP-keyed limit that trusted [0] could be bypassed by
+ * rotating a fake header per request. Vercel's edge appends the true
+ * connecting IP last, so the LAST entry is the one the client can't forge.
+ */
+export function getClientIp(headers: Headers): string {
+  const xff = headers.get("x-forwarded-for");
+  if (xff) {
+    const parts = xff
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
+  return headers.get("x-real-ip")?.trim() || "127.0.0.1";
+}
+
 // Set once the in-memory fallback warning has been logged, so production
 // logs get exactly one line instead of one per request.
 let fallbackWarned = false;

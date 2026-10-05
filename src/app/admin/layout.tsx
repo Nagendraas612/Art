@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getCurrentAdmin } from "@/lib/admin-auth";
+import { getSession } from "@/modules/auth/guards";
 import styles from "./admin.module.css";
 
 export const metadata = {
@@ -16,7 +18,28 @@ export default async function AdminLayout({
   const admin = await getCurrentAdmin();
 
   if (!admin) {
-    redirect("/sign-in");
+    const session = await getSession();
+    const path = (await headers()).get("x-request-path") || "/admin";
+    if (session?.user) {
+      // Signed in but not an admin — that's a 403, not a login problem.
+      // Bouncing them to /sign-in made it look like their login was broken.
+      return (
+        <div className={styles.adminWrapper}>
+          <div style={{ padding: 48, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
+            <h1 style={{ fontSize: 22, marginBottom: 12 }}>Restricted area</h1>
+            <p style={{ color: "#6b5d4f", marginBottom: 20 }}>
+              You're signed in as {session.user.email}, but this account doesn't
+              have admin access. If you need access, ask a platform administrator.
+            </p>
+            <Link href="/" style={{ textDecoration: "underline" }}>
+              Back to the gallery →
+            </Link>
+          </div>
+        </div>
+      );
+    }
+    // Not signed in — preserve where they were headed.
+    redirect(`/sign-in?callbackUrl=${encodeURIComponent(path)}`);
   }
 
   return (

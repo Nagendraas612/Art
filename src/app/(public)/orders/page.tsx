@@ -17,20 +17,43 @@ export default async function CustomerOrdersPage() {
   const res = await getCustomerOrdersAction();
   const orders = res.success && res.orders ? res.orders : [];
 
+  // Every real OrderStatus gets a buyer-friendly label. The old switch had
+  // dead branches (IN_PRODUCTION, DISPATCHED don't exist in the enum) and
+  // dumped raw SCREAMING_CAPS for every real status.
   const formatStatus = (status: string) => {
     switch (status) {
+      case "PENDING_PAYMENT":
+        return { label: "Awaiting payment", className: styles.statusProcessing };
+      case "PAYMENT_FAILED":
+        return { label: "Payment failed — retry available", className: styles.statusCancelled };
+      case "PAYMENT_CONFIRMED":
+        return { label: "Payment confirmed", className: styles.statusConfirmed };
       case "ORDER_CONFIRMED":
         return { label: "Confirmed", className: styles.statusConfirmed };
-      case "IN_PRODUCTION":
-        return { label: "In Creation", className: styles.statusProcessing };
-      case "DISPATCHED":
-        return { label: "Dispatched", className: styles.statusDispatched };
+      case "PREPARING":
+        return { label: "Being prepared", className: styles.statusProcessing };
+      case "PACKED":
+        return { label: "Packed", className: styles.statusProcessing };
+      case "SHIPPED":
+        return { label: "Shipped", className: styles.statusDispatched };
+      case "OUT_FOR_DELIVERY":
+        return { label: "Out for delivery", className: styles.statusDispatched };
       case "DELIVERED":
         return { label: "Delivered", className: styles.statusDelivered };
       case "CANCELLED":
         return { label: "Cancelled", className: styles.statusCancelled };
+      case "DISPUTED":
+        return { label: "Under review", className: styles.statusProcessing };
+      case "REFUND_REQUESTED":
+        return { label: "Refund requested", className: styles.statusProcessing };
+      case "REFUNDED":
+        return { label: "Refunded", className: styles.statusCancelled };
+      case "RETURN_REQUESTED":
+        return { label: "Return requested", className: styles.statusProcessing };
+      case "RETURNED":
+        return { label: "Returned", className: styles.statusCancelled };
       default:
-        return { label: status.replace(/_/g, " "), className: styles.statusProcessing };
+        return { label: status.replace(/_/g, " ").toLowerCase(), className: styles.statusProcessing };
     }
   };
 
@@ -113,6 +136,15 @@ export default async function CustomerOrdersPage() {
                     <span className={`${styles.statusPill} ${statusInfo.className}`}>
                       {statusInfo.label}
                     </span>
+                    {(order.status === "PENDING_PAYMENT" || order.status === "PAYMENT_FAILED") && (
+                      <Link
+                        href={`/orders/${order.orderNumber}`}
+                        className={styles.viewDetailsLink}
+                        style={{ fontWeight: 700 }}
+                      >
+                        Retry payment →
+                      </Link>
+                    )}
                     <Link
                       href={`/orders/${order.orderNumber}`}
                       className={styles.viewDetailsLink}

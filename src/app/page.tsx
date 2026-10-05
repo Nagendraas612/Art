@@ -114,7 +114,7 @@ export default async function Home() {
 
           <div className={`wrap ${styles.statsBar}`}>
             <div className={styles.statItem}>
-              <span className={styles.statNum}>{totalArtworks}+</span>
+              <span className={styles.statNum}>{totalArtworks}</span>
               <span className={styles.statLabel}>Original Works</span>
             </div>
             <div className={styles.statItem}>
@@ -141,7 +141,9 @@ export default async function Home() {
               </div>
 
               <div className={styles.categoryGrid}>
-                {categories.map((cat) => (
+                {categories
+                  .filter((cat) => cat._count.artworks > 0)
+                  .map((cat) => (
                   <Link
                     key={cat.id}
                     href={`/explore?category=${cat.slug}`}

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getShippingSettings } from "@/lib/shipping";
 import { calculateShippingFee } from "@/lib/shipping-shared";
 import { calculateLiveShippingFee } from "@/lib/shiprocket";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,6 +32,17 @@ const quoteSchema = z.object({
  */
 export async function POST(req: Request) {
   try {
+    // Unauthenticated and fans out to live Shiprocket calls — throttle it
+    // so nobody can burn courier quota / server load in a loop.
+    const ip = getClientIp(req.headers);
+    const rl = await checkRateLimit(`shipping-quote:${ip}`, 30, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many quote requests. Please wait a moment and try again." },
+        { status: 429 }
+      );
+    }
+
     const parsed = quoteSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid quote request" }, { status: 400 });

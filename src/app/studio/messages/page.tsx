@@ -62,7 +62,7 @@ export default async function StudioMessagesPage({ searchParams }: StudioMessage
         <div>
           <h1 className={styles.title}>Messages</h1>
           <p className={styles.subtitle}>
-            Communicate with applicants, creators, and collectors.
+            Communicate with collectors and buyers about your pieces and commissions.
           </p>
         </div>
       </div>

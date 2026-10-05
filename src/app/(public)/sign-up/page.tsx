@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signUp } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,16 @@ import styles from "../auth.module.css";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Preserve the page the user originally tried to reach, through the
+  // email-verification loop (same-origin only).
+  const callbackUrl = (() => {
+    const requested = searchParams.get("callbackUrl");
+    if (requested && requested.startsWith("/") && !requested.startsWith("//")) {
+      return requested;
+    }
+    return "/explore";
+  })();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,8 +45,9 @@ export default function SignUpPage() {
         password,
         // After the user clicks the verification link, better-auth signs
         // them in (autoSignInAfterVerification) and lands them here —
-        // the toast confirms the loop is closed.
-        callbackURL: "/?toast=email-verified",
+        // the toast confirms the loop is closed. The original destination
+        // is preserved through the verification loop.
+        callbackURL: `${callbackUrl}${callbackUrl.includes("?") ? "&" : "?"}toast=email-verified`,
       });
 
       if (result.error) {
@@ -112,7 +123,7 @@ export default function SignUpPage() {
           <span>or</span>
         </div>
 
-        <SocialAuthButtons onError={(msg) => setError(msg)} />
+        <SocialAuthButtons callbackUrl={callbackUrl} onError={(msg) => setError(msg)} />
 
         <p className={styles.termsNotice}>
           By registering, you agree to Kalaa Bhadra&apos;s{" "}

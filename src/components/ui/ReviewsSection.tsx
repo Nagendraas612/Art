@@ -100,7 +100,7 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
           <span className={styles.scoreNumber}>{hasReviews ? averageRating : "–"}</span>
           <div className={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((star) => (
-              <span key={star} className={hasReviews ? styles.starFilled : styles.starEmpty}>
+              <span key={star} className={hasReviews && star <= Math.round(Number(averageRating)) ? styles.starFilled : styles.starEmpty}>
                 ★
               </span>
             ))}

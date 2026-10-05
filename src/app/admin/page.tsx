@@ -34,7 +34,7 @@ export default async function AdminOverviewPage() {
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          Live Feed Active
+          Updated {new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
         </div>
       </div>
 
@@ -270,7 +270,11 @@ export default async function AdminOverviewPage() {
             <tbody>
               {data.recentOrders.map((order) => (
                 <tr key={order.id}>
-                  <td style={{ fontWeight: 600, fontFamily: "monospace" }}>{order.orderNumber}</td>
+                  <td style={{ fontWeight: 600, fontFamily: "monospace" }}>
+                    <Link href={`/admin/orders/${order.orderNumber}`} style={{ textDecoration: "underline" }}>
+                      {order.orderNumber}
+                    </Link>
+                  </td>
                   <td>{order.customerName}</td>
                   <td>{order.firstItemTitle}</td>
                   <td>{order.itemCount}</td>
@@ -278,9 +282,11 @@ export default async function AdminOverviewPage() {
                   <td>
                     <span
                       className={`${styles.statusPill} ${
-                        order.status === "DELIVERED" || order.status === "ORDER_CONFIRMED"
+                        // Semantic colors: green = money/goods moving fine,
+                        // amber = needs attention, red = bad terminal states.
+                        order.status === "DELIVERED" || order.status === "ORDER_CONFIRMED" || order.status === "PAYMENT_CONFIRMED" || order.status === "SHIPPED" || order.status === "OUT_FOR_DELIVERY"
                           ? styles.statusSuccess
-                          : order.status === "PENDING_PAYMENT"
+                          : order.status === "PENDING_PAYMENT" || order.status === "PREPARING" || order.status === "PACKED" || order.status === "DISPUTED" || order.status === "REFUND_REQUESTED" || order.status === "RETURN_REQUESTED"
                           ? styles.statusPending
                           : styles.statusFailed
                       }`}

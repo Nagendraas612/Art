@@ -13,6 +13,17 @@ interface CommissionProposalFormProps {
   initialNotes?: string | null;
 }
 
+const statusLabels: Record<CustomRequestStatus, string> = {
+  [CustomRequestStatus.SUBMITTED]: "New brief",
+  [CustomRequestStatus.CREATOR_REVIEWING]: "Under review",
+  [CustomRequestStatus.PROPOSAL_SENT]: "Quote sent",
+  [CustomRequestStatus.ACCEPTED]: "Accepted",
+  [CustomRequestStatus.IN_PROGRESS]: "In progress",
+  [CustomRequestStatus.COMPLETED]: "Completed",
+  [CustomRequestStatus.REJECTED]: "Declined",
+  [CustomRequestStatus.CANCELLED]: "Cancelled",
+};
+
 export function CommissionProposalForm({
   requestId,
   currentStatus,
@@ -27,10 +38,12 @@ export function CommissionProposalForm({
   const [isUpdating, setIsUpdating] = useState(false);
   const [showProposalForm, setShowProposalForm] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleUpdate = async (newStatus: CustomRequestStatus) => {
     setIsUpdating(true);
     setSuccess(false);
+    setError(null);
 
     const res = await respondToCommissionAction({
       requestId,
@@ -46,25 +59,40 @@ export function CommissionProposalForm({
       setSuccess(true);
       setShowProposalForm(false);
       setTimeout(() => setSuccess(false), 3000);
+    } else {
+      // The old code dropped every error silently — the creator clicked and
+      // nothing happened. Show the server message honestly.
+      setError(res.error || "Something went wrong. Please try again.");
     }
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.statusRow}>
-        <span className={styles.statusBadge}>{status}</span>
+        <span className={styles.statusBadge}>{statusLabels[status] ?? status}</span>
         {success && <span className={styles.successNote}>Updated ✓</span>}
+        {error && <span className={styles.errorNote}>{error}</span>}
       </div>
 
       <div className={styles.actions}>
         {status === CustomRequestStatus.SUBMITTED && !showProposalForm && (
-          <button
-            type="button"
-            onClick={() => setShowProposalForm(true)}
-            className={styles.proposalBtn}
-          >
-            Review &amp; Send Studio Quote &rarr;
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setShowProposalForm(true)}
+              className={styles.proposalBtn}
+            >
+              Review &amp; Send Studio Quote &rarr;
+            </button>
+            <button
+              type="button"
+              onClick={() => handleUpdate(CustomRequestStatus.REJECTED)}
+              className={styles.declineBtn}
+              disabled={isUpdating}
+            >
+              {isUpdating ? "Declining…" : "Decline"}
+            </button>
+          </>
         )}
 
         {showProposalForm && (

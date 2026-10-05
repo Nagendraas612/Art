@@ -209,7 +209,7 @@ export function ChatView({
           {/* Messages Feed */}
           <div className={styles.messageStream}>
             <div className={styles.encryptedNotice}>
-              🔒 End-to-end encrypted &bull; Messages are private and secure
+              🔒 Private chat &bull; Messages are visible only to you and the studio
             </div>
 
             {activeConv.messages.map((m) => {

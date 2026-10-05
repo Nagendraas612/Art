@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
-import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, Prisma, ShipmentStatus, StockStatus } from "@prisma/client";
+import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, Prisma, RefundStatus, ShipmentStatus, StockStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { artworkFormSchema, cuidSchema, firstIssue, toClientError, uploadedImageUrlSchema } from "@/lib/validation";
 import { SAFE_USER_SELECT } from "@/lib/safe-select";
@@ -115,8 +115,10 @@ export async function createArtworkAction(data: ArtworkFormData) {
         status: ArtworkStatus.SUBMITTED,
         price: new Prisma.Decimal(d.price.toFixed(2)),
         currency: "INR",
-        stock: d.productType === ArtworkProductType.ORIGINAL ? 1 : d.stock || 1,
-        stockStatus: StockStatus.AVAILABLE,
+        stock: d.productType === ArtworkProductType.ORIGINAL ? 1 : Math.max(0, d.stock || 0),
+        stockStatus: d.productType === ArtworkProductType.ORIGINAL || (d.stock || 0) > 0
+          ? StockStatus.AVAILABLE
+          : StockStatus.OUT_OF_STOCK,
         editionSize: d.editionSize || null,
         specifications,
         widthCm: d.widthCm ? new Prisma.Decimal(d.widthCm.toFixed(2)) : null,
@@ -481,15 +483,18 @@ export async function updateStudioOrderStatusAction({
       };
     }
 
-    // Multi-studio guard: a cancel unwinds the whole order (stock + earnings),
-    // so one studio must not cancel an order containing another studio's
-    // work. Those go through support.
-    if (status === OrderStatus.CANCELLED) {
+    // Multi-studio guard: a cancel unwinds the whole order (stock +
+    // earnings), and a ship attests the whole parcel — so one studio must
+    // not cancel or ship an order containing another studio's work. Those
+    // go through support.
+    if (status === OrderStatus.CANCELLED || status === OrderStatus.SHIPPED) {
       const distinctCreators = new Set(order.items.map((i) => i.artwork.creatorId));
       if (distinctCreators.size > 1) {
         return {
           error:
-            "This order spans multiple studios. Please contact support to cancel it.",
+            status === OrderStatus.CANCELLED
+              ? "This order spans multiple studios. Please contact support to cancel it."
+              : "This order spans multiple studios. Please contact support before marking it shipped.",
         };
       }
     }
@@ -542,6 +547,24 @@ export async function updateStudioOrderStatusAction({
         await tx.creatorEarning.deleteMany({
           where: { orderItemId: { in: itemIds }, isPaidOut: false },
         });
+
+        // The refund obligation becomes DATA, not just an alert. Only when
+        // money actually moved (payment was PAID) — cancelling an unpaid
+        // order refunds nothing. This check runs BEFORE the updateMany below
+        // flips the payment status.
+        const paidPayment = await tx.payment.findFirst({
+          where: { orderId, status: PaymentStatus.PAID },
+        });
+        if (paidPayment) {
+          await tx.refund.create({
+            data: {
+              orderId,
+              amount: order.grandTotal,
+              status: RefundStatus.REQUESTED,
+              reason: `Studio cancelled order #${order.orderNumber}; buyer refund required.`,
+            },
+          });
+        }
 
         // The payment row must follow the order into a terminal state.
         // Without this, a cancelled order keeps payment.status = PAID and
@@ -624,7 +647,25 @@ export async function updateStudioOrderStatusAction({
     }
 
     // P8: buyer gets a real transactional email for every status change
-    // (shipment, out-for-delivery, delivered, ...).
+    // (shipment, out-for-delivery, delivered, ...). Cancellations also get
+    // an in-app notification — email alone is a single point of failure
+    // for "your money is coming back" news.
+    if (status === OrderStatus.CANCELLED) {
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: order.customerId,
+            type: "ORDER_CANCELLED",
+            title: `Order #${order.orderNumber} cancelled`,
+            body: `The studio cancelled this order. Your payment of ₹${Number(order.grandTotal).toLocaleString("en-IN")} will be refunded in full within 5-7 business days.`,
+            refType: "ORDER",
+            refId: orderId,
+          },
+        });
+      } catch (e) {
+        console.error("[StudioOrderStatus] cancel notification failed:", e);
+      }
+    }
     try {
       const { sendEmail, generateOrderStatusEmail } = await import("@/lib/email");
       const emailHtml = generateOrderStatusEmail({

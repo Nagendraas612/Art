@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
 import { useToast } from "@/components/ui/Toast";
@@ -16,6 +16,15 @@ const RESEND_COOLDOWN_S = 60;
 
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // The page the user originally tried to reach (same-origin only).
+  const callbackUrl = (() => {
+    const requested = searchParams.get("callbackUrl");
+    if (requested && requested.startsWith("/") && !requested.startsWith("//")) {
+      return requested;
+    }
+    return "/explore";
+  })();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -177,7 +186,7 @@ export default function SignInPage() {
           <span>or</span>
         </div>
 
-        <SocialAuthButtons onError={(msg) => setError(msg)} />
+        <SocialAuthButtons callbackUrl={callbackUrl} onError={(msg) => setError(msg)} />
 
         <p className={styles.termsNotice}>
           By continuing, you agree to Kalaa Bhadra&apos;s{" "}

@@ -44,6 +44,12 @@ const nextConfig: NextConfig = {
       hostname,
     })),
   },
+  async redirects() {
+    return [
+      // The bag lives at /cart; /bag 404'd for anyone typing it.
+      { source: "/bag", destination: "/cart", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

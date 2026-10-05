@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { resolveDisputeAction, actionReportAction } from "@/app/actions/admin";
 import styles from "./trust-safety.module.css";
 
@@ -76,6 +77,10 @@ export function TrustSafetyClient({
   };
 
   const handleActionReport = (reportId: string, action: "ACTIONED" | "DISMISSED") => {
+    const label = action === "ACTIONED" ? "action this report" : "dismiss this report";
+    if (!confirm(`Are you sure you want to ${label}? This will be logged.`)) {
+      return;
+    }
     startTransition(async () => {
       const res = await actionReportAction({ reportId, action });
       if (res.success) {
@@ -158,7 +163,12 @@ export function TrustSafetyClient({
                 <div className={styles.cardHeader}>
                   <div>
                     <h3 className={styles.cardTitle}>
-                      Order #{dispute.orderNumber}
+                      <Link
+                        href={`/admin/orders/${dispute.orderNumber}`}
+                        style={{ textDecoration: "underline" }}
+                      >
+                        Order #{dispute.orderNumber}
+                      </Link>
                     </h3>
                     <p className={styles.cardMeta}>
                       {dispute.customerName} • {dispute.storeName} • ₹{dispute.grandTotal.toLocaleString("en-IN")}
@@ -245,6 +255,19 @@ export function TrustSafetyClient({
                         >
                           artwork #{report.targetId.slice(-6)}
                         </a>
+                      ) : report.targetType === "CREATOR" ? (
+                        <a
+                          href={`/creators/${report.targetId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={styles.targetLink}
+                        >
+                          creator #{report.targetId.slice(-6)}
+                        </a>
+                      ) : report.targetType === "REVIEW" ? (
+                        <span title="Reviews are visible on their artwork page">
+                          review #{report.targetId.slice(-6)}
+                        </span>
                       ) : (
                         <span>
                           {report.targetType.toLowerCase()} #{report.targetId.slice(-6)}

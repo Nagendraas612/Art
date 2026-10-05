@@ -9,8 +9,11 @@ import { cuidSchema, firstIssue, toClientError } from "@/lib/validation";
 import { 
   CreatorStatus, 
   ArtworkStatus, 
+  ArtworkProductType,
+  StockStatus,
   OrderStatus,
   PaymentStatus,
+  RefundStatus,
   Role, 
   DisputeStatus, 
   ReportStatus, 
@@ -39,8 +42,11 @@ export async function getAdminOverviewStatsAction() {
       recentOrders,
     ] = await Promise.all([
       prisma.order.findMany({
+        // Revenue math must only count money that actually moved. The old
+        // filter (not CANCELLED/PAYMENT_FAILED) included PENDING_PAYMENT and
+        // DISPUTED orders — phantom revenue on the dashboard.
         where: {
-          status: { notIn: ["CANCELLED", "PAYMENT_FAILED"] },
+          payment: { status: PaymentStatus.PAID },
         },
         select: {
           grandTotal: true,
@@ -53,10 +59,12 @@ export async function getAdminOverviewStatsAction() {
       }),
       prisma.creatorProfile.count({ where: { status: CreatorStatus.PENDING } }),
       prisma.creatorProfile.count({ where: { status: CreatorStatus.APPROVED } }),
-      prisma.artwork.count({ 
-        where: { 
-          status: { in: [ArtworkStatus.SUBMITTED, ArtworkStatus.UNDER_REVIEW, ArtworkStatus.DRAFT] } 
-        } 
+      prisma.artwork.count({
+        where: {
+          // Drafts were never submitted — counting them inflated the queue
+          // and sent admins reviewing work nobody asked them to look at.
+          status: { in: [ArtworkStatus.SUBMITTED, ArtworkStatus.UNDER_REVIEW] }
+        }
       }),
       prisma.artwork.count({ where: { status: ArtworkStatus.PUBLISHED } }),
       prisma.dispute.count({ 
@@ -163,6 +171,44 @@ export async function updateOrderStatusAction(params: {
 
     if (!order) throw new Error("Order not found");
 
+    // Transition map: admins may skip steps forward, but never move
+    // backwards out of a terminal state (DELIVERED/REFUNDED/RETURNED) or
+    // into one from the wrong place, and never resurrect a CANCELLED order.
+    // Without this, one click could "un-deliver" a delivered order.
+    const TERMINAL: OrderStatus[] = [
+      OrderStatus.DELIVERED,
+      OrderStatus.REFUNDED,
+      OrderStatus.RETURNED,
+      OrderStatus.CANCELLED,
+    ];
+    const FORWARD_RANK: Record<OrderStatus, number> = {
+      [OrderStatus.PENDING_PAYMENT]: 0,
+      [OrderStatus.PAYMENT_FAILED]: 0,
+      [OrderStatus.DISPUTED]: 1,
+      [OrderStatus.PAYMENT_CONFIRMED]: 2,
+      [OrderStatus.ORDER_CONFIRMED]: 3,
+      [OrderStatus.PREPARING]: 4,
+      [OrderStatus.PACKED]: 5,
+      [OrderStatus.SHIPPED]: 6,
+      [OrderStatus.OUT_FOR_DELIVERY]: 7,
+      [OrderStatus.DELIVERED]: 8,
+      [OrderStatus.RETURN_REQUESTED]: 8,
+      [OrderStatus.RETURNED]: 9,
+      [OrderStatus.REFUND_REQUESTED]: 8,
+      [OrderStatus.REFUNDED]: 9,
+      [OrderStatus.CANCELLED]: 10,
+    };
+    const fromRank = FORWARD_RANK[order.status];
+    const toRank = FORWARD_RANK[status];
+    const backwards = TERMINAL.includes(order.status) || toRank < fromRank;
+    const resurrect = order.status === OrderStatus.CANCELLED && status !== OrderStatus.CANCELLED;
+    if (backwards || resurrect) {
+      return {
+        success: false,
+        error: `Cannot move this order from ${order.status.replace(/_/g, " ")} to ${status.replace(/_/g, " ")}.`,
+      };
+    }
+
     // Guard: an admin must not confirm (or deliver) an unpaid order with one
     // click. ORDER_CONFIRMED requires a captured payment; use the Razorpay
     // dashboard + webhook for real money, not this button.
@@ -176,6 +222,14 @@ export async function updateOrderStatusAction(params: {
         error:
           "This order has no captured payment. Confirm it via the payment gateway first — this action cannot mark unpaid orders as confirmed.",
       };
+    }
+
+    // Admin cancellation mirrors the studio reversal exactly: stock comes
+    // back, unpaid earnings are voided, the payment row goes CANCELLED, and
+    // a refund row is opened when money moved. Skipping any of these is how
+    // cancelled orders used to keep phantom revenue and dead stock.
+    if (status === OrderStatus.CANCELLED) {
+      return await cancelOrderAsAdmin(orderId, order.orderNumber, admin.id, note);
     }
 
     const updatedOrder = await prisma.order.update({
@@ -240,6 +294,339 @@ export async function updateOrderStatusAction(params: {
   } catch (error: any) {
     console.error("[updateOrderStatusAction] Error:", error);
     return { success: false, error: toClientError("admin action error", error) };
+  }
+}
+
+/**
+ * Admin-initiated cancellation. Mirrors the studio reversal exactly —
+ * stock is restored, unpaid earnings are voided, the payment row goes
+ * CANCELLED, and a refund row is opened when money moved. An admin cancel
+ * that skips any of these leaves phantom revenue and dead stock, which is
+ * why the old "just set the status" path was removed.
+ */
+async function cancelOrderAsAdmin(
+  orderId: string,
+  orderNumber: string,
+  adminId: string,
+  note?: string
+) {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        customer: { select: { id: true, name: true, email: true } },
+        payment: true,
+        items: { include: { artwork: { select: { productType: true } } } },
+      },
+    });
+    if (!order) throw new Error("Order not found");
+
+    const paidOutEarningCount = await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.updateMany({
+        where: { id: orderId, status: order.status },
+        data: { status: OrderStatus.CANCELLED },
+      });
+      if (updated.count === 0) throw new Error("Order status changed. Please refresh and try again.");
+
+      const itemIds = order.items.map((i) => i.id);
+      for (const item of order.items) {
+        if (item.artwork.productType === ArtworkProductType.ORIGINAL) {
+          await tx.artwork.update({
+            where: { id: item.artworkId },
+            data: { stock: 1, stockStatus: StockStatus.AVAILABLE },
+          });
+        } else {
+          await tx.artwork.update({
+            where: { id: item.artworkId },
+            data: {
+              stock: { increment: item.quantity },
+              stockStatus: StockStatus.AVAILABLE,
+            },
+          });
+        }
+      }
+
+      const paidOut = await tx.creatorEarning.count({
+        where: { orderItemId: { in: itemIds }, isPaidOut: true },
+      });
+      await tx.creatorEarning.deleteMany({
+        where: { orderItemId: { in: itemIds }, isPaidOut: false },
+      });
+
+      const wasPaid = await tx.payment.findFirst({
+        where: { orderId, status: PaymentStatus.PAID },
+      });
+      if (wasPaid) {
+        await tx.refund.create({
+          data: {
+            orderId,
+            amount: order.grandTotal,
+            status: RefundStatus.REQUESTED,
+            reason: `Admin cancelled order #${orderNumber}; buyer refund required.`,
+          },
+        });
+      }
+
+      await tx.payment.updateMany({
+        where: { orderId, status: { not: PaymentStatus.CANCELLED } },
+        data: { status: PaymentStatus.CANCELLED },
+      });
+
+      await tx.orderStatusEvent.create({
+        data: {
+          orderId,
+          status: OrderStatus.CANCELLED,
+          note: note || `Order cancelled by Kalaa Bhadra operations. Stock restored; unpaid earnings voided.`,
+        },
+      });
+
+      return paidOut;
+    });
+
+    const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: order.customerId,
+          type: "ORDER_CANCELLED",
+          title: `Order #${orderNumber} cancelled`,
+          body: note || `Your order has been cancelled by our team. Your payment of ₹${Number(order.grandTotal).toLocaleString("en-IN")} will be refunded in full within 5-7 business days.`,
+          refType: "ORDER",
+          refId: orderId,
+        },
+      });
+    } catch (e) {
+      console.error("[cancelOrderAsAdmin] notification failed:", e);
+    }
+    if (order.customer?.email) {
+      sendEmail({
+        to: order.customer.email,
+        subject: `Order #${orderNumber} cancelled — Kalaa Bhadra`,
+        html: generateOrderStatusEmail({
+          customerName: order.customer.name || "Artisan Collector",
+          orderNumber,
+          status: "Cancelled",
+          message: note || `Your order has been cancelled by our team. Your payment of ₹${Number(order.grandTotal).toLocaleString("en-IN")} will be refunded in full within 5-7 business days.`,
+          trackingUrl: `${domain}/orders/${orderNumber}`,
+        }),
+      }).catch((err) => console.error("[cancelOrderAsAdmin] email failed:", err));
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: adminId,
+        action: "ORDER_CANCELLED",
+        targetType: "ORDER",
+        targetId: orderId,
+        metadata: { orderNumber, note, paidOutEarningCount },
+      },
+    });
+
+    revalidatePath("/admin");
+    revalidatePath(`/orders/${orderNumber}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("[cancelOrderAsAdmin] Error:", error);
+    return { success: false, error: toClientError("admin cancel error", error) };
+  }
+}
+
+/**
+ * Resolve a DISPUTED order (captured payment that couldn't auto-confirm).
+ * Two honest exits, both writing to the ledger:
+ *  - CONFIRM: the money is right and the pieces are available. Re-checks
+ *    stock under row locks, confirms the order, and books the creator
+ *    earnings the webhook would have booked.
+ *  - REFUND: the order can't proceed. Opens a tracked refund obligation
+ *    (the actual money movement happens in the Razorpay dashboard; the
+ *    refund.created webhook marks it settled) and voids unpaid earnings.
+ */
+export async function resolveDisputedOrderAction(params: {
+  orderId: string;
+  resolution: "CONFIRM" | "REFUND";
+  note?: string;
+}) {
+  try {
+    const admin = await getCurrentAdmin();
+    if (!admin) throw new Error("Unauthorized admin access");
+
+    const parsed = z
+      .object({
+        orderId: cuidSchema,
+        resolution: z.enum(["CONFIRM", "REFUND"]),
+        note: z.string().trim().max(2000).optional(),
+      })
+      .safeParse(params);
+    if (!parsed.success) {
+      return { success: false, error: firstIssue(parsed.error) };
+    }
+    const { orderId, resolution, note } = parsed.data;
+    if (!note || note.length < 10) {
+      return { success: false, error: "A resolution note (min 10 chars) is required — it goes on the order timeline." };
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        payment: true,
+        customer: { select: { id: true, name: true, email: true } },
+        items: { include: { artwork: { select: { productType: true } } } },
+      },
+    });
+    if (!order) throw new Error("Order not found");
+    if (order.status !== OrderStatus.DISPUTED) {
+      return { success: false, error: `Order is ${order.status.replace(/_/g, " ")}, not disputed.` };
+    }
+    if (order.payment?.status !== PaymentStatus.PAID) {
+      return { success: false, error: "No captured payment on this order — nothing to resolve." };
+    }
+
+    if (resolution === "CONFIRM") {
+      await prisma.$transaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: orderId, status: OrderStatus.DISPUTED },
+          data: { status: OrderStatus.ORDER_CONFIRMED },
+        });
+        if (updated.count === 0) throw new Error("Order status changed. Please refresh and try again.");
+
+        // Stock re-check under locks — the dispute may BE a stock race.
+        const lockOrdered = [...order.items].sort((a, b) =>
+          a.artworkId.localeCompare(b.artworkId)
+        );
+        for (const item of lockOrdered) {
+          const [live] = await tx.$queryRaw<Array<{ stock: number; stockStatus: StockStatus }>>`
+            SELECT stock, "stockStatus" FROM "Artwork" WHERE id = ${item.artworkId} FOR UPDATE
+          `;
+          if (!live || live.stockStatus === StockStatus.SOLD || live.stock < item.quantity) {
+            throw new Error(`"${item.titleSnapshot}" is no longer available — refund instead of confirming.`);
+          }
+          if (item.artwork.productType === ArtworkProductType.ORIGINAL) {
+            await tx.artwork.update({
+              where: { id: item.artworkId },
+              data: { stock: 0, stockStatus: StockStatus.SOLD },
+            });
+          } else {
+            const newStock = live.stock - item.quantity;
+            await tx.artwork.update({
+              where: { id: item.artworkId },
+              data: {
+                stock: { decrement: item.quantity },
+                editionSold: { increment: item.quantity },
+                // If this confirmation empties the stock, mark it sold out —
+                // otherwise the piece stays buyable at 0.
+                ...(newStock <= 0 ? { stockStatus: StockStatus.OUT_OF_STOCK } : {}),
+              },
+            });
+          }
+        }
+
+        // Book the earnings the webhook skipped.
+        for (const item of order.items) {
+          await tx.creatorEarning.upsert({
+            where: { orderItemId: item.id },
+            update: {},
+            create: {
+              creatorId: item.creatorId,
+              orderItemId: item.id,
+              amount: item.creatorAmount,
+              isPaidOut: false,
+            },
+          });
+        }
+
+        await tx.orderStatusEvent.create({
+          data: {
+            orderId,
+            status: OrderStatus.ORDER_CONFIRMED,
+            note: `Dispute resolved by ${admin.email}: confirmed. ${note}`,
+          },
+        });
+      });
+    } else {
+      await prisma.$transaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: orderId, status: OrderStatus.DISPUTED },
+          data: { status: OrderStatus.REFUND_REQUESTED },
+        });
+        if (updated.count === 0) throw new Error("Order status changed. Please refresh and try again.");
+
+        await tx.refund.create({
+          data: {
+            orderId,
+            amount: order.grandTotal,
+            status: RefundStatus.REQUESTED,
+            reason: `Dispute resolved by ${admin.email}: refund. ${note}`,
+          },
+        });
+
+        await tx.creatorEarning.deleteMany({
+          where: { orderItemId: { in: order.items.map((i) => i.id) }, isPaidOut: false },
+        });
+
+        await tx.orderStatusEvent.create({
+          data: {
+            orderId,
+            status: OrderStatus.REFUND_REQUESTED,
+            note: `Dispute resolved by ${admin.email}: refund requested. ${note}`,
+          },
+        });
+      });
+    }
+
+    const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: order.customerId,
+          type: resolution === "CONFIRM" ? "ORDER_CONFIRMED" : "REFUND_REQUESTED",
+          title:
+            resolution === "CONFIRM"
+              ? `Order #${order.orderNumber} confirmed`
+              : `Refund requested for order #${order.orderNumber}`,
+          body:
+            resolution === "CONFIRM"
+              ? "Your order has been confirmed after review. The studio will prepare your artwork."
+              : `Your order couldn't proceed, so we've requested a full refund of \u20b9${Number(order.grandTotal).toLocaleString("en-IN")}. It should reach you within 5-7 business days.`,
+          refType: "ORDER",
+          refId: orderId,
+        },
+      });
+    } catch (e) {
+      console.error("[resolveDisputedOrderAction] notification failed:", e);
+    }
+    if (order.customer?.email) {
+      sendEmail({
+        to: order.customer.email,
+        subject:
+          resolution === "CONFIRM"
+            ? `Order #${order.orderNumber} confirmed \u2014 Kalaa Bhadra`
+            : `Refund requested for order #${order.orderNumber} \u2014 Kalaa Bhadra`,
+        html: generateOrderStatusEmail({
+          customerName: order.customer.name || "Artisan Collector",
+          orderNumber: order.orderNumber,
+          status: resolution === "CONFIRM" ? "Order Confirmed" : "Refund Requested",
+          message: note,
+          trackingUrl: `${domain}/orders/${order.orderNumber}`,
+        }),
+      }).catch((err) => console.error("[resolveDisputedOrderAction] email failed:", err));
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: admin.id,
+        action: `DISPUTE_RESOLVED_${resolution}`,
+        targetType: "ORDER",
+        targetId: orderId,
+        metadata: { orderNumber: order.orderNumber, note },
+      },
+    });
+
+    revalidatePath("/admin");
+    revalidatePath(`/admin/orders/${order.orderNumber}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("[resolveDisputedOrderAction] Error:", error);
+    return { success: false, error: toClientError("dispute resolution error", error) };
   }
 }
 
@@ -747,6 +1134,9 @@ export async function updatePlatformCommissionAction(params: {
     if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
       throw new Error("Commission percentage must be between 0 and 100.");
     }
+    // Scope ids come from admin UI selects — validate shape, not just type.
+    if (creatorId !== undefined) cuidSchema.parse(creatorId);
+    if (categoryId !== undefined) cuidSchema.parse(categoryId);
 
     // Create new Commission rule
     // Close out any currently-active rules in the same scope first, so

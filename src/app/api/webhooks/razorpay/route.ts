@@ -9,7 +9,7 @@ import {
   sendEmail,
 } from "@/lib/email";
 import { dispatchAdminAlert } from "@/lib/admin-alerts";
-import { ArtworkProductType, OrderStatus, PaymentStatus, StockStatus } from "@prisma/client";
+import { ArtworkProductType, OrderStatus, PaymentStatus, RefundStatus, StockStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -57,6 +57,14 @@ export async function POST(req: Request) {
   }
 
   const eventType = event.event || "";
+  // Refund events carry payload.refund.entity, not payload.payment.entity —
+  // they must be routed BEFORE the orderNumber guard below, which only
+  // applies to payment events. (A refund executed in the dashboard has no
+  // payment notes; the old position meant handleRefundEvent never ran.)
+  if (eventType === "refund.created" || eventType === "refund.processed") {
+    return handleRefundEvent(event);
+  }
+
   const paymentEntity = event.payload?.payment?.entity || {};
   const rzpPaymentId = paymentEntity.id?.toString() || "";
   const rzpOrderId = paymentEntity.order_id?.toString() || "";
@@ -83,16 +91,74 @@ export async function POST(req: Request) {
     case "payment.failed":
       return handlePaymentFailure(orderNumber, rzpOrderId, rzpPaymentId, paymentEntity, gatewayEventId);
     default:
-      // Unknown / informational events (e.g. order.paid, refund.*) — ack.
+      // Unknown / informational events (e.g. order.paid) — ack.
       return NextResponse.json({ received: true });
   }
+}
+
+/**
+ * A refund executed in the Razorpay dashboard must be visible to the
+ * ledger — otherwise cancelled orders claim "refund pending" forever and
+ * finance queries can't reconcile. Best-effort: never throws.
+ */
+async function handleRefundEvent(event: any) {
+  try {
+    const refundEntity = event.payload?.refund?.entity || {};
+    const gatewayRefundId = refundEntity.id?.toString() || "";
+    const rzpPaymentId = refundEntity.payment_id?.toString() || "";
+    if (!gatewayRefundId || !rzpPaymentId) {
+      console.warn("[razorpay webhook] refund event missing ids");
+      return NextResponse.json({ received: true });
+    }
+    // Trace the Razorpay payment back to our order via the transaction rows
+    // the capture handler recorded.
+    const txn = await prisma.paymentTransaction.findFirst({
+      where: { gatewayPaymentId: rzpPaymentId },
+      include: { payment: true },
+    });
+    const orderId = txn?.payment?.orderId;
+    if (!orderId) {
+      console.warn("[razorpay webhook] refund for unknown payment:", rzpPaymentId);
+      return NextResponse.json({ received: true });
+    }
+    // Settle the matching refund row, not every open refund on the order.
+    // A duplicate-payment refund and a cancellation refund can both be open;
+    // marking both COMPLETED on one gateway event would lie about the second.
+    const refundAmount = refundEntity.amount ? Number(refundEntity.amount) / 100 : null;
+    const openRefunds = await prisma.refund.findMany({
+      where: { orderId, status: { not: RefundStatus.COMPLETED } },
+      orderBy: { requestedAt: "asc" },
+    });
+    const match =
+      (refundAmount !== null
+        ? openRefunds.find((r) => Math.abs(Number(r.amount) - refundAmount) < 0.01)
+        : null) || openRefunds[0];
+    if (match) {
+      await prisma.refund.update({
+        where: { id: match.id },
+        data: {
+          status: RefundStatus.COMPLETED,
+          gatewayRefundId,
+          processedAt: new Date(),
+        },
+      });
+      console.log("[razorpay webhook] refund settled:", match.id, "for order:", orderId);
+    } else {
+      console.warn("[razorpay webhook] no open refund row for order:", orderId);
+    }
+  } catch (e) {
+    console.error("[razorpay webhook] refund handler failed:", e);
+  }
+  return NextResponse.json({ received: true });
 }
 
 type SuccessOutcome =
   | { kind: "confirmed"; orderId: string }
   | { kind: "already-processed" }
-  | { kind: "amount-mismatch"; paidAmount: number; expected: number }
-  | { kind: "stock-unavailable"; itemTitle: string };
+  | { kind: "order-not-found"; orderNumber: string }
+  | { kind: "duplicate-payment"; orderId: string; paidAmount: number }
+  | { kind: "amount-mismatch"; orderId: string; paidAmount: number; expected: number }
+  | { kind: "stock-unavailable"; orderId: string; itemTitle: string };
 
 async function handlePaymentSuccess(
   orderNumber: string,
@@ -122,7 +188,21 @@ async function handlePaymentSuccess(
       },
     });
 
-    if (!order || !order.payment) throw new Error("Order or payment not found");
+    if (!order || !order.payment) {
+      // Permanently unprocessable: ack 200 so Razorpay stops retrying an
+      // event that can never succeed. (Throwing 500 here caused retry
+      // storms for a no-op.)
+      console.warn("[razorpay webhook] captured event for unknown order/payment:", orderNumber);
+      return { kind: "order-not-found", orderNumber } as const;
+    }
+
+    // Idempotency BEFORE the status gate: a redelivered event no-ops here.
+    // The @unique(gatewayEventId) constraint is the backstop, not the
+    // mechanism — the old comment claiming otherwise was wrong.
+    const existingTxn = await tx.paymentTransaction.findUnique({
+      where: { gatewayEventId },
+    });
+    if (existingTxn) return { kind: "already-processed" } as const;
 
     // Admit PENDING_PAYMENT (first attempt) and PAYMENT_FAILED (buyer retried
     // after a failed attempt — the retry stamps notes.orderNumber on a fresh
@@ -132,13 +212,34 @@ async function handlePaymentSuccess(
       order.status !== OrderStatus.PENDING_PAYMENT &&
       order.status !== OrderStatus.PAYMENT_FAILED
     ) {
-      return { kind: "already-processed" } as const;
+      // Genuinely NEW payment for an order that can no longer confirm
+      // (buyer double-paid via retry/double-click). Record it and flag for
+      // refund — NEVER silently drop real money.
+      await tx.paymentTransaction.create({
+        data: {
+          paymentId: order.payment.id,
+          gatewayOrderId: rzpOrderId,
+          gatewayPaymentId: rzpPaymentId,
+          gatewayEventId,
+          status: PaymentStatus.PAID,
+          rawPayload: paymentEntity as any,
+        },
+      });
+      return { kind: "duplicate-payment", orderId: order.id, paidAmount } as const;
     }
 
-    // 1. Amount reconciliation — never confirm an order against a mismatched
-    // amount. Flag for manual review instead of failing open.
+    // 1. Amount + currency reconciliation — never confirm an order against a
+    // mismatched amount. Flag for manual review instead of failing open.
     const expected = Number(order.grandTotal);
-    if (!Number.isFinite(paidAmount) || Math.abs(paidAmount - expected) > 0.01) {
+    const paidCurrency = (paymentEntity.currency || "").toString().toUpperCase();
+    const currencyOk = !paidCurrency || paidCurrency === "INR";
+    if (!currencyOk || !Number.isFinite(paidAmount) || Math.abs(paidAmount - expected) > 0.01) {
+      // The money DID move — the payment row must say PAID so finance
+      // queries don't silently miss captured-but-disputed funds.
+      await tx.payment.update({
+        where: { id: order.payment.id },
+        data: { status: PaymentStatus.PAID },
+      });
       await tx.order.update({
         where: { id: order.id },
         data: { status: OrderStatus.DISPUTED },
@@ -157,10 +258,12 @@ async function handlePaymentSuccess(
         data: {
           orderId: order.id,
           status: OrderStatus.DISPUTED,
-          note: `Amount mismatch: gateway reported ${paidAmount}, order total ${expected}. Held for manual review.`,
+          note: currencyOk
+            ? `Amount mismatch: gateway reported ${paidAmount}, order total ${expected}. Held for manual review.`
+            : `Currency mismatch: gateway reported ${paidCurrency || "unknown"}, expected INR. Held for manual review.`,
         },
       });
-      return { kind: "amount-mismatch", paidAmount, expected } as const;
+      return { kind: "amount-mismatch", orderId: order.id, paidAmount, expected } as const;
     }
 
     // 2. Stock re-check at confirm time. Two PENDING_PAYMENT orders for the
@@ -180,6 +283,12 @@ async function handlePaymentSuccess(
         live.stockStatus === StockStatus.SOLD ||
         live.stock < item.quantity
       ) {
+        // Money moved but the piece is gone — payment row says PAID (honest),
+        // order waits for a human.
+        await tx.payment.update({
+          where: { id: order.payment.id },
+          data: { status: PaymentStatus.PAID },
+        });
         await tx.order.update({
           where: { id: order.id },
           data: { status: OrderStatus.DISPUTED },
@@ -203,6 +312,7 @@ async function handlePaymentSuccess(
         });
         return {
           kind: "stock-unavailable",
+          orderId: order.id,
           itemTitle: item.titleSnapshot,
         } as const;
       }
@@ -422,33 +532,118 @@ async function handlePaymentSuccess(
         );
       });
     }
+  } else if (outcome.kind === "order-not-found") {
+    try {
+      await dispatchAdminAlert({
+        type: "PAYMENT_REVIEW",
+        message: `Captured payment for unknown order #${outcome.orderNumber} — event acknowledged, no order to confirm. Check Razorpay dashboard.`,
+        actionUrl: `/admin`,
+        actionText: "Review in Admin Panel",
+      });
+    } catch (e) {
+      console.error("[webhook] admin alert failed:", e);
+    }
+  } else if (outcome.kind === "duplicate-payment") {
+    // Real money arrived twice for one order. The buyer must hear from us
+    // and the team must refund — silence here is how double-charges fester.
+    try {
+      await dispatchAdminAlert({
+        type: "PAYMENT_REVIEW",
+        message: `Duplicate payment captured for order #${orderNumber} (₹${outcome.paidAmount.toLocaleString("en-IN")}). Order already confirmed — refund the duplicate via the Razorpay dashboard.`,
+        refType: "ORDER",
+        actionUrl: `/admin/orders/${orderNumber}`,
+        actionText: "Open Order & Refund",
+      });
+    } catch (e) {
+      console.error("[webhook] admin alert failed:", e);
+    }
+    await notifyBuyerOfHeldPayment(outcome.orderId, orderNumber, domain,
+      `We noticed a duplicate payment of ₹${outcome.paidAmount.toLocaleString("en-IN")} for your order. Your order itself is confirmed — our team will refund the duplicate charge within 5–7 business days. No action is needed from you.`,
+      `Duplicate payment noticed for order #${orderNumber}`);
   } else if (outcome.kind === "amount-mismatch") {
     try {
       await dispatchAdminAlert({
         type: "PAYMENT_REVIEW",
         message: `Amount mismatch on order #${orderNumber}: gateway reported ${outcome.paidAmount}, expected ${outcome.expected}. Order held as DISPUTED.`,
         refType: "ORDER",
-        actionUrl: `/admin`,
-        actionText: "Review in Admin Panel",
+        actionUrl: `/admin/orders/${orderNumber}`,
+        actionText: "Resolve Dispute",
       });
     } catch (e) {
       console.error("[webhook] admin alert failed:", e);
     }
+    await notifyBuyerOfHeldPayment(outcome.orderId, orderNumber, domain,
+      `We captured ₹${outcome.paidAmount.toLocaleString("en-IN")} for your order, but the amount doesn't match what we expected — so we've held the order for manual review instead of confirming it. Our team will contact you within 24 hours; if the order can't proceed you'll receive a full refund.`,
+      `Payment under review for order #${orderNumber}`);
   } else if (outcome.kind === "stock-unavailable") {
     try {
       await dispatchAdminAlert({
         type: "PAYMENT_REVIEW",
         message: `Stock unavailable at payment confirm for "${outcome.itemTitle}" (order #${orderNumber}). Payment captured — manual review/refund required.`,
         refType: "ORDER",
-        actionUrl: `/admin`,
-        actionText: "Review in Admin Panel",
+        actionUrl: `/admin/orders/${orderNumber}`,
+        actionText: "Resolve Dispute",
       });
     } catch (e) {
       console.error("[webhook] admin alert failed:", e);
     }
+    await notifyBuyerOfHeldPayment(outcome.orderId, orderNumber, domain,
+      `We captured your payment, but "${outcome.itemTitle}" became unavailable just as your payment completed. We've held your order for manual review — our team will contact you within 24 hours with either the piece or a full refund.`,
+      `Payment under review for order #${orderNumber}`);
   }
 
   return NextResponse.json({ received: true });
+}
+
+/**
+ * A buyer's money is captured but their order can't confirm (duplicate,
+ * dispute, stock race). They must hear from us — money taken in silence is
+ * how chargebacks happen. Best-effort: never throws.
+ */
+async function notifyBuyerOfHeldPayment(
+  orderId: string,
+  orderNumber: string,
+  domain: string,
+  message: string,
+  notifTitle: string
+) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { customer: true, address: true },
+  });
+  if (!order) return;
+  const trackingUrl = order.guestAccessToken
+    ? `${domain}/orders/${order.orderNumber}?t=${order.guestAccessToken}`
+    : `${domain}/orders/${order.orderNumber}`;
+  try {
+    await sendEmail({
+      to: order.customer.email,
+      subject: `${notifTitle} — Kalaa Bhadra`,
+      html: generateOrderStatusEmail({
+        customerName: order.customer.name || order.address.fullName,
+        orderNumber: order.orderNumber,
+        status: "Payment Under Review",
+        message: `${message} You can follow your order here:`,
+        trackingUrl,
+      }),
+    });
+  } catch (e) {
+    console.error("[webhook] held-payment email failed:", e);
+  }
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: order.customerId,
+        type: "PAYMENT_UNDER_REVIEW",
+        title: notifTitle,
+        body: message,
+        refType: "ORDER",
+        refId: order.id,
+      },
+    });
+  } catch (e) {
+    console.error("[webhook] held-payment notification failed:", e);
+  }
 }
 
 type FailureOutcome =
@@ -475,7 +670,11 @@ async function handlePaymentFailure(
       include: { payment: true },
     });
 
-    if (!order || !order.payment) throw new Error("Order or payment not found");
+    if (!order || !order.payment) {
+      // Permanently unprocessable — ack 200 so Razorpay stops retrying.
+      console.warn("[razorpay webhook] failed event for unknown order/payment:", orderNumber);
+      return { kind: "already-processed" } as const;
+    }
 
     if (order.status !== OrderStatus.PENDING_PAYMENT) {
       return { kind: "already-processed" } as const;
@@ -526,7 +725,7 @@ async function handlePaymentFailure(
           customerName: order.customer.name || order.address.fullName,
           orderNumber: order.orderNumber,
           status: "Payment Failed",
-          message: `${reason} No amount was charged. You can safely try again from your bag.`,
+          message: `${reason} No amount was charged. You can safely retry the payment from your order page:`,
           trackingUrl: order.guestAccessToken
             ? `${domain}/orders/${order.orderNumber}?t=${order.guestAccessToken}`
             : `${domain}/orders/${order.orderNumber}`,
@@ -545,7 +744,7 @@ async function handlePaymentFailure(
             userId: order.customerId,
             type: "PAYMENT_FAILED",
             title: `Payment failed for order #${order.orderNumber}`,
-            body: "No amount was charged. Please try again from your bag.",
+            body: "No amount was charged. Please retry the payment from your order page.",
             refType: "ORDER",
             refId: order.id,
           },

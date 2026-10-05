@@ -5,6 +5,7 @@ import { getSession } from "@/modules/auth/guards";
 import { revalidatePath } from "next/cache";
 import { cuidSchema, firstIssue } from "@/lib/validation";
 import { SAFE_USER_SELECT } from "@/lib/safe-select";
+import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
 
 /**
  * Get the current session user ID or null if unauthenticated.
@@ -27,6 +28,9 @@ export async function toggleWishlistAction(artworkId: string) {
     if (!userId) {
       return { error: "Please sign in to save artworks to your wishlist." };
     }
+
+    const rl = await checkRateLimit(`wishlist:${userId}`, 60, 60_000);
+    if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
     // Upsert the wishlist
     let wishlist = await prisma.wishlist.findUnique({ where: { userId } });

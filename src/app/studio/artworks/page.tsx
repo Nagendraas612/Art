@@ -4,8 +4,15 @@ import { getCurrentCreator } from "@/lib/studio-auth";
 import { ArtworkStatus, StockStatus, ArtworkProductType } from "@prisma/client";
 import styles from "./artworks.module.css";
 
-export default async function StudioArtworksPage() {
+export default async function StudioArtworksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ submitted?: string; saved?: string }>;
+}) {
   const creator = await getCurrentCreator();
+  const params = await searchParams;
+  const justSubmitted = params.submitted === "1";
+  const justSaved = params.saved === "1";
 
   if (!creator) {
     return <div className={styles.empty}>Studio not found.</div>;
@@ -22,6 +29,25 @@ export default async function StudioArtworksPage() {
 
   return (
     <div className={styles.container}>
+      {(justSubmitted || justSaved) && (
+        <div
+          role="status"
+          style={{
+            background: "#eef6ee",
+            border: "1px solid #bfe0bf",
+            color: "#276738",
+            borderRadius: 10,
+            padding: "12px 18px",
+            marginBottom: 18,
+            fontSize: 14,
+            fontWeight: 600,
+          }}
+        >
+          {justSubmitted
+            ? "Your piece was submitted for review. It will appear in the gallery once approved."
+            : "Your changes were saved."}
+        </div>
+      )}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Artworks &amp; Inventory</h1>
@@ -121,9 +147,15 @@ export default async function StudioArtworksPage() {
                     </td>
                     <td>
                       <div className={styles.actionsCell}>
-                        <Link href={`/artwork/${art.slug}`} target="_blank" className={styles.actionBtn}>
-                          Live ↗
-                        </Link>
+                        {art.status === ArtworkStatus.PUBLISHED ? (
+                          <Link href={`/artwork/${art.slug}`} target="_blank" className={styles.actionBtn}>
+                            Live ↗
+                          </Link>
+                        ) : (
+                          <span className={styles.actionBtn} style={{ opacity: 0.45, cursor: "default" }} title="Visible publicly once approved and published">
+                            Live ↗
+                          </span>
+                        )}
                         <Link href={`/studio/artworks/${art.id}/edit`} className={styles.editBtn}>
                           Edit
                         </Link>

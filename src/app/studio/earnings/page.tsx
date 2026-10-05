@@ -25,6 +25,14 @@ export default async function StudioEarningsPage() {
     },
   });
 
+  // Refund state per order: a cancelled order is "refund pending" until the
+  // refund is actually settled — the old label claimed "refunded" as fact.
+  const refunds = await prisma.refund.findMany({
+    where: { orderId: { in: orderItems.map((i) => i.orderId) } },
+    select: { orderId: true, status: true },
+  });
+  const refundByOrderId = new Map(refunds.map((r) => [r.orderId, r.status]));
+
   // Cancelled orders must not inflate gross sales: their earnings rows were
   // deleted at cancellation, so including their line totals would overstate
   // both gross and the implied platform fee. They stay visible in the ledger
@@ -42,7 +50,13 @@ export default async function StudioEarningsPage() {
     0
   );
 
-  const totalCommission = totalGross - totalNet;
+  // Sum the platform fee actually booked per line item — never derive it as
+  // gross − net, because the two sums come from different row sets (active
+  // items vs earning ledger rows) and the arithmetic lied.
+  const totalCommission = activeItems.reduce(
+    (acc, curr) => acc + parseFloat(curr.platformCommission.toString()),
+    0
+  );
 
   const paidOut = earnings
     .filter((e) => e.isPaidOut)
@@ -119,7 +133,7 @@ export default async function StudioEarningsPage() {
                   <th>Date</th>
                   <th>Order Reference</th>
                   <th>Sale Amount</th>
-                  <th>Platform Fee (10%)</th>
+                  <th>Platform Fee</th>
                   <th>Net Studio Payout</th>
                   <th>Payout Status</th>
                 </tr>
@@ -152,7 +166,9 @@ export default async function StudioEarningsPage() {
                       <td>
                         {item.order.status === OrderStatus.CANCELLED ? (
                           <span className={styles.statusCancelled}>
-                            Cancelled — refunded
+                            {refundByOrderId.get(item.orderId) === "COMPLETED"
+                              ? "Cancelled — refunded"
+                              : "Cancelled — refund pending"}
                           </span>
                         ) : earning?.isPaidOut ? (
                           <span className={styles.statusPaid}>
@@ -175,6 +191,50 @@ export default async function StudioEarningsPage() {
             </table>
           </div>
         )}
+
+        {/* Payout history: money actually transferred to the studio, latest first */}
+        {(() => {
+          const settled = earnings
+            .filter((e) => e.isPaidOut)
+            .sort((a, b) => +new Date(b.payout?.processedAt || b.createdAt) - +new Date(a.payout?.processedAt || a.createdAt));
+          if (settled.length === 0) return null;
+          return (
+            <div style={{ marginTop: 32 }}>
+              <div className={styles.ledgerHeader}>
+                <h2 className={styles.ledgerTitle}>Payout History</h2>
+                <span className={styles.ledgerCount}>{settled.length} payouts</span>
+              </div>
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Reference</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {settled.map((e) => (
+                      <tr key={e.id} className={styles.tr}>
+                        <td>
+                          {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(
+                            new Date(e.payout?.processedAt || e.createdAt)
+                          )}
+                        </td>
+                        <td>{e.payout?.settlementReference || e.orderItemId || "—"}</td>
+                        <td className={styles.netCell}>
+                          <strong>₹{parseFloat(e.amount.toString()).toLocaleString("en-IN")}</strong>
+                        </td>
+                        <td>{e.payout?.status ? String(e.payout.status).replace(/_/g, " ") : "Settled"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

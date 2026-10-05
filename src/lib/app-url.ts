@@ -17,9 +17,22 @@ export function getAppUrl(): string {
   return withProtocol.replace(/\/+$/, "");
 }
 
-/** Join the app URL with a path, tolerating a path-or-full-URL input. */
+/** Join the app URL with a path. Full-URL inputs are accepted only when
+ * they point at OUR OWN origin — appUrl() is used to build admin action
+ * links and email buttons, so a future caller passing user input must not
+ * be able to mint a trusted-looking link to an attacker domain. */
 export function appUrl(pathOrUrl: string): string {
-  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  if (/^https?:\/\//i.test(pathOrUrl)) {
+    try {
+      const base = new URL(getAppUrl());
+      const given = new URL(pathOrUrl);
+      if (given.origin === base.origin) return pathOrUrl;
+    } catch {
+      // fall through to the safe default below
+    }
+    console.warn("[appUrl] rejected non-app-origin URL, falling back to /");
+    return `${getAppUrl()}/`;
+  }
   const base = getAppUrl();
   const path = pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`;
   return `${base}${path}`;

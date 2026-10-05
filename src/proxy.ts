@@ -1,65 +1,39 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
-// Simple in-memory rate limiter per serverless instance
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+// The old per-instance Map limiter is gone: on Vercel each serverless
+// instance had its own bucket (N x the limit across a warm fleet), and it
+// never consulted Upstash. These now go through the shared limiter, which
+// falls back to memory per-instance only when Upstash is unconfigured
+// (and logs a production warning when it does).
 
-const CLEANUP_INTERVAL = 5 * 60 * 1000;
-let lastCleanup = Date.now();
-
-function cleanupStaleEntries() {
-  const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL) return;
-  lastCleanup = now;
-  for (const [key, value] of rateLimitMap.entries()) {
-    if (now > value.resetTime) {
-      rateLimitMap.delete(key);
-    }
-  }
+function tooMany(message: string) {
+  return new NextResponse(
+    JSON.stringify({ error: message }),
+    { status: 429, headers: { "Content-Type": "application/json", "Retry-After": "60" } }
+  );
 }
 
-function isRateLimited(ip: string, keyPrefix: string, maxRequests: number, windowMs: number): boolean {
-  cleanupStaleEntries();
-  const now = Date.now();
-  const key = `${ip}:${keyPrefix}`;
-  const record = rateLimitMap.get(key);
-
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
-    return false;
-  }
-
-  record.count += 1;
-  if (record.count > maxRequests) {
-    return true;
-  }
-  return false;
-}
-
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "127.0.0.1";
+  const ip = getClientIp(request.headers);
 
   // Rate limit authentication API endpoints (30 req / minute)
   if (pathname.startsWith("/api/auth")) {
-    if (isRateLimited(ip, "auth_api", 30, 60 * 1000)) {
-      return new NextResponse(
-        JSON.stringify({ error: "Too many authentication requests. Please try again in a minute." }),
-        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": "60" } }
-      );
+    const rl = await checkRateLimit(`proxy:auth:${ip}`, 30, 60 * 1000);
+    if (!rl.allowed) {
+      return tooMany("Too many authentication requests. Please try again in a minute.");
     }
   }
 
   // Rate limit checkout operations (10 POST req / minute)
   if (pathname.startsWith("/checkout") || pathname.startsWith("/api/checkout")) {
-    if (request.method === "POST" && isRateLimited(ip, "checkout", 10, 60 * 1000)) {
-      return new NextResponse(
-        JSON.stringify({ error: "Too many checkout attempts. Please wait a moment before trying again." }),
-        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": "60" } }
-      );
+    if (request.method === "POST") {
+      const rl = await checkRateLimit(`proxy:checkout:${ip}`, 10, 60 * 1000);
+      if (!rl.allowed) {
+        return tooMany("Too many checkout attempts. Please wait a moment before trying again.");
+      }
     }
   }
 

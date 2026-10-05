@@ -3,6 +3,7 @@ import { getSession } from "@/modules/auth/guards";
 import { redirect } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { ChatView, ConversationSummary } from "@/components/messaging/ChatView";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 import styles from "./messages.module.css";
 
 interface MessagesPageProps {
@@ -13,7 +14,7 @@ interface MessagesPageProps {
 
 export const metadata = {
   title: "Messages & Studio Inquiries",
-  description: "Direct encrypted chat with independent master artists and craft studios.",
+  description: "Private chat with independent master artists and craft studios.",
 };
 
 export default async function MessagesPage({ searchParams }: MessagesPageProps) {
@@ -37,8 +38,8 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
       ],
     },
     include: {
-      creator: { include: { user: true } },
-      customer: true,
+      creator: { include: { user: { select: SAFE_USER_SELECT } } },
+      customer: { select: SAFE_USER_SELECT },
       messages: {
         include: { attachments: true },
         orderBy: { createdAt: "asc" },

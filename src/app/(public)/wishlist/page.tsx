@@ -122,8 +122,8 @@ export default async function WishlistPage() {
                       avatarUrl: item.creator.profileImageUrl || item.creator.user.image,
                     }}
                     medium={specs.medium}
-                    isSigned={specs.isSigned}
-                    hasCertificate={specs.hasCertificate}
+                    isSigned={item.isSigned}
+                    hasCertificate={item.hasCertificate}
                     editionSize={item.editionSize}
                     editionSold={item.editionSold}
                     isWishlisted={true}

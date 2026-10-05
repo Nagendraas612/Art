@@ -118,6 +118,9 @@ export function Nav() {
                   Get Started
                 </Link>
               </div>
+
+              {/* Guests shop too — the bag is theirs even before sign-in. */}
+              <CartNavButton />
             </>
           )}
         </div>

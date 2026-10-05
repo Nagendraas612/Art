@@ -18,7 +18,8 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { OrderStatus } from "@prisma/client";
+import { getShipmentAwb } from "@/lib/shiprocket";
+import { OrderStatus, Prisma } from "@prisma/client";
 import {
   assignAwb,
   createShiprocketOrder,
@@ -183,15 +184,13 @@ async function saveShipmentRow(
     pickupLocation: data.pickupLocation,
     shipmentError: data.shipmentError ?? null,
   };
-  const already = await prisma.shipment.findFirst({
-    where: { orderId: data.orderId, shiprocketOrderId: srOrderId },
-    select: { id: true },
+  // Atomic upsert on @@unique([orderId, shiprocketOrderId]) — the old
+  // findFirst-then-create/update raced concurrent dispatches.
+  await prisma.shipment.upsert({
+    where: { orderId_shiprocketOrderId: { orderId: data.orderId, shiprocketOrderId: srOrderId } },
+    update: row,
+    create: row,
   });
-  if (already) {
-    await prisma.shipment.update({ where: { id: already.id }, data: row });
-  } else {
-    await prisma.shipment.create({ data: row });
-  }
 }
 
 async function dispatchCreatorShipment(args: {
@@ -231,6 +230,66 @@ async function dispatchCreatorShipment(args: {
   // Idempotency: our Shiprocket order_id is deterministic per
   // order+creator, so a retry reuses it and we skip finished rows.
   const srOrderId = `${orderNumber}-${creatorId.slice(-8)}`;
+
+  // A manual studio dispatch already put this order in a courier's hands
+  // (trackingNumber set, no Shiprocket order) — don't auto-dispatch over
+  // it and double-ship.
+  const manual = await prisma.shipment.findFirst({
+    where: {
+      orderId,
+      shiprocketOrderId: null,
+      trackingNumber: { not: null },
+    },
+    select: { id: true },
+  });
+  if (manual) {
+    return {
+      creatorId,
+      storeName,
+      ok: true,
+      skipped: "manually dispatched",
+    };
+  }
+
+  // Concurrency guard: a studio retry racing the webhook's after()
+  // auto-dispatch could both pass the read-then-act checks below and
+  // double-book a real Shiprocket order. Claim the dispatch with a row
+  // first — @@unique([orderId, shiprocketOrderId]) makes the loser back off
+  // instead of double-booking. A failed (not in-flight) row doesn't block
+  // retries: only a fresh, error-free, AWB-less row means "in progress".
+  try {
+    await prisma.shipment.create({
+      data: {
+        orderId,
+        shiprocketOrderId: srOrderId,
+        status: "PENDING",
+        pickupLocation,
+      },
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      const rival = await prisma.shipment.findFirst({
+        where: { orderId, shiprocketOrderId: srOrderId },
+      });
+      const inFlight =
+        rival &&
+        !rival.awbCode &&
+        !rival.shipmentError &&
+        Date.now() - rival.createdAt.getTime() < 5 * 60_000;
+      if (inFlight) {
+        return {
+          creatorId,
+          storeName,
+          ok: false,
+          error: "Dispatch already in progress for this order.",
+        };
+      }
+      // Stale or failed row — proceed; saveShipmentRow upserts it below.
+    } else {
+      throw e;
+    }
+  }
+
   const done = await prisma.shipment.findFirst({
     where: { orderId, shiprocketOrderId: srOrderId, awbCode: { not: null } },
     select: { awbCode: true, carrier: true },
@@ -345,7 +404,12 @@ async function dispatchCreatorShipment(args: {
         weightKg: Math.round(weightKg * 100) / 100,
       })
     : null;
-  const awb = await assignAwb(shipmentId, cheapest?.courierId);
+  const awb =
+    // Adopt, don't orphan: a previous assignAwb may have succeeded at
+    // Shiprocket while its HTTP response was lost. Re-assigning would
+    // orphan a live AWB; read back the existing one first.
+    (await getShipmentAwb(shipmentId)) ??
+    (await assignAwb(shipmentId, cheapest?.courierId));
   if (!awb) {
     await saveShipmentRow(srOrderId, {
       orderId,
@@ -427,6 +491,11 @@ const EVENT_TO_STATUS: Record<string, ShipmentStatus> = {
   CANCELLED: ShipmentStatus.RETURNED,
   DELIVERY_FAILED: ShipmentStatus.FAILED_DELIVERY,
   FAILED_DELIVERY: ShipmentStatus.FAILED_DELIVERY,
+  // Shiprocket's canonical terminal-failure statuses — without these the
+  // timeline freezes at OUT_FOR_DELIVERY after the courier gives up.
+  UNDELIVERED: ShipmentStatus.FAILED_DELIVERY,
+  LOST: ShipmentStatus.FAILED_DELIVERY,
+  DAMAGED: ShipmentStatus.FAILED_DELIVERY,
 };
 
 /** Forward-only rank: events never move a shipment backwards. */
@@ -512,7 +581,9 @@ export async function handleShiprocketTrackingEvent(
     }
 
     const shipment = await prisma.shipment.findFirst({
-      where: { awbCode: awb },
+      // Manual studio dispatches store the number in trackingNumber (no
+      // Shiprocket AWB) — match either so their tracking events land.
+      where: { OR: [{ awbCode: awb }, { trackingNumber: awb }] },
       include: {
         order: { select: { id: true, orderNumber: true, customerId: true } },
       },
@@ -526,24 +597,37 @@ export async function handleShiprocketTrackingEvent(
     const note = extractNote(payload);
     let updated = false;
 
-    if (mapped && STATUS_RANK[mapped] > STATUS_RANK[shipment.status]) {
-      const data: {
-        status: ShipmentStatus;
-        shippedAt?: Date;
-        deliveredAt?: Date;
-      } = { status: mapped };
-      if (mapped === ShipmentStatus.PICKED_UP && !shipment.shippedAt) {
-        data.shippedAt = new Date();
+    // Re-read the row under lock: two tracking events racing here could
+    // otherwise let a stale IN_TRANSIT overwrite a committed DELIVERED.
+    if (mapped) {
+      const newStatus = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Shipment" WHERE id = ${shipment.id} FOR UPDATE`;
+        const fresh = await tx.shipment.findUnique({
+          where: { id: shipment.id },
+          select: { status: true, shippedAt: true, deliveredAt: true },
+        });
+        if (!fresh || STATUS_RANK[mapped] <= STATUS_RANK[fresh.status]) return null;
+        const data: {
+          status: ShipmentStatus;
+          shippedAt?: Date;
+          deliveredAt?: Date;
+        } = { status: mapped };
+        if (mapped === ShipmentStatus.PICKED_UP && !fresh.shippedAt) {
+          data.shippedAt = new Date();
+        }
+        if (mapped === ShipmentStatus.DELIVERED && !fresh.deliveredAt) {
+          data.deliveredAt = new Date();
+        }
+        await tx.shipment.update({ where: { id: shipment.id }, data });
+        return mapped;
+      });
+      if (newStatus) {
+        updated = true;
+        console.log(
+          `[shipments] AWB ${awb}: ${shipment.status} → ${mapped} (${event})`,
+        );
       }
-      if (mapped === ShipmentStatus.DELIVERED && !shipment.deliveredAt) {
-        data.deliveredAt = new Date();
-      }
-      await prisma.shipment.update({ where: { id: shipment.id }, data });
-      updated = true;
-      console.log(
-        `[shipments] AWB ${awb}: ${shipment.status} → ${mapped} (${event})`,
-      );
-    } else if (!mapped) {
+    } else {
       console.log(
         `[shipments] AWB ${awb}: unmapped event "${event}" — recorded only`,
       );
@@ -570,9 +654,17 @@ export async function handleShiprocketTrackingEvent(
       });
     }
 
-    // Buyer notifications on the two milestones that matter.
+    // Buyer notifications on the two milestones that matter. A courier
+    // retry after a failed delivery doesn't move the status backwards
+    // (forward-only rank), but the buyer still needs to know the parcel is
+    // moving again — notify on the event, not just the status change.
+    const recoveredAttempt =
+      !updated &&
+      (mapped === ShipmentStatus.OUT_FOR_DELIVERY ||
+        mapped === ShipmentStatus.DELIVERED) &&
+      shipment.status === ShipmentStatus.FAILED_DELIVERY;
     if (
-      updated &&
+      (updated || recoveredAttempt) &&
       (mapped === ShipmentStatus.OUT_FOR_DELIVERY ||
         mapped === ShipmentStatus.DELIVERED)
     ) {

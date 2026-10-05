@@ -51,36 +51,54 @@ export default async function StudioOrdersPage() {
         </div>
       ) : (
         <div className={styles.ordersGrid}>
-          {orderItems.map((item) => {
-            const lineTotal = parseFloat(item.lineTotal.toString());
-            const creatorNet = parseFloat(item.creatorAmount.toString());
-            const commission = parseFloat(item.platformCommission.toString());
-            const imgUrl = item.artwork.images[0]?.url || "";
+          {(() => {
+            // Group the creator's line items by order — one card per order,
+            // not one card per item (a multi-piece order was three cards).
+            const byOrder = new Map<string, typeof orderItems>();
+            for (const item of orderItems) {
+              const list = byOrder.get(item.order.id);
+              if (list) list.push(item);
+              else byOrder.set(item.order.id, [item]);
+            }
+            return Array.from(byOrder.values()).map((items) => {
+            const first = items[0];
+            const order = first.order;
+            const lineTotal = items.reduce((s, i) => s + parseFloat(i.lineTotal.toString()), 0);
+            const creatorNet = items.reduce((s, i) => s + parseFloat(i.creatorAmount.toString()), 0);
+            const commission = items.reduce((s, i) => s + parseFloat(i.platformCommission.toString()), 0);
+            const fmt = (n: number) =>
+              new Intl.NumberFormat("en-IN", {
+                style: "currency",
+                currency: order.currency,
+                maximumFractionDigits: 0,
+              }).format(n);
 
             const orderDate = new Intl.DateTimeFormat("en-IN", {
               dateStyle: "medium",
               timeStyle: "short",
-            }).format(item.order.createdAt);
+            }).format(order.createdAt);
+
+            // C3: don't let creators fulfil unpaid orders. The rows exist
+            // because the order was created, not because money moved.
+            const isPaid = order.payment?.status === "PAID";
 
             return (
-              <div key={item.id} className={styles.orderCard}>
+              <div key={order.id} className={styles.orderCard}>
                 <div className={styles.cardTop}>
                   <div>
                     <div className={styles.refRow}>
-                      <span className={styles.orderRef}>{item.order.orderNumber}</span>
+                      <span className={styles.orderRef}>{order.orderNumber}</span>
                       <span className={styles.orderDate}>{orderDate}</span>
                     </div>
-                    <h3 className={styles.artTitle}>{item.titleSnapshot}</h3>
+                    <h3 className={styles.artTitle}>
+                      {items.length === 1
+                        ? items[0].titleSnapshot
+                        : `${items.length} pieces`}
+                    </h3>
                   </div>
 
                   <div className={styles.priceMeta}>
-                    <span className={styles.totalPrice}>
-                      {new Intl.NumberFormat("en-IN", {
-                        style: "currency",
-                        currency: item.order.currency,
-                        maximumFractionDigits: 0,
-                      }).format(lineTotal)}
-                    </span>
+                    <span className={styles.totalPrice}>{fmt(lineTotal)}</span>
                     <span className={styles.netShare}>
                       Studio Net: ₹{creatorNet.toLocaleString("en-IN")}
                     </span>
@@ -88,23 +106,35 @@ export default async function StudioOrdersPage() {
                 </div>
 
                 <div className={styles.cardBody}>
+                  {/* Artworks in this order */}
+                  {items.map((item) => {
+                    const imgUrl = item.artwork.images[0]?.url || "";
+                    return (
+                      <div key={item.id} className={styles.detailsRow}>
+                        <div className={styles.thumbWrap}>
+                          {imgUrl ? <img src={imgUrl} alt={item.titleSnapshot} /> : null}
+                        </div>
+                        <div className={styles.buyerInfo}>
+                          <h4>{item.titleSnapshot}</h4>
+                          <p>Qty {item.quantity} · {fmt(parseFloat(item.lineTotal.toString()))}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+
                   {/* Artwork & Buyer Details */}
                   <div className={styles.detailsRow}>
-                    <div className={styles.thumbWrap}>
-                      {imgUrl ? <img src={imgUrl} alt={item.titleSnapshot} /> : null}
-                    </div>
-
                     <div className={styles.buyerInfo}>
                       <h4>Delivery Destination</h4>
                       <p>
-                        <strong>{item.order.address.fullName}</strong>
+                        <strong>{order.address.fullName}</strong>
                       </p>
-                      <p>{item.order.address.line1}</p>
-                      {item.order.address.line2 && <p>{item.order.address.line2}</p>}
+                      <p>{order.address.line1}</p>
+                      {order.address.line2 && <p>{order.address.line2}</p>}
                       <p>
-                        {item.order.address.city}, {item.order.address.state} — {item.order.address.postalCode}
+                        {order.address.city}, {order.address.state} — {order.address.postalCode}
                       </p>
-                      <p className={styles.phone}>Phone: {item.order.address.phone}</p>
+                      <p className={styles.phone}>Phone: {order.address.phone}</p>
                     </div>
 
                     <div className={styles.financialInfo}>
@@ -115,7 +145,7 @@ export default async function StudioOrdersPage() {
                           <dd>₹{lineTotal.toLocaleString("en-IN")}</dd>
                         </div>
                         <div>
-                          <dt>Platform Fee (10%)</dt>
+                          <dt>Platform Fee</dt>
                           <dd>-₹{commission.toLocaleString("en-IN")}</dd>
                         </div>
                         <div className={styles.netRow}>
@@ -129,64 +159,74 @@ export default async function StudioOrdersPage() {
                   {/* Status & Fulfillment Controller */}
                   <div className={styles.fulfillmentSection}>
                     <h4>Fulfillment Status</h4>
-                    <OrderStatusUpdater
-                      orderId={item.order.id}
-                      currentStatus={item.order.status}
-                    />
-                    {/* Phase 2: Shiprocket auto-dispatch state */}
-                    <div style={{ marginTop: 12 }}>
-                      <h4 style={{ marginBottom: 6 }}>Courier Dispatch</h4>
-                      {item.order.shipments.length === 0 ? (
-                        <div>
-                          <p style={{ fontSize: 13, color: "#6b5d4f" }}>
-                            No courier shipment yet — dispatch manually below,
-                            or retry auto-dispatch.
-                          </p>
-                          <div style={{ marginTop: 6 }}>
-                            <RetryShipmentButton orderId={item.order.id} />
-                          </div>
-                        </div>
-                      ) : (
-                        item.order.shipments.map((s) => (
-                          <div
-                            key={s.id}
-                            style={{
-                              fontSize: 13,
-                              color: "#5a4632",
-                              marginBottom: 8,
-                            }}
-                          >
-                            {s.awbCode ? (
-                              <p>
-                                <strong>{s.carrier || "Courier"}</strong> — AWB{" "}
-                                <code>{s.awbCode}</code>
-                                {s.pickupLocation
-                                  ? ` · via ${s.pickupLocation}`
-                                  : ""}
+                    {!isPaid ? (
+                      <p style={{ fontSize: 13, color: "#8a6d1b", background: "#fdf6e3", border: "1px solid #e8d9a8", borderRadius: 8, padding: "10px 14px" }}>
+                        Awaiting buyer payment — this order will unlock for
+                        fulfilment once payment is confirmed. Do not dispatch yet.
+                      </p>
+                    ) : (
+                      <>
+                        <OrderStatusUpdater
+                          orderId={order.id}
+                          currentStatus={order.status}
+                        />
+                        {/* Phase 2: Shiprocket auto-dispatch state */}
+                        <div style={{ marginTop: 12 }}>
+                          <h4 style={{ marginBottom: 6 }}>Courier Dispatch</h4>
+                          {order.shipments.length === 0 ? (
+                            <div>
+                              <p style={{ fontSize: 13, color: "#6b5d4f" }}>
+                                No courier shipment yet — dispatch manually below,
+                                or retry auto-dispatch.
                               </p>
-                            ) : (
-                              <div>
-                                <p style={{ color: "#a33" }}>
-                                  Auto-dispatch pending
-                                  {s.shipmentError
-                                    ? `: ${s.shipmentError}`
-                                    : ""}
-                                  .
-                                </p>
-                                <div style={{ marginTop: 6 }}>
-                                  <RetryShipmentButton orderId={item.order.id} />
-                                </div>
+                              <div style={{ marginTop: 6 }}>
+                                <RetryShipmentButton orderId={order.id} />
                               </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
+                            </div>
+                          ) : (
+                            order.shipments.map((s) => (
+                              <div
+                                key={s.id}
+                                style={{
+                                  fontSize: 13,
+                                  color: "#5a4632",
+                                  marginBottom: 8,
+                                }}
+                              >
+                                {s.awbCode ? (
+                                  <p>
+                                    <strong>{s.carrier || "Courier"}</strong> — AWB{" "}
+                                    <code>{s.awbCode}</code>
+                                    {s.pickupLocation
+                                      ? ` · via ${s.pickupLocation}`
+                                      : ""}
+                                  </p>
+                                ) : (
+                                  <div>
+                                    <p style={{ color: "#a33" }}>
+                                      Auto-dispatch pending
+                                      {s.shipmentError
+                                        ? `: ${s.shipmentError}`
+                                        : ""}
+                                      .
+                                    </p>
+                                    <div style={{ marginTop: 6 }}>
+                                      <RetryShipmentButton orderId={order.id} />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             );
-          })}
+            });
+          })()}
         </div>
       )}
     </div>

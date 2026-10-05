@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StudioNavLink } from "./StudioNavLink";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getSession } from "@/modules/auth/guards";
@@ -63,7 +64,7 @@ export default async function StudioLayout({
         <nav className={styles.nav}>
           <div className={styles.navGroup}>
             <span className={styles.navGroupTitle}>Studio Space</span>
-            <Link href="/studio" className={styles.navLink}>
+            <StudioNavLink href="/studio" exact>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="7" height="7" />
                 <rect x="14" y="3" width="7" height="7" />
@@ -71,16 +72,16 @@ export default async function StudioLayout({
                 <rect x="3" y="14" width="7" height="7" />
               </svg>
               <span>Overview</span>
-            </Link>
+            </StudioNavLink>
 
-            <Link href="/studio/artworks" className={styles.navLink}>
+            <StudioNavLink href="/studio/artworks">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                 <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
                 <line x1="12" y1="22.08" x2="12" y2="12" />
               </svg>
               <span>Artworks &amp; Craft</span>
-            </Link>
+            </StudioNavLink>
 
             <Link href="/studio/artworks/new" className={styles.navLinkHighlight}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -90,29 +91,29 @@ export default async function StudioLayout({
               <span>List New Piece</span>
             </Link>
 
-            <Link href="/studio/orders" className={styles.navLink}>
+            <StudioNavLink href="/studio/orders">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                 <line x1="3" y1="6" x2="21" y2="6" />
                 <path d="M16 10a4 4 0 0 1-8 0" />
               </svg>
               <span>Orders &amp; Logistics</span>
-            </Link>
+            </StudioNavLink>
 
-            <Link href="/studio/messages" className={styles.navLink}>
+            <StudioNavLink href="/studio/messages">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
               <span>Messages</span>
-            </Link>
+            </StudioNavLink>
 
-            <Link href="/studio/commissions" className={styles.navLink}>
+            <StudioNavLink href="/studio/commissions">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 20h9" />
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
               </svg>
               <span>Commissions</span>
-            </Link>
+            </StudioNavLink>
 
             <Link href="/studio/earnings" className={styles.navLink}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

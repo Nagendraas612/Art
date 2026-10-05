@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, escDeep } from "@/lib/email";
 import { appUrl, getAppUrl } from "@/lib/app-url";
 import { Role } from "@prisma/client";
 
@@ -83,6 +83,11 @@ function generateAdminAlertEmail(params: {
   actionUrl: string;
   actionText: string;
 }) {
+  // Every param is attacker-influenced at some call site (creator store
+  // names, customer names, artwork titles). Escape at entry — these emails
+  // go out from our own domain, so unescaped HTML here is a phishing
+  // primitive against admins.
+  params = escDeep(params);
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1c1917; background-color: #fafaf9; margin: 0; padding: 40px 20px;">
       <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e7e5e4; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">

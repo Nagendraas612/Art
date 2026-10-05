@@ -7,7 +7,7 @@ import { getRazorpay, isRazorpayConfigured } from "@/lib/razorpay";
 import { sendEmail, generateOrderConfirmationEmail } from "@/lib/email";
 import { dispatchAdminAlert } from "@/lib/admin-alerts";
 import { resolvePlatformFeeRate } from "@/lib/commissions";
-import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp, rateLimitExceeded } from "@/lib/rate-limit";
 import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, StockStatus, Prisma } from "@prisma/client";
 import { checkoutInputSchema, firstIssue, toClientError } from "@/lib/validation";
 import { getShippingSettings } from "@/lib/shipping";
@@ -49,8 +49,7 @@ export async function processCheckout(input: CheckoutInput) {
     // Rate-limit checkout attempts: money movement must not be spammable.
     // Keyed on both the buyer email and the caller IP so neither rotating
     // emails nor a shared inbox defeats the limit.
-    const ip =
-      (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip = getClientIp(await headers());
     const rlEmail = await checkRateLimit(`checkout:email:${customer.email.toLowerCase()}`, 10, 10 * 60_000);
     if (!rlEmail.allowed) return { error: rateLimitExceeded(rlEmail.retryAfterMs) };
     const rlIp = await checkRateLimit(`checkout:ip:${ip}`, 20, 10 * 60_000);
@@ -169,6 +168,10 @@ export async function processCheckout(input: CheckoutInput) {
       // unverified email. Anyone can type anyone's address; attaching the
       // order to the real account would leak the buyer's name, address and
       // phone into someone else's order history (and vice versa).
+      // SECURITY DEPENDENCY: the guest order page is gated ONLY by the
+      // unguessable guestAccessToken (?t=), never by email match — email
+      // verification is enforced at sign-up, so a "real" account here
+      // always means a verified owner. Keep both invariants together.
       // Repeat guest buyers reuse their own guest row (isGuest), so a
       // second purchase with the same address keeps working.
       const existing = await prisma.user.findUnique({
@@ -178,7 +181,7 @@ export async function processCheckout(input: CheckoutInput) {
       if (existing && !existing.isGuest) {
         return {
           error:
-            "An account with this email already exists. Please sign in to complete your purchase.",
+            "An account with this email already exists (or your session expired). Please sign in to complete your purchase.",
         };
       }
       if (existing) {
@@ -249,7 +252,11 @@ export async function processCheckout(input: CheckoutInput) {
     // Hard guard: a stale SANDBOX_CHECKOUT_ENABLED=true in production would
     // confirm every order with zero money moved. Refuse loudly instead of
     // failing open.
-    if (isSandbox && process.env.VERCEL_ENV === "production") {
+    if (
+      isSandbox &&
+      (process.env.VERCEL_ENV === "production" ||
+        process.env.NODE_ENV === "production")
+    ) {
       console.error(
         "[checkout] SANDBOX_CHECKOUT_ENABLED is set in production — refusing sandbox checkout."
       );
@@ -440,9 +447,20 @@ export async function processCheckout(input: CheckoutInput) {
         }
 
         // 3. Create Creator Notifications & Send Creator Emails for each unique artisan
+        // Use the rule-based payout booked in the transaction — not a
+        // hardcoded 90% — so the email matches the ledger.
+        const bookedItems = await prisma.orderItem.findMany({
+          where: { orderId: createdOrder.id },
+          select: { artworkId: true, creatorAmount: true },
+        });
+        const payoutByArtwork = new Map(
+          bookedItems.map((b) => [b.artworkId, Number(b.creatorAmount)])
+        );
         for (const item of validatedItems) {
           const creator = item.artwork.creator;
-          const creatorAmount = Math.round(item.lineTotal * 0.9); // 90% payout to creator
+          const creatorAmount = Math.round(
+            payoutByArtwork.get(item.artwork.id) ?? item.lineTotal * 0.9
+          );
 
           // In-app notification for creator
           if (creator.userId) {
@@ -547,6 +565,11 @@ export async function processCheckout(input: CheckoutInput) {
         razorpayOrderId: rzpOrder.id,
         // Guest buyers need this to open their order page after payment.
         guestAccessToken,
+        // Server-authoritative totals: the client compares these with what
+        // it displayed and warns the buyer if a price moved mid-session.
+        grandTotal: grandTotalNum,
+        subtotal: validatedItems.reduce((acc, i) => acc + i.lineTotal, 0),
+        shippingFee: shippingFeeNum,
       };
     }
 
@@ -679,22 +702,55 @@ export async function retryOrderPaymentAction(orderNumber: string, guestToken?: 
       return { error: "This order has already been paid and confirmed." };
     }
 
+    // A verified-but-unconfirmed payment is in flight (signature checked,
+    // webhook pending). Minting another Razorpay order here is exactly how
+    // buyers get double-charged. PAYMENT_FAILED orders are exempt: the
+    // failure event definitively arrived, so a retry is legitimate.
+    if (order.payment && order.status === OrderStatus.PENDING_PAYMENT) {
+      const verifiedTxn = await prisma.paymentTransaction.findFirst({
+        where: {
+          paymentId: order.payment.id,
+          gatewayPaymentId: { not: null },
+          status: { not: PaymentStatus.FAILED },
+        },
+        select: { id: true },
+      });
+      if (verifiedTxn) {
+        return { error: "We've received your payment and your order is being confirmed. Please wait a moment — if this persists, contact us." };
+      }
+    }
+
     if (order.status !== OrderStatus.PENDING_PAYMENT && order.status !== OrderStatus.PAYMENT_FAILED) {
       return { error: "This order can no longer be paid." };
     }
 
     // Rate-limit retries: 3 attempts per 5 minutes per order and per IP.
-    const ip =
-      (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip = getClientIp(await headers());
     const rlOrder = await checkRateLimit(`retry:order:${order.id}`, 3, 5 * 60_000);
     if (!rlOrder.allowed) return { error: rateLimitExceeded(rlOrder.retryAfterMs) };
     const rlIp = await checkRateLimit(`retry:ip:${ip}`, 10, 5 * 60_000);
     if (!rlIp.allowed) return { error: rateLimitExceeded(rlIp.retryAfterMs) };
 
+    // Lifetime cap: every retry mints a real Razorpay order (a real money
+    // rail object). Without a cap, a stuck buyer/script can accumulate
+    // dozens of unpaid gateway orders against one internal order.
+    if (order.payment) {
+      const retryCount = await prisma.paymentTransaction.count({
+        where: { paymentId: order.payment.id },
+      });
+      if (retryCount >= 6) {
+        return { error: "Too many payment attempts for this order. Please contact us for help." };
+      }
+    }
+
     const isSandbox = process.env.SANDBOX_CHECKOUT_ENABLED === "true";
     // Same production guard as processCheckout: the sandbox simulator must
     // never confirm a real order.
-    if (isSandbox && process.env.VERCEL_ENV === "production") {
+    if (
+      isSandbox &&
+      (process.env.VERCEL_ENV === "production" ||
+        process.env.NODE_ENV === "production")
+    ) {
       console.error(
         "[checkout] SANDBOX_CHECKOUT_ENABLED is set in production — refusing sandbox retry."
       );

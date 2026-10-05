@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { Nav } from "@/components/Nav";
 import { RetryPaymentButton } from "@/components/checkout/RetryPaymentButton";
+import { PaymentConfirmingBanner } from "@/components/checkout/PaymentConfirmingBanner";
 import { OrderStatus, PaymentStatus, ShipmentStatus } from "@prisma/client";
 import { SHIPMENT_STATUS_LABELS } from "@/lib/shipments";
 import styles from "./order.module.css";
@@ -14,6 +15,7 @@ interface OrderConfirmationPageProps {
   }>;
   searchParams: Promise<{
     t?: string;
+    verified?: string;
   }>;
 }
 
@@ -27,7 +29,7 @@ export async function generateMetadata({ params }: OrderConfirmationPageProps) {
 
 export default async function OrderConfirmationPage({ params, searchParams }: OrderConfirmationPageProps) {
   const { orderNumber } = await params;
-  const { t: guestToken } = await searchParams;
+  const { t: guestToken, verified } = await searchParams;
 
   const order = await prisma.order.findUnique({
     where: { orderNumber },
@@ -107,7 +109,11 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
   }).format(parseFloat(order.subtotal.toString()));
 
   const shippingTotalNum = parseFloat(order.shippingTotal.toString());
-  const formattedShipping = shippingTotalNum === 0 ? "Complimentary" : `₹${shippingTotalNum}`;
+  const formattedShipping = shippingTotalNum === 0 ? "Complimentary" : new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: order.currency,
+    maximumFractionDigits: 0,
+  }).format(shippingTotalNum);
 
   const orderDate = new Intl.DateTimeFormat("en-IN", {
     dateStyle: "long",
@@ -136,6 +142,10 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
   // P8: never show "Confirmed" copy for an unpaid order. The studio only
   // starts work after payment clears.
   const isPaid = order.payment?.status === PaymentStatus.PAID;
+  // Fresh off a verified payment: the webhook may still be confirming.
+  // Show the confirming banner INSTEAD of the retry button — an impatient
+  // click here is exactly how double charges happen.
+  const justVerified = verified === "1" && !isPaid;
 
   return (
     <>
@@ -313,7 +323,7 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
                   </div>
                   <div className={styles.receiptRow}>
                     <dt>Payment Gateway</dt>
-                    <dd>{order.payment?.gateway || "Secured"}</dd>
+                    <dd>{order.payment?.gateway === "RAZORPAY" ? "Razorpay" : order.payment?.gateway || "Secured"}</dd>
                   </div>
                   <div className={styles.receiptRow}>
                     <dt>Payment Status</dt>
@@ -326,7 +336,11 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
                     <dd>{formattedGrandTotal}</dd>
                   </div>
                 </dl>
-                {!isPaid && <RetryPaymentButton orderNumber={order.orderNumber} guestToken={typeof guestToken === "string" ? guestToken : undefined} />}
+                {justVerified ? (
+                  <PaymentConfirmingBanner />
+                ) : (
+                  !isPaid && <RetryPaymentButton orderNumber={order.orderNumber} guestToken={typeof guestToken === "string" ? guestToken : undefined} />
+                )}
               </div>
 
               {/* Next Actions */}

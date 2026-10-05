@@ -81,14 +81,26 @@ export const httpsUrlSchema = z
  * hotlinked URLs are a phishing/malware hosting vector (P8).
  */
 const IMAGE_URL_HOSTS = new Set([
-  "res.cloudinary.com",
   "images.unsplash.com",
   "images.pexels.com",
 ]);
 
 export const uploadedImageUrlSchema = httpsUrlSchema.refine((v) => {
   try {
-    const host = new URL(v).hostname.toLowerCase();
+    const url = new URL(v);
+    const host = url.hostname.toLowerCase();
+    if (host === "res.cloudinary.com") {
+      // Pin to OUR Cloudinary cloud: the hostname alone also serves every
+      // other Cloudinary customer, so require our cloud name as the first
+      // path segment (https://res.cloudinary.com/<cloud>/...).
+      const cloudName = (
+        process.env.CLOUDINARY_CLOUD_NAME ||
+        process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+        ""
+      ).toLowerCase();
+      if (!cloudName) return false;
+      return url.pathname.toLowerCase().startsWith(`/${cloudName}/`);
+    }
     if (IMAGE_URL_HOSTS.has(host)) return true;
     const appHost = process.env.NEXT_PUBLIC_APP_URL
       ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname.toLowerCase()

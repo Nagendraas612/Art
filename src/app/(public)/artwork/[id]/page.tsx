@@ -7,6 +7,7 @@ import { ShareButtons } from "@/components/ui/ShareButtons";
 import Link from "next/link";
 import styles from "./artwork.module.css";
 import { ArtworkProductType, ArtworkStatus, StockStatus } from "@prisma/client";
+import { getSession } from "@/modules/auth/guards";
 import { AddToCartCTA } from "@/components/ui/AddToCartCTA";
 import { ArtworkGallery } from "@/components/artwork/ArtworkGallery";
 
@@ -87,6 +88,18 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
 
   if (!artwork) {
     notFound();
+  }
+
+  // Wishlist heart states for the related cards (authenticated users only).
+  const session = await getSession();
+  let userWishlistIds = new Set<string>();
+  const viewerId = session?.user?.id;
+  if (viewerId) {
+    const wishlistItems = await prisma.wishlistItem.findMany({
+      where: { wishlist: { userId: viewerId } },
+      select: { artworkId: true },
+    });
+    userWishlistIds = new Set(wishlistItems.map((w) => w.artworkId));
   }
 
   const relatedArtworks = await prisma.artwork.findMany({
@@ -387,6 +400,7 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
                     hasCertificate={item.hasCertificate}
                     editionSize={item.editionSize}
                     editionSold={item.editionSold}
+                    isWishlisted={userWishlistIds.has(item.id)}
                   />
                 ))}
               </div>

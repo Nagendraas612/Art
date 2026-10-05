@@ -401,6 +401,34 @@ export interface ShiprocketAwb {
 }
 
 /**
+ * GET /v1/external/shipments/{id} — read back the AWB already assigned to a
+ * shipment. Used before re-assigning: if a previous assignAwb succeeded at
+ * Shiprocket but its response was lost (timeout), re-assigning would orphan
+ * a live AWB whose tracking events then match nothing. Adopt it instead.
+ */
+export async function getShipmentAwb(
+  shipmentId: number,
+): Promise<ShiprocketAwb | null> {
+  if (!credentialsConfigured()) return null;
+  try {
+    const res = await shiprocketFetch(`/shipments/${shipmentId}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      data?: { awb_code?: string; courier_name?: string };
+    };
+    const awb = data.data?.awb_code || null;
+    if (!awb) return null;
+    return {
+      awbCode: awb,
+      courierName: data.data?.courier_name || "Shiprocket",
+    };
+  } catch (e) {
+    console.error("[shiprocket] get shipment AWB failed:", e);
+    return null;
+  }
+}
+
+/**
  * POST /v1/external/courier/assign/awb — assigns the courier and returns
  * the AWB (tracking number). Pass a courier_id to pin the courier that
  * was quoted at checkout; omit it and Shiprocket auto-assigns per the

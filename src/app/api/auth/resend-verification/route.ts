@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,9 +18,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const ip =
-    (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown";
+  const ip = getClientIp(await headers());
 
   let email: string;
   try {

@@ -41,7 +41,7 @@ function esc(value: string | number | null | undefined): string {
  * fields pass through untouched so `.toLocaleString()`, `.join()` and
  * ternaries keep working exactly as before.
  */
-function escDeep<T>(value: T): T {
+export function escDeep<T>(value: T): T {
   if (typeof value === "string") return esc(value) as T;
   if (Array.isArray(value)) return value.map(escDeep) as T;
   if (value !== null && typeof value === "object") {

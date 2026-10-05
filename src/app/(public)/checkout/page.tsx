@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -28,12 +28,22 @@ export default function CheckoutPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // The order created before the Razorpay modal opens. If the buyer cancels
+  // the modal, this is their way back — guests never get an email (no
+  // webhook fires on cancel), so without this link the order is stranded.
+  const [pendingOrder, setPendingOrder] = useState<{
+    orderNumber: string;
+    guestAccessToken: string | null;
+    cancelled: boolean;
+  } | null>(null);
+  const [priceNotice, setPriceNotice] = useState<string | null>(null);
 
   // Live insured-logistics quote from /api/shipping-quote: cheapest
   // Shiprocket rate per creator pickup location, summed. The server action
   // recomputes this independently at order time — this is display only.
   const [quote, setQuote] = useState<{ fee: number; live: boolean } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteFailed, setQuoteFailed] = useState(false);
   const quoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Pincode -> city/state auto-fill for the delivery address.
@@ -49,41 +59,59 @@ export default function CheckoutPage() {
     }
   }, [pincodeLookup.city, pincodeLookup.state, cityTouched, stateTouched]);
 
-  useEffect(() => {
-    if (quoteTimer.current) clearTimeout(quoteTimer.current);
+  const fetchQuote = useCallback(async () => {
     const code = formData.postalCode.trim();
-    if (!/^\d{6}$/.test(code) || items.length === 0) {
+    // Server-side pinCodeSchema rejects leading-zero pincodes — match it
+    // here so the quote doesn't fire for a code the server will refuse.
+    if (!/^[1-9]\d{5}$/.test(code) || items.length === 0) {
       setQuote(null);
+      setQuoteFailed(false);
       setQuoteLoading(false);
       return;
     }
     setQuoteLoading(true);
-    quoteTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch("/api/shipping-quote", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
-            pincode: code,
-          }),
-        });
-        if (res.ok) {
-          const data = (await res.json()) as { fee: number; live: boolean };
-          setQuote({ fee: Math.round(Number(data.fee) || 0), live: !!data.live });
-        } else {
-          setQuote(null);
-        }
-      } catch {
+    setQuoteFailed(false);
+    try {
+      const res = await fetch("/api/shipping-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+          pincode: code,
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { fee: number; live: boolean };
+        setQuote({ fee: Math.round(Number(data.fee) || 0), live: !!data.live });
+        setQuoteFailed(false);
+      } else {
         setQuote(null);
-      } finally {
-        setQuoteLoading(false);
+        setQuoteFailed(true);
       }
+    } catch {
+      setQuote(null);
+      setQuoteFailed(true);
+    } finally {
+      setQuoteLoading(false);
+    }
+  }, [formData.postalCode, items]);
+
+  useEffect(() => {
+    if (quoteTimer.current) clearTimeout(quoteTimer.current);
+    const code = formData.postalCode.trim();
+    if (!/^[1-9]\d{5}$/.test(code) || items.length === 0) {
+      setQuote(null);
+      setQuoteFailed(false);
+      setQuoteLoading(false);
+      return;
+    }
+    quoteTimer.current = setTimeout(() => {
+      void fetchQuote();
     }, 600);
     return () => {
       if (quoteTimer.current) clearTimeout(quoteTimer.current);
     };
-  }, [formData.postalCode, items]);
+  }, [formData.postalCode, items, fetchQuote]);
 
   const formatINR = (n: number) =>
     new Intl.NumberFormat("en-IN", {
@@ -93,7 +121,10 @@ export default function CheckoutPage() {
     }).format(n);
 
   const shippingFee = quote === null ? null : quote.fee;
-  const grandTotal = shippingFee === null ? null : subtotal + shippingFee;
+  // If the live quote failed, the buyer may still proceed: the server
+  // recomputes the fee authoritatively at order time. Show the subtotal as
+  // the working total and label shipping honestly instead of dead-ending.
+  const grandTotal = quoteFailed ? subtotal : shippingFee === null ? null : subtotal + shippingFee;
 
   const formattedSubtotal = new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -102,13 +133,15 @@ export default function CheckoutPage() {
   }).format(subtotal);
 
   const formattedShipping =
-    quoteLoading && quote === null
-      ? "Calculating…"
-      : shippingFee === null
-        ? "Enter delivery pincode"
-        : shippingFee === 0
-          ? "Complimentary"
-          : formatINR(shippingFee);
+    quoteLoading
+      ? "Recalculating…"
+      : quoteFailed
+        ? "Calculated at order time"
+        : shippingFee === null
+          ? "Enter delivery pincode"
+          : shippingFee === 0
+            ? "Complimentary"
+            : formatINR(shippingFee);
 
   const formattedGrandTotal =
     grandTotal === null ? "—" : formatINR(grandTotal);
@@ -162,14 +195,34 @@ export default function CheckoutPage() {
         },
       });
 
-      if (res.error) {
-        setErrorMessage(res.error);
+      if (res.error || !("orderNumber" in res) || !res.orderNumber) {
+        setErrorMessage(res.error || "Could not create your order. Please try again.");
         setIsSubmitting(false);
         return;
       }
 
-      // Clear local cart on success
-      clearCart();
+      // Remember the order BEFORE the Razorpay modal opens — a modal cancel
+      // fires no webhook and sends no email, so this state is the guest's
+      // only way back to their pending order.
+      setPendingOrder({
+        orderNumber: res.orderNumber,
+        guestAccessToken: res.guestAccessToken ?? null,
+        cancelled: false,
+      });
+      setPriceNotice(null);
+
+      // The server recomputes prices authoritatively. If a price moved
+      // between bag and checkout (creator edit, edition sold out), say so
+      // explicitly instead of silently charging a different number.
+      if (typeof res.grandTotal === "number" && grandTotal !== null) {
+        const serverTotal = Math.round(res.grandTotal);
+        const shownTotal = Math.round(grandTotal);
+        if (serverTotal !== shownTotal) {
+          setPriceNotice(
+            `The total was updated to ${formatINR(serverTotal)} (a price changed since you added items to your bag).`
+          );
+        }
+      }
 
       if (res.razorpayOrderId) {
         // Initialize Razorpay Checkout. The key is the public key id only —
@@ -205,8 +258,11 @@ export default function CheckoutPage() {
               });
               const verifyData = await verifyRes.json();
               if (verifyData.verified) {
+                // Payment verified — the bag can go now. (Clearing it
+                // earlier stranded guests who cancelled the modal.)
+                clearCart();
                 const tokenParam = res.guestAccessToken ? `?t=${res.guestAccessToken}&` : "?";
-                router.push(`/orders/${res.orderNumber}${tokenParam}success=true`);
+                router.push(`/orders/${res.orderNumber}${tokenParam}verified=1`);
               } else {
                 setErrorMessage(verifyData.error || "Payment verification failed. Please try again.");
                 setIsSubmitting(false);
@@ -224,7 +280,11 @@ export default function CheckoutPage() {
           theme: { color: "#1c1917" },
           modal: {
             ondismiss: function () {
-              setErrorMessage("Payment was cancelled. Your order is saved — you can retry the payment from your Orders page.");
+              // No webhook fires on cancel, so no email goes out — the
+              // pending-order link below is the guest's only way back.
+              setPendingOrder((prev) =>
+                prev ? { ...prev, cancelled: true } : prev
+              );
               setIsSubmitting(false);
             },
           },
@@ -294,6 +354,33 @@ export default function CheckoutPage() {
           </div>
 
           {errorMessage && <div className={styles.errorBanner}>{errorMessage}</div>}
+          {priceNotice && <div className={styles.noticeBanner}>{priceNotice}</div>}
+          {pendingOrder?.cancelled && (
+            <div className={styles.noticeBanner}>
+              Payment was cancelled — no amount was charged. Your order{" "}
+              <strong>#{pendingOrder.orderNumber}</strong> is saved.{" "}
+              <Link
+                href={`/orders/${pendingOrder.orderNumber}${pendingOrder.guestAccessToken ? `?t=${pendingOrder.guestAccessToken}` : ""}`}
+                style={{ fontWeight: 700, textDecoration: "underline" }}
+              >
+                View your pending order to retry payment
+              </Link>
+            </div>
+          )}
+          {quoteFailed && !quoteLoading && (
+            <div className={styles.noticeBanner}>
+              We couldn&apos;t fetch live courier rates right now. You can still
+              continue — the exact insured-logistics fee is calculated when
+              your order is placed.{" "}
+              <button
+                type="button"
+                onClick={() => void fetchQuote()}
+                style={{ fontWeight: 700, textDecoration: "underline", background: "none", border: "none", cursor: "pointer", color: "inherit", fontSize: "inherit", padding: 0 }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className={styles.checkoutLayout}>
             {/* Left Form Column */}

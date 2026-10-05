@@ -50,6 +50,12 @@ export default async function StudioOverviewPage() {
     0
   );
 
+  // Distinct orders, not line-item rows — a 3-piece order is one order.
+  const distinctOrderCount = await prisma.orderItem.groupBy({
+    by: ["orderId"],
+    where: { creatorId: creator.id },
+  }).then((rows) => rows.length);
+
   const formattedTotalEarnings = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -116,7 +122,7 @@ export default async function StudioOverviewPage() {
               <path d="M16 10a4 4 0 0 1-8 0" />
             </svg>
           </div>
-          <div className={styles.metricValue}>{earnings.length} Received</div>
+          <div className={styles.metricValue}>{distinctOrderCount} Received</div>
           <div className={styles.metricSub}>
             <Link href="/studio/orders" className={styles.inlineLink}>
               View fulfillment queue &rarr;

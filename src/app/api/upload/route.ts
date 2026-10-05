@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { createHash } from "node:crypto";
 import { getSession } from "@/modules/auth/guards";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -114,9 +114,7 @@ export async function POST(req: NextRequest) {
   // Abuse is mitigated by rate limiting (step 3) + magic-byte validation (step 4).
 
   // 3. Rate limit per user (IP as an extra key segment).
-  const ip =
-    (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown";
+  const ip = getClientIp(await headers());
   const rl = await checkRateLimit(`upload:${session.user.id}:${ip}`, 20, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(

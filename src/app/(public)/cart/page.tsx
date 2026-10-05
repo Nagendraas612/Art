@@ -122,6 +122,10 @@ export default function CartPage() {
                         <div className={styles.badgeRow}>
                           {isOriginal ? (
                             <span className={styles.originalBadge}>Unique 1/1 Original</span>
+                          ) : item.productType === "MADE_TO_ORDER" ? (
+                            <span className={styles.editionBadge}>Made to Order</span>
+                          ) : item.productType === "DIGITAL" ? (
+                            <span className={styles.editionBadge}>Digital</span>
                           ) : (
                             <span className={styles.editionBadge}>Limited Edition</span>
                           )}

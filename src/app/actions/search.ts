@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { ArtworkStatus, Prisma } from "@prisma/client";
 import { headers } from "next/headers";
-import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp, rateLimitExceeded } from "@/lib/rate-limit";
 import { firstIssue, searchArtworksSchema, toClientError } from "@/lib/validation";
 import { SAFE_USER_SELECT } from "@/lib/safe-select";
 
@@ -40,9 +40,7 @@ export async function searchArtworksAction(input: SearchInput) {
       parsed.data;
 
     // Public endpoint: rate-limit by IP.
-    const ip =
-      (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      "unknown";
+    const ip = getClientIp(await headers());
     const rl = await checkRateLimit(`search:${ip}`, 60, 60_000);
     if (!rl.allowed)
       return { artworks: [], total: 0, error: rateLimitExceeded(rl.retryAfterMs) };

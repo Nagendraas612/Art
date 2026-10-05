@@ -116,6 +116,17 @@ export async function respondToCommissionAction({
       return { error: "Commission request not found or permission denied." };
     }
 
+    // Terminal states are final: a rejected/cancelled/completed brief must
+    // not be revived into the pipeline by replaying an old form.
+    const TERMINAL: CustomRequestStatus[] = [
+      CustomRequestStatus.REJECTED,
+      CustomRequestStatus.CANCELLED,
+      CustomRequestStatus.COMPLETED,
+    ];
+    if (TERMINAL.includes(request.status)) {
+      return { error: "This commission request is closed and cannot be changed." };
+    }
+
     await prisma.customRequest.update({
       where: { id: requestId },
       data: {

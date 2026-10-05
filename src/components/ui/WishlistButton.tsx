@@ -39,7 +39,9 @@ export function WishlistButton({
         // Revert on error
         setWishlisted((prev) => !prev);
         if (result.error?.includes("sign in")) {
-          router.push("/sign-in");
+          // Return the buyer to the artwork they were viewing, not the
+          // homepage — sign-in honors ?callbackUrl=.
+          router.push(`/sign-in?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`);
         }
       } else {
         setWishlisted(result.wishlisted);

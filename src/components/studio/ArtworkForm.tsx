@@ -161,7 +161,7 @@ export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
         productType: formData.productType as ArtworkProductType,
         price: parseFloat(formData.price.toString()),
         description: formData.description,
-        stock: parseInt(formData.stock.toString(), 10) || 1,
+        stock: Math.max(0, parseInt(formData.stock.toString(), 10) || 0),
         editionSize: formData.editionSize ? parseInt(formData.editionSize.toString(), 10) : undefined,
         medium: formData.medium || undefined,
         surface: formData.surface || undefined,
@@ -193,7 +193,7 @@ export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
           setIsSubmitting(false);
           return;
         }
-        router.push("/studio/artworks");
+        router.push("/studio/artworks?saved=1");
       } else {
         const res = await createArtworkAction(payload);
         if (res.error) {
@@ -201,7 +201,9 @@ export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
           setIsSubmitting(false);
           return;
         }
-        router.push("/studio/artworks");
+        // The submit lands on the list with no feedback — the creator can't
+        // tell it worked. Carry a flag so the list can confirm.
+        router.push("/studio/artworks?submitted=1");
       }
     } catch (err: any) {
       console.error("Artwork save error:", err);
@@ -419,6 +421,26 @@ export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
                   onChange={(e) => handleFileUpload(e, true)}
                 />
               </label>
+              {formData.primaryImageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setFormData((p) => ({ ...p, primaryImageUrl: "" }))}
+                  style={{
+                    padding: "10px 14px",
+                    background: "transparent",
+                    border: "1px solid #e7c1c1",
+                    borderRadius: "8px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: "#a32626",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                  title="Remove this image"
+                >
+                  ✕ Clear
+                </button>
+              )}
             </div>
           </div>
 
@@ -587,7 +609,7 @@ export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
             className={styles.submitBtn}
           >
             {isSubmitting ? (
-              <span>Publishing...</span>
+              <span>Submitting...</span>
             ) : isEdit ? (
               <span>Save Changes</span>
             ) : (

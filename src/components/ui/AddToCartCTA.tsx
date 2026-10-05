@@ -152,7 +152,7 @@ export function AddToCartCTA({ artwork }: AddToCartCTAProps) {
             Inquire with {artwork.creatorName.split(" ")[0]}
           </Link>
         )}
-        {added && (
+        {(added || existingInCart) && (
           <Link href="/cart" className={styles.viewCartLink}>
             View Bag &rarr;
           </Link>

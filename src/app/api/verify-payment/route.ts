@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifyRazorpayPaymentSignature } from "@/lib/razorpay";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,9 +31,7 @@ export async function POST(req: Request) {
   // Rate limit: unauthenticated endpoint that hits the DB per call.
   // Signatures can't be forged, but unthrottled it is a cheap load amplifier
   // against the checkout database.
-  const ip =
-    (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown";
+  const ip = getClientIp(await headers());
   const rl = await checkRateLimit(`verify-payment:${ip}`, 30, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(
@@ -101,6 +99,19 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // Stamp the transaction: a real payment moved for this order. The retry
+    // action refuses to mint a new Razorpay order while a stamped (verified
+    // but webhook-unconfirmed) payment exists — this is what closes the
+    // pay → verify → impatient-retry double-charge window.
+    await prisma.paymentTransaction.updateMany({
+      where: {
+        gatewayOrderId: razorpay_order_id,
+        payment: { orderId: order.id },
+        gatewayPaymentId: null,
+      },
+      data: { gatewayPaymentId: razorpay_payment_id },
+    });
 
     return NextResponse.json({ verified: true });
   } catch {

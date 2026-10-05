@@ -12,7 +12,7 @@ interface OrderStatusUpdaterProps {
 
 export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdaterProps) {
   const [status, setStatus] = useState<OrderStatus>(currentStatus);
-  const [carrier, setCarrier] = useState("ArtCare Insured Express");
+  const [carrier, setCarrier] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -175,7 +175,8 @@ export function OrderStatusUpdater({ orderId, currentStatus }: OrderStatusUpdate
         {cancellable && confirmingCancel && (
           <div className={styles.cancelConfirmBox}>
             <p className={styles.cancelConfirmText}>
-              Cancel this order? Stock will be restored and the buyer refunded.
+              Cancel this order? Stock will be restored and a refund will be
+              initiated for the buyer — it can take 5–10 working days to reach them.
             </p>
             <div className={styles.dispatchActions}>
               <button

@@ -76,6 +76,18 @@
   font-weight: 500;
 }
 
+.noticeBanner {
+  background: #fdf8ec;
+  border: 1px solid #d6c9a8;
+  color: #5c4a1e;
+  padding: 14px 20px;
+  border-radius: var(--radius-sm, 6px);
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
 .checkoutLayout {
   display: grid;
   grid-template-columns: 1fr;

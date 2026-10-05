@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { revalidatePath } from "next/cache";
 import { cuidSchema } from "@/lib/validation";
+import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
 
 /**
  * Resolve the current user id, or null for guests.
@@ -31,6 +32,9 @@ export async function toggleFollowAction(creatorId: string) {
     if (!userId) {
       return { error: "AUTH_REQUIRED" };
     }
+
+    const rl = await checkRateLimit(`follow:${userId}`, 30, 60_000);
+    if (!rl.allowed) return { error: rateLimitExceeded(rl.retryAfterMs) };
 
     const existing = await prisma.follow.findUnique({
       where: {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { startConversationAction } from "@/app/actions/messages";
 import { useSession } from "@/lib/auth-client";
@@ -25,6 +25,9 @@ export function MessageArtistModal({
   className,
 }: MessageArtistModalProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  // After sign-in, bring the buyer back to the artwork they were viewing.
+  const signInHref = `/sign-in?callbackUrl=${encodeURIComponent(pathname)}`;
   const { data: session, isPending } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState(
@@ -102,7 +105,7 @@ export function MessageArtistModal({
                 {needsAuth && (
                   <>
                     {" "}
-                    <Link href="/sign-in" className={styles.signInLink}>
+                    <Link href={signInHref} className={styles.signInLink}>
                       Sign in →
                     </Link>
                   </>
@@ -116,7 +119,7 @@ export function MessageArtistModal({
                   Please sign in to chat directly with{" "}
                   <strong>{storeName}</strong>.
                 </p>
-                <Link href="/sign-in" className={styles.sendBtn}>
+                <Link href={signInHref} className={styles.sendBtn}>
                   Sign In to Continue →
                 </Link>
               </div>

@@ -147,6 +147,12 @@
   color: var(--color-primary, #b85d38);
 }
 
+.navLinkActive {
+  background: var(--color-surface, #fdfbf7);
+  color: var(--color-primary, #b85d38);
+  font-weight: 700;
+}
+
 .navLinkHighlight {
   display: flex;
   align-items: center;

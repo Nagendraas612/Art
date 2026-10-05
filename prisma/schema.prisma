@@ -811,6 +811,11 @@ model Shipment {
   trackingEvents ShipmentTracking[]
 
   @@index([orderId])
+  // One Shiprocket dispatch per order+creator: the deterministic
+  // shiprocketOrderId makes concurrent dispatch runs collide here instead
+  // of double-booking. NULL shiprocketOrderId rows (manual dispatch) are
+  // unaffected — Postgres treats NULLs as distinct.
+  @@unique([orderId, shiprocketOrderId])
 }
 
 model ShipmentTracking {

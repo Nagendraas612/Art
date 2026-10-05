@@ -22,12 +22,19 @@ export const auth = betterAuth({
     (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null) ||
     "https://kalaabhadra.vercel.app",
 
+  // OAuth / verification failures land on a branded recovery page, not a
+  // raw JSON error.
+  errorURL: "/auth/error",
+
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
     // When an email provider is configured, users must verify their email
     // before they can sign in. Google OAuth users are inherently verified.
     requireEmailVerification: emailProviderConfigured,
+    // A password reset means the old credential is compromised until proven
+    // otherwise — kill every session so a stolen session can't survive it.
+    revokeSessionsOnPasswordReset: true,
     async sendResetPassword({ user, url }) {
       const { sendEmail, generatePasswordResetEmail } = await import("@/lib/email");
       await sendEmail({

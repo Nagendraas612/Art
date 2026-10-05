@@ -54,6 +54,15 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
       alert("Please enter a valid percentage (0–100).");
       return;
     }
+    // This changes the platform's cut on every future sale — confirm it
+    // deliberately, with the old and new values visible.
+    if (
+      !confirm(
+        `Change the global take rate from ${data.globalCommissionRate}% to ${rate}%?\n\nThis applies to all future marketplace transactions (per-creator overrides are unaffected).`
+      )
+    ) {
+      return;
+    }
 
     startTransition(async () => {
       const res = await updatePlatformCommissionAction({ percentage: rate });
@@ -156,6 +165,38 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
             {isPending ? "Updating…" : "Update Global Rate"}
           </button>
         </div>
+
+        {/* Per-creator overrides — the fetched list was never shown */}
+        {data.commissionsList.length > 0 && (
+          <div style={{ marginTop: 18 }}>
+            <h3 className={styles.sectionTitle} style={{ fontSize: 15, marginBottom: 10 }}>
+              Per-Creator Commission Rules
+            </h3>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Creator</th>
+                  <th>Rate</th>
+                  <th>Effective From</th>
+                  <th>Effective To</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.commissionsList.map((rule) => (
+                  <tr key={rule.id}>
+                    <td>
+                      {rule.creatorName || rule.creatorHandle || "—"}
+                      {rule.creatorHandle ? ` (@${rule.creatorHandle})` : ""}
+                    </td>
+                    <td>{rule.percentage}%</td>
+                    <td>{new Date(rule.effectiveFrom).toLocaleDateString("en-IN")}</td>
+                    <td>{rule.effectiveTo ? new Date(rule.effectiveTo).toLocaleDateString("en-IN") : "Ongoing"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Pending Payouts Section */}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,12 +20,23 @@ interface PostOffice {
  * types 6 digits and city/state fill themselves in.
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
   if (!/^\d{6}$/.test(code)) {
     return NextResponse.json({ error: "Invalid pincode" }, { status: 400 });
+  }
+
+  // Unauthenticated endpoint that fans out to a third-party API — throttle
+  // per IP so it can't be used as a free proxy hammer.
+  const ip = getClientIp(req.headers);
+  const rl = await checkRateLimit(`pincode:${ip}`, 60, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many lookups. Please wait a moment." },
+      { status: 429 }
+    );
   }
 
   const cached = cache.get(code);

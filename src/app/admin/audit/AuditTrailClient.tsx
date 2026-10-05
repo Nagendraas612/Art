@@ -18,6 +18,18 @@ interface AuditLogEntry {
 export function AuditTrailClient({ logs = [], initialLogs = [] }: { logs?: AuditLogEntry[]; initialLogs?: AuditLogEntry[] }) {
   const displayLogs = logs.length > 0 ? logs : initialLogs;
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
+
+  const filtered = displayLogs.filter((l) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      l.action.toLowerCase().includes(q) ||
+      l.actorName.toLowerCase().includes(q) ||
+      l.actorEmail.toLowerCase().includes(q) ||
+      l.targetType.toLowerCase().includes(q)
+    );
+  });
 
   const toggleMetadata = (id: string) => {
     setExpandedIds((prev) => {
@@ -51,24 +63,43 @@ export function AuditTrailClient({ logs = [], initialLogs = [] }: { logs?: Audit
           <h1 className={styles.title}>Platform Audit Trail</h1>
           <p className={styles.subtitle}>
             Comprehensive log of all administrative moderation, economic, and governance actions with metadata diffs.
+            Showing the latest {displayLogs.length} entries.
           </p>
+        </div>
+        <div>
+          <input
+            type="search"
+            placeholder="Search action, actor, target…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 8,
+              border: "1px solid #d8cfc2",
+              fontSize: 14,
+              minWidth: 260,
+            }}
+            aria-label="Search audit logs"
+          />
         </div>
       </div>
 
-      {displayLogs.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className={styles.emptyState}>
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: "0 auto 12px", opacity: 0.5 }}>
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
-          <h3>No audit logs recorded</h3>
+          <h3>{query ? "No matching entries" : "No audit logs recorded"}</h3>
           <p style={{ marginTop: 4, fontSize: "13px" }}>
-            Actions taken through the admin hub will appear here as an immutable audit trail.
+            {query
+              ? "Try a different search term."
+              : "Actions taken through the admin hub will appear here as an immutable audit trail."}
           </p>
         </div>
       ) : (
         <div className={styles.timeline}>
-          {displayLogs.map((log) => (
+          {filtered.map((log) => (
             <div key={log.id} className={styles.timelineItem}>
               <div className={styles.itemLeft}>
                 <span className={`${styles.actionBadge} ${getActionBadgeClass(log.action)}`}>
