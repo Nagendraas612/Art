@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
-import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, Prisma, StockStatus } from "@prisma/client";
+import { ArtworkProductType, ArtworkStatus, OrderStatus, PaymentStatus, Prisma, ShipmentStatus, StockStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { artworkFormSchema, cuidSchema, firstIssue, toClientError, uploadedImageUrlSchema } from "@/lib/validation";
 import { SAFE_USER_SELECT } from "@/lib/safe-select";
@@ -565,6 +565,41 @@ export async function updateStudioOrderStatusAction({
               : `Status updated to ${status} by studio.`,
         },
       });
+
+      // A manual dispatch must leave a Shipment row, not just a timeline
+      // note — otherwise the buyer's tracking timeline has nothing to read
+      // and a later auto-dispatch would not know a shipment already exists.
+      // Never overwrite Shiprocket data from an earlier auto-dispatch.
+      if (status === OrderStatus.SHIPPED && trackingNumber) {
+        const existingShipment = await tx.shipment.findFirst({
+          where: { orderId },
+          orderBy: { createdAt: "desc" },
+        });
+        if (existingShipment) {
+          await tx.shipment.update({
+            where: { id: existingShipment.id },
+            data: {
+              carrier: existingShipment.carrier ?? carrier ?? "Insured Courier",
+              trackingNumber: existingShipment.trackingNumber ?? trackingNumber,
+              shippedAt: existingShipment.shippedAt ?? new Date(),
+              status:
+                existingShipment.status === ShipmentStatus.PENDING
+                  ? ShipmentStatus.IN_TRANSIT
+                  : existingShipment.status,
+            },
+          });
+        } else {
+          await tx.shipment.create({
+            data: {
+              orderId,
+              status: ShipmentStatus.IN_TRANSIT,
+              carrier: carrier ?? "Insured Courier",
+              trackingNumber,
+              shippedAt: new Date(),
+            },
+          });
+        }
+      }
 
       return { paidOutEarningCount };
     });

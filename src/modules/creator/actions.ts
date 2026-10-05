@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { CreatorStatus, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import {
+  firstIssue,
+  longTextSchema,
+  nameSchema,
+  optionalImageUrlSchema,
+  shortTextSchema,
+} from "@/lib/validation";
 
 export interface CreateCreatorProfileInput {
   handle: string;
@@ -22,6 +30,31 @@ export interface CreateCreatorProfileInput {
   pickupState: string;
 }
 
+// One schema for the whole application: bounds every free-text field and
+// forces cover/profile images through the uploaded-image-only rule (an
+// arbitrary URL here would be a tracking pixel in the storefront).
+const creatorProfileSchema = z.object({
+  handle: z
+    .string()
+    .trim()
+    .min(3, "Handle must be at least 3 alphanumeric characters.")
+    .max(40, "Handle must be 40 characters or fewer."),
+  storeName: nameSchema,
+  tagline: shortTextSchema(160).optional(),
+  bio: longTextSchema(0, 2000).optional(),
+  disciplines: z.array(z.string().trim().min(1).max(60)).max(12).optional(),
+  coverImageUrl: optionalImageUrlSchema,
+  profileImageUrl: optionalImageUrlSchema,
+  acceptsCustomOrders: z.boolean().optional(),
+  pickupAddressLine: shortTextSchema(200).optional(),
+  pickupPincode: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "A valid 6-digit pickup pincode is required."),
+  pickupCity: nameSchema,
+  pickupState: nameSchema,
+});
+
 export async function createCreatorProfile(data: CreateCreatorProfileInput) {
   const session = await getSession();
 
@@ -29,34 +62,21 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
     return { success: false, error: "You must be signed in to apply as a creator." };
   }
 
-  // Format and validate handle
-  const cleanHandle = data.handle.toLowerCase().replace(/[^a-z0-9-_]/g, "");
-  if (!cleanHandle || cleanHandle.length < 3) {
-    return { success: false, error: "Handle must be at least 3 alphanumeric characters." };
+  // Format the handle the same way as before (lowercase, URL-safe), then
+  // validate EVERYTHING through the schema — field lengths, image URLs,
+  // and the pickup address that doubles as the courier pickup location.
+  const cleanHandle = (data.handle || "").toLowerCase().replace(/[^a-z0-9-_]/g, "");
+  const parsed = creatorProfileSchema.safeParse({ ...data, handle: cleanHandle });
+  if (!parsed.success) {
+    return { success: false, error: firstIssue(parsed.error) };
   }
+  const v = parsed.data;
 
-  if (!data.storeName.trim()) {
-    return { success: false, error: "Studio/Store name is required." };
-  }
-
-  // Pickup address: required — it doubles as the courier pickup location.
-  const pickupPincode = (data.pickupPincode || "").trim();
-  const pickupCity = (data.pickupCity || "").trim();
-  const pickupState = (data.pickupState || "").trim();
-  if (!/^\d{6}$/.test(pickupPincode)) {
-    return { success: false, error: "A valid 6-digit pickup pincode is required." };
-  }
-  if (!pickupCity) {
-    return { success: false, error: "Pickup city is required." };
-  }
-  if (!pickupState) {
-    return { success: false, error: "Pickup state is required." };
-  }
   const pickupData = {
-    pickupAddressLine: data.pickupAddressLine?.trim() || null,
-    pickupPincode,
-    pickupCity,
-    pickupState,
+    pickupAddressLine: v.pickupAddressLine || null,
+    pickupPincode: v.pickupPincode,
+    pickupCity: v.pickupCity,
+    pickupState: v.pickupState,
   };
 
   // Check if handle is already taken
@@ -80,13 +100,13 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
         where: { userId: session.user.id },
         data: {
           handle: cleanHandle,
-          storeName: data.storeName.trim(),
-          tagline: data.tagline?.trim() || null,
-          bio: data.bio?.trim() || null,
-          disciplines: data.disciplines.length > 0 ? data.disciplines : ["Handmade Crafts"],
-          coverImageUrl: data.coverImageUrl?.trim() || null,
-          profileImageUrl: data.profileImageUrl?.trim() || null,
-          acceptsCustomOrders: !!data.acceptsCustomOrders,
+          storeName: v.storeName,
+          tagline: v.tagline || null,
+          bio: v.bio || null,
+          disciplines: v.disciplines && v.disciplines.length > 0 ? v.disciplines : ["Handmade Crafts"],
+          coverImageUrl: v.coverImageUrl || null,
+          profileImageUrl: v.profileImageUrl || null,
+          acceptsCustomOrders: !!v.acceptsCustomOrders,
           ...pickupData,
           status: existingProfile.status === CreatorStatus.APPROVED ? CreatorStatus.APPROVED : CreatorStatus.PENDING,
         },
@@ -97,11 +117,11 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
         data: {
           userId: session.user.id,
           handle: cleanHandle,
-          storeName: data.storeName.trim(),
-          tagline: data.tagline?.trim() || null,
-          bio: data.bio?.trim() || null,
-          disciplines: data.disciplines.length > 0 ? data.disciplines : ["Handmade Crafts"],
-          acceptsCustomOrders: !!data.acceptsCustomOrders,
+          storeName: v.storeName,
+          tagline: v.tagline || null,
+          bio: v.bio || null,
+          disciplines: v.disciplines && v.disciplines.length > 0 ? v.disciplines : ["Handmade Crafts"],
+          acceptsCustomOrders: !!v.acceptsCustomOrders,
           ...pickupData,
           status: CreatorStatus.PENDING, 
         },
@@ -133,7 +153,7 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
       const { dispatchAdminAlert } = await import("@/lib/admin-alerts");
       dispatchAdminAlert({
         type: "NEW_CREATOR_APPLICATION",
-        message: `${session.user.name} has submitted a new creator application for the store: "${data.storeName.trim()}".`,
+        message: `${session.user.name} has submitted a new creator application for the store: "${v.storeName}".`,
         refType: "CREATOR",
         refId: newProfile.id,
         actionUrl: "/admin/creators",

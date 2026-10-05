@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
 import { Nav } from "@/components/Nav";
 import { RetryPaymentButton } from "@/components/checkout/RetryPaymentButton";
-import { OrderStatus, PaymentStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus, ShipmentStatus } from "@prisma/client";
 import { SHIPMENT_STATUS_LABELS } from "@/lib/shipments";
 import styles from "./order.module.css";
 
@@ -116,6 +116,19 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
 
   const isConfirmed = order.status === OrderStatus.ORDER_CONFIRMED || order.status === OrderStatus.PREPARING;
 
+  // Timeline states are driven by the real shipment data, not by order
+  // status alone — a buyer whose courier delivered the parcel must not see
+  // "preparation" as the current step.
+  const shipments = order.shipments;
+  const isPrepDone =
+    shipments.length > 0 ||
+    [OrderStatus.PACKED, OrderStatus.SHIPPED, OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED].includes(
+      order.status
+    );
+  const isDispatched = shipments.length > 0;
+  const isShipmentDelivered = shipments.some((s) => s.status === ShipmentStatus.DELIVERED);
+  const isDelivered = order.status === OrderStatus.DELIVERED;
+
   // P8: never show "Confirmed" copy for an unpaid order. The studio only
   // starts work after payment clears.
   const isPaid = order.payment?.status === PaymentStatus.PAID;
@@ -158,37 +171,40 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
                     </div>
                   </div>
 
-                  <div className={`${styles.timelineStep} ${isConfirmed ? styles.stepActive : ""}`}>
-                    <div className={styles.stepDot}>2</div>
+                  <div className={`${styles.timelineStep} ${isPrepDone ? styles.stepDone : isConfirmed ? styles.stepActive : ""}`}>
+                    <div className={styles.stepDot}>{isPrepDone ? "\u2713" : "2"}</div>
                     <div className={styles.stepContent}>
                       <h4>Studio Preparation &amp; Authentication</h4>
                       <p>Artisan carefully inspecting, packaging, and stamping authenticity certificates</p>
                     </div>
                   </div>
 
-                  <div className={styles.timelineStep}>
-                    <div className={styles.stepDot}>3</div>
+                  <div className={`${styles.timelineStep} ${isShipmentDelivered ? styles.stepDone : isDispatched ? styles.stepActive : ""}`}>
+                    <div className={styles.stepDot}>{isShipmentDelivered ? "\u2713" : "3"}</div>
                     <div className={styles.stepContent}>
                       <h4>Insured Logistics Dispatch</h4>
-                      {order.shipments.length > 0 ? (
-                        <p>
-                          {order.shipments[0]?.status
-                            ? SHIPMENT_STATUS_LABELS[order.shipments[0].status]
-                            : "Handed to courier"}{" "}
-                          via {order.shipments[0]?.carrier || "courier"} —
-                          tracking <strong>{order.shipments[0]?.awbCode}</strong>
-                          {order.shipments.length > 1
-                            ? ` (+${order.shipments.length - 1} more)`
-                            : ""}
-                        </p>
+                      {isDispatched ? (
+                        <div>
+                          {shipments.map((s) => (
+                            <p key={s.id}>
+                              {SHIPMENT_STATUS_LABELS[s.status] || "Handed to courier"}
+                              {" "}via {s.carrier || "courier"}
+                              {s.awbCode ? (
+                                <>
+                                  {" "}— tracking <strong>{s.awbCode}</strong>
+                                </>
+                              ) : null}
+                            </p>
+                          ))}
+                        </div>
                       ) : (
                         <p>Direct tracked shipping with temperature-controlled art care</p>
                       )}
                     </div>
                   </div>
 
-                  <div className={styles.timelineStep}>
-                    <div className={styles.stepDot}>4</div>
+                  <div className={`${styles.timelineStep} ${isDelivered ? styles.stepDone : ""}`}>
+                    <div className={styles.stepDot}>{isDelivered ? "\u2713" : "4"}</div>
                     <div className={styles.stepContent}>
                       <h4>Delivered to Destination</h4>
                       <p>Hand-delivered with verification sign-off</p>

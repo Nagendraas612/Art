@@ -235,7 +235,21 @@ export function TrustSafetyClient({
                       {report.targetType} Report
                     </h3>
                     <p className={styles.cardMeta}>
-                      Reported by {report.reporterName} • Target: {report.targetType.toLowerCase()} #{report.targetId.slice(-6)}
+                      Reported by {report.reporterName} • Target:{" "}
+                      {report.targetType === "ARTWORK" ? (
+                        <a
+                          href={`/artwork/${report.targetId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={styles.targetLink}
+                        >
+                          artwork #{report.targetId.slice(-6)}
+                        </a>
+                      ) : (
+                        <span>
+                          {report.targetType.toLowerCase()} #{report.targetId.slice(-6)}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <span className={`${styles.statusPill} ${getReportStatusClass(report.status)}`}>
@@ -265,7 +279,12 @@ export function TrustSafetyClient({
                     <button
                       className={styles.btnAction}
                       disabled={isPending}
-                      onClick={() => handleActionReport(report.id, "ACTIONED")}
+                      onClick={() => {
+                        const ok = confirm(
+                          "Mark this report as ACTIONED? This records that you reviewed the report and took moderation action."
+                        );
+                        if (ok) handleActionReport(report.id, "ACTIONED");
+                      }}
                     >
                       Take Action
                     </button>

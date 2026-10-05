@@ -58,10 +58,20 @@ export async function retryShipmentAction(orderId: string) {
 
   const failed = results.filter((r) => !r.ok);
   if (results.length === 0) {
+    // Tell the studio WHY there is nothing to dispatch: the orchestrator
+    // skips orders that are not ORDER_CONFIRMED, and it skips creators
+    // without a pickup location or Shiprocket credentials.
+    const ord = await prisma.order.findUnique({
+      where: { id: parsed.data.orderId },
+      select: { status: true },
+    });
+    const reason =
+      ord && ord.status !== "ORDER_CONFIRMED"
+        ? `order is ${ord.status.replace(/_/g, " ").toLowerCase()} — auto-dispatch runs on confirmed orders, so dispatch this one manually`
+        : "pickup location or Shiprocket credentials are missing for this studio";
     return {
       ok: false as const,
-      error:
-        "Nothing to dispatch — auto-dispatch is not configured (pickup location or Shiprocket credentials missing).",
+      error: `Nothing to dispatch — ${reason}.`,
     };
   }
   if (failed.length > 0) {

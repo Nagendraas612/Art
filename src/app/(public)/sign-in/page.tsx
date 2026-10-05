@@ -83,7 +83,19 @@ export default function SignInPage() {
           setError(msg || "Sign in failed. Please try again.");
         }
       } else {
-        router.push("/explore?toast=welcome-back");
+        // Honor the page the user originally tried to reach (?callbackUrl=).
+        // Strictly same-origin: anything that is not a plain site path
+        // falls back to the default landing page (blocks open redirects).
+        let destination = "/explore?toast=welcome-back";
+        try {
+          const requested = new URLSearchParams(window.location.search).get("callbackUrl");
+          if (requested && requested.startsWith("/") && !requested.startsWith("//")) {
+            destination = requested;
+          }
+        } catch {
+          // Malformed query string — keep the default destination.
+        }
+        router.push(destination);
         router.refresh();
       }
     } catch {
@@ -150,11 +162,7 @@ export default function SignInPage() {
             autoComplete="current-password"
           />
 
-          <div className={styles.checkboxRow} style={{ justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input type="checkbox" id="staySignedIn" defaultChecked />
-              <label htmlFor="staySignedIn">Stay signed in</label>
-            </div>
+          <div className={styles.checkboxRow} style={{ justifyContent: "flex-end" }}>
             <Link href="/forgot-password" className={styles.link} style={{ fontSize: "0.85rem" }}>
               Forgot password?
             </Link>

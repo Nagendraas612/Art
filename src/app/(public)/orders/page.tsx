@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { getSession } from "@/modules/auth/guards";
 import { getCustomerOrdersAction } from "@/app/actions/checkout";
 import styles from "./orders-history.module.css";
 import { Metadata } from "next";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CustomerOrdersPage() {
+  const session = await getSession();
   const res = await getCustomerOrdersAction();
   const orders = res.success && res.orders ? res.orders : [];
 
@@ -56,12 +58,19 @@ export default async function CustomerOrdersPage() {
             <line x1="3" y1="6" x2="21" y2="6" />
             <path d="M16 10a4 4 0 0 1-8 0" />
           </svg>
-          <h2 className={styles.emptyTitle}>No acquisitions yet</h2>
+          <h2 className={styles.emptyTitle}>
+            {!session?.user?.id ? "Sign in to view your orders" : "No acquisitions yet"}
+          </h2>
           <p className={styles.emptyText}>
-            You haven't acquired any handcrafted pieces yet. Discover independent master artisans and rare collector items.
+            {!session?.user?.id
+              ? "Your acquisitions and order tracking live here. Sign in to see them."
+              : "You haven't acquired any handcrafted pieces yet. Discover independent master artisans and rare collector items."}
           </p>
-          <Link href="/explore" className={styles.exploreBtn}>
-            Explore Gallery
+          <Link
+            href={!session?.user?.id ? "/sign-in?callbackUrl=/orders" : "/explore"}
+            className={styles.exploreBtn}
+          >
+            {!session?.user?.id ? "Sign In" : "Explore Gallery"}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="5" y1="12" x2="19" y2="12" />
               <polyline points="12 5 19 12 12 19" />

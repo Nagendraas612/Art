@@ -9,7 +9,12 @@ export const metadata = {
   description: "Set up your independent artisan studio and showcase original artworks directly to collectors.",
 };
 
-export default async function BecomeACreatorPage() {
+export default async function BecomeACreatorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string }>;
+}) {
+  const { notice } = await searchParams;
   const session = await getSession();
 
   let existingProfile = null;
@@ -29,6 +34,15 @@ export default async function BecomeACreatorPage() {
             <h1 className={styles.title}>
               {existingProfile ? "Your Creator Studio Profile" : "Launch Your Kalaa Bhadra Studio"}
             </h1>
+            {notice === "studio_access_required" && (
+              <div className={styles.noticeBanner} role="status">
+                <strong>Studio access requires an approved creator profile.</strong>
+                <span>
+                  {" "}
+                  Complete the application below — once approved, your studio dashboard unlocks.
+                </span>
+              </div>
+            )}
             <p className={styles.subtitle}>
               Share your craft, set your studio identity, and connect directly with collectors looking
               for authentic original art and handcrafted objects.

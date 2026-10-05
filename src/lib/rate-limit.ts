@@ -36,6 +36,10 @@ const upstashConfigured = !!(
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
 );
 
+// Set once the in-memory fallback warning has been logged, so production
+// logs get exactly one line instead of one per request.
+let fallbackWarned = false;
+
 // Lazily created per (limit, window) — Upstash Ratelimit instances are bound
 // to one limit/window pair. Typed loosely because the class comes from a
 // dynamic import.
@@ -111,6 +115,16 @@ export async function checkRateLimit(
 ): Promise<RateLimitResult> {
   const upstash = await checkUpstash(key, limit, windowMs);
   if (upstash) return upstash;
+  // The in-memory fallback is per serverless instance — in production it
+  // silently weakens every rate limit. Log once so a missing Upstash
+  // config is visible in Vercel logs instead of invisible.
+  if (process.env.VERCEL_ENV === "production" && !fallbackWarned) {
+    fallbackWarned = true;
+    console.warn(
+      "[rate-limit] Upstash Redis is not configured; using in-memory rate limiting. " +
+        "Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN for shared limits."
+    );
+  }
   return checkMemory(key, limit, windowMs);
 }
 

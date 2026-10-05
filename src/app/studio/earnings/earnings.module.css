@@ -176,3 +176,13 @@
   background: #ecfdf5;
   color: #047857;
 }
+
+.statusCancelled {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #6b7280;
+}

@@ -56,6 +56,19 @@ export function CreatorModerationClient({ initialCreators }: { initialCreators: 
       if (input === null) return;
       reason = input;
     }
+    // One misclick on APPROVE/SUSPEND flips a live studio — confirm first.
+    if (action === "APPROVE") {
+      const ok = confirm(
+        "Approve this studio? Their artworks will go live on the marketplace immediately."
+      );
+      if (!ok) return;
+    }
+    if (action === "SUSPEND") {
+      const ok = confirm(
+        "Suspend this studio? Their artworks will be taken offline immediately and they will be notified by email."
+      );
+      if (!ok) return;
+    }
 
     setActiveActionId(creatorId);
     startTransition(async () => {

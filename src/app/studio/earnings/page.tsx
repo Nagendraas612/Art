@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
+import { OrderStatus } from "@prisma/client";
 import styles from "./earnings.module.css";
 
 export default async function StudioEarningsPage() {
@@ -24,7 +25,14 @@ export default async function StudioEarningsPage() {
     },
   });
 
-  const totalGross = orderItems.reduce(
+  // Cancelled orders must not inflate gross sales: their earnings rows were
+  // deleted at cancellation, so including their line totals would overstate
+  // both gross and the implied platform fee. They stay visible in the ledger
+  // with an explicit Cancelled state instead of vanishing or pretending to
+  // await payment.
+  const activeItems = orderItems.filter((i) => i.order.status !== OrderStatus.CANCELLED);
+
+  const totalGross = activeItems.reduce(
     (acc, curr) => acc + parseFloat(curr.lineTotal.toString()),
     0
   );
@@ -142,7 +150,11 @@ export default async function StudioEarningsPage() {
                         <strong>₹{net.toLocaleString("en-IN")}</strong>
                       </td>
                       <td>
-                        {earning?.isPaidOut ? (
+                        {item.order.status === OrderStatus.CANCELLED ? (
+                          <span className={styles.statusCancelled}>
+                            Cancelled — refunded
+                          </span>
+                        ) : earning?.isPaidOut ? (
                           <span className={styles.statusPaid}>
                             Settled{earning.payout?.settlementReference ? ` (Ref ${earning.payout.settlementReference})` : ""}
                           </span>
