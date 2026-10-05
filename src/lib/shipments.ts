@@ -365,3 +365,213 @@ async function dispatchCreatorShipment(args: {
     courierName: awb.courierName,
   };
 }
+
+// ── Phase 3: tracking webhooks ────────────────────────────────────────────
+// Shiprocket POSTs shipment-status events to /api/webhooks/shiprocket.
+// This handler advances the Shipment status (forward-only — events can
+// arrive out of order or repeat), records a ShipmentTracking event, and
+// notifies the buyer on OUT_FOR_DELIVERY / DELIVERED.
+//
+// Deliberately does NOT change the Order status: the creator still marks
+// PACKED → SHIPPED → DELIVERED manually. This phase is tracking
+// visibility, not fulfillment automation.
+
+import { ShipmentStatus } from "@prisma/client";
+
+export interface TrackingWebhookResult {
+  matched: boolean;
+  awb?: string;
+  event?: string;
+  updated?: boolean;
+}
+
+/** Shiprocket event name → our ShipmentStatus. Unmapped events are logged. */
+const EVENT_TO_STATUS: Record<string, ShipmentStatus> = {
+  PICKED_UP: ShipmentStatus.PICKED_UP,
+  PICKUP_SCHEDULED: ShipmentStatus.PENDING,
+  PICKUP_GENERATED: ShipmentStatus.PENDING,
+  IN_TRANSIT: ShipmentStatus.IN_TRANSIT,
+  OUT_FOR_DELIVERY: ShipmentStatus.OUT_FOR_DELIVERY,
+  DELIVERED: ShipmentStatus.DELIVERED,
+  RTO_INITIATED: ShipmentStatus.RETURNED,
+  RTO_DELIVERED: ShipmentStatus.RETURNED,
+  RETURNED: ShipmentStatus.RETURNED,
+  CANCELLED: ShipmentStatus.RETURNED,
+  DELIVERY_FAILED: ShipmentStatus.FAILED_DELIVERY,
+  FAILED_DELIVERY: ShipmentStatus.FAILED_DELIVERY,
+};
+
+/** Forward-only rank: events never move a shipment backwards. */
+const STATUS_RANK: Record<ShipmentStatus, number> = {
+  [ShipmentStatus.PENDING]: 0,
+  [ShipmentStatus.PICKED_UP]: 1,
+  [ShipmentStatus.IN_TRANSIT]: 2,
+  [ShipmentStatus.OUT_FOR_DELIVERY]: 3,
+  [ShipmentStatus.DELIVERED]: 4,
+  [ShipmentStatus.FAILED_DELIVERY]: 4,
+  [ShipmentStatus.RETURNED]: 4,
+};
+
+/** Buyer-facing label per status for the order timeline. */
+export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {
+  [ShipmentStatus.PENDING]: "Label created — awaiting courier pickup",
+  [ShipmentStatus.PICKED_UP]: "Picked up by courier",
+  [ShipmentStatus.IN_TRANSIT]: "In transit",
+  [ShipmentStatus.OUT_FOR_DELIVERY]: "Out for delivery",
+  [ShipmentStatus.DELIVERED]: "Delivered",
+  [ShipmentStatus.FAILED_DELIVERY]: "Delivery attempt failed — courier will retry",
+  [ShipmentStatus.RETURNED]: "Returned to studio",
+};
+
+function extractAwb(payload: any): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const candidates = [
+    payload.awb,
+    payload.awb_code,
+    payload.awbCode,
+    payload.data?.awb_code,
+    payload.data?.awb,
+    payload.shipment?.awb,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c.trim();
+  }
+  return null;
+}
+
+function extractEvent(payload: any): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const candidates = [
+    payload.current_status,
+    payload.status,
+    payload.event,
+    payload.data?.current_status,
+    payload.data?.status,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) {
+      return c.trim().toUpperCase().replace(/[\s-]+/g, "_");
+    }
+  }
+  return null;
+}
+
+function extractNote(payload: any): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const candidates = [
+    payload.remark,
+    payload.data?.remark,
+    payload.location,
+    payload.data?.location,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c.trim().slice(0, 200);
+  }
+  return null;
+}
+
+export async function handleShiprocketTrackingEvent(
+  payload: unknown,
+): Promise<TrackingWebhookResult> {
+  try {
+    const awb = extractAwb(payload);
+    const event = extractEvent(payload);
+    if (!awb || !event) {
+      console.warn("[shipments] tracking webhook: missing awb/status");
+      return { matched: false };
+    }
+
+    const shipment = await prisma.shipment.findFirst({
+      where: { awbCode: awb },
+      include: {
+        order: { select: { id: true, orderNumber: true, customerId: true } },
+      },
+    });
+    if (!shipment) {
+      console.warn(`[shipments] tracking webhook: no shipment for AWB ${awb}`);
+      return { matched: false, awb, event };
+    }
+
+    const mapped = EVENT_TO_STATUS[event] ?? null;
+    const note = extractNote(payload);
+    let updated = false;
+
+    if (mapped && STATUS_RANK[mapped] > STATUS_RANK[shipment.status]) {
+      const data: {
+        status: ShipmentStatus;
+        shippedAt?: Date;
+        deliveredAt?: Date;
+      } = { status: mapped };
+      if (mapped === ShipmentStatus.PICKED_UP && !shipment.shippedAt) {
+        data.shippedAt = new Date();
+      }
+      if (mapped === ShipmentStatus.DELIVERED && !shipment.deliveredAt) {
+        data.deliveredAt = new Date();
+      }
+      await prisma.shipment.update({ where: { id: shipment.id }, data });
+      updated = true;
+      console.log(
+        `[shipments] AWB ${awb}: ${shipment.status} → ${mapped} (${event})`,
+      );
+    } else if (!mapped) {
+      console.log(
+        `[shipments] AWB ${awb}: unmapped event "${event}" — recorded only`,
+      );
+    }
+
+    // Record the tracking event; dedupe exact repeats within 10 minutes
+    // (Shiprocket redelivers webhooks).
+    const recent = await prisma.shipmentTracking.findFirst({
+      where: {
+        shipmentId: shipment.id,
+        status: mapped ?? shipment.status,
+        note: note ?? null,
+        occurredAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
+      },
+      select: { id: true },
+    });
+    if (!recent) {
+      await prisma.shipmentTracking.create({
+        data: {
+          shipmentId: shipment.id,
+          status: mapped ?? shipment.status,
+          note,
+        },
+      });
+    }
+
+    // Buyer notifications on the two milestones that matter.
+    if (
+      updated &&
+      (mapped === ShipmentStatus.OUT_FOR_DELIVERY ||
+        mapped === ShipmentStatus.DELIVERED)
+    ) {
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: shipment.order.customerId,
+            type: "ORDER_STATUS_UPDATED",
+            title:
+              mapped === ShipmentStatus.DELIVERED
+                ? `Order #${shipment.order.orderNumber} delivered`
+                : `Order #${shipment.order.orderNumber} out for delivery`,
+            body:
+              mapped === ShipmentStatus.DELIVERED
+                ? `Your artwork has been delivered. Tracking: ${awb}.`
+                : `Your artwork is out for delivery via ${shipment.carrier || "courier"}. Tracking: ${awb}.`,
+            refType: "ORDER",
+            refId: shipment.order.id,
+          },
+        });
+      } catch (e) {
+        console.error("[shipments] buyer notification failed:", e);
+      }
+    }
+
+    return { matched: true, awb, event, updated };
+  } catch (e) {
+    // Never throw: a bad webhook must not loop Shiprocket retries.
+    console.error("[shipments] tracking webhook handler failed:", e);
+    return { matched: false };
+  }
+}
