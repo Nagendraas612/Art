@@ -29,11 +29,11 @@ export const metadata: Metadata = {
     template: "%s | Kalaa Bhadra",
   },
   description:
-    "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
+    "Buy original paintings, ceramics, textiles and prints directly from independent Indian artists.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kalaabhadra.vercel.app"),
   openGraph: {
     title: "Kalaa Bhadra — Fine Art & Artisanal Marketplace",
-    description: "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
+    description: "Buy original paintings, ceramics, textiles and prints directly from independent Indian artists.",
     url: "https://kalaabhadra.vercel.app",
     siteName: "Kalaa Bhadra",
     locale: "en_US",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Kalaa Bhadra — Fine Art & Artisanal Marketplace",
-    description: "Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.",
+    description: "Buy original paintings, ceramics, textiles and prints directly from independent Indian artists.",
   },
   icons: {
     icon: [

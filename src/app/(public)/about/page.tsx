@@ -18,23 +18,23 @@ export default function AboutPage() {
 
         <div className={styles.content}>
           <p>
-            <strong>Kalaa Bhadra</strong> (कला भद्र — &quot;art that is noble&quot;) is a curated sanctuary for exceptional original art, artisanal craft, and limited-edition creations by independent artists worldwide.
+            <strong>Kalaa Bhadra</strong> (कला भद्र — &quot;art that is noble&quot;) is a marketplace for original art and handmade craft, sold directly by independent artists across India.
           </p>
 
           <h2>Our Mission</h2>
           <p>
-            We believe every handcrafted piece carries the fingerprint of its maker. Our mission is to build the most trusted bridge between discerning collectors and independent master artisans — eliminating middlemen, ensuring fair compensation, and preserving the provenance of every work.
+            We believe a handmade piece carries the fingerprint of its maker. Our mission is simple: connect buyers directly with independent artists — no middlemen, fair pay for the maker, and proof of authenticity with every work.
           </p>
 
           <h2>How It Works</h2>
           <ul>
-            <li><strong>For Collectors:</strong> Browse museum-grade originals, limited editions, and bespoke commissions — each accompanied by a Certificate of Authenticity and insured shipping.</li>
-            <li><strong>For Creators:</strong> Apply to join our curated collective. Approved artisans receive a personal studio storefront, direct messaging with buyers, and an industry-leading 90% revenue share.</li>
+            <li><strong>For Collectors:</strong> Browse originals, limited editions, and custom commissions. Every piece comes with a Certificate of Authenticity and insured shipping.</li>
+            <li><strong>For Creators:</strong> Apply to open your studio storefront. Approved artists get direct messaging with buyers and keep 90% of every sale.</li>
           </ul>
 
           <h2>Our Curation Standard</h2>
           <p>
-            Every creator application is reviewed by our curation board. We look for originality, craftsmanship integrity, and artistic vision. This means every piece you discover on Kalaa Bhadra has passed a quality standard that mass marketplaces simply cannot match.
+            We review every creator application by hand. We look for original work and genuine craftsmanship — so everything you find here meets a standard mass marketplaces can&apos;t match.
           </p>
 
           <h2>Fair Creator Economics</h2>

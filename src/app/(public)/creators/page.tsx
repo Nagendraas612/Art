@@ -9,7 +9,7 @@ export const revalidate = 3600;
 
 export const metadata = {
   title: "Artisans & Creators",
-  description: "Meet the master ceramists, painters, weavers, printmakers, and woodworkers showcasing their crafts on Kalaa Bhadra.",
+  description: "Meet the painters, potters, weavers, printmakers and woodworkers selling their work on Kalaa Bhadra.",
   alternates: {
     canonical: "https://kalaabhadra.vercel.app/creators",
   },
@@ -45,8 +45,7 @@ export default async function CreatorsPage() {
             <span className={styles.kicker}>The Artisans</span>
             <h1 className={styles.title}>Meet Our Creators</h1>
             <p className={styles.subtitle}>
-              Every creator on Kalaa Bhadra is an independent maker dedicated to authentic materials,
-              traditional crafts, and intentional design.
+              Independent artists and makers, selling their own work directly to you.
             </p>
           </div>
         </section>

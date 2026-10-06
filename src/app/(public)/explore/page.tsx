@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Explore Gallery",
-  description: "Browse original paintings, handcrafted ceramics, fiber arts, limited edition prints, and woodwork from independent master artisans.",
+  description: "Browse original paintings, ceramics, textiles, prints and woodwork, bought directly from independent artists.",
 };
 
 export default async function ExplorePage({ searchParams }: ExplorePageProps) {
@@ -141,7 +141,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
               {searchQuery
                 ? `Showing ${totalCount} ${totalCount === 1 ? "match" : "matches"} for "${searchQuery}"`
                 : activeCategory?.description ||
-                  "A curated archive of museum-grade original art, stoneware, textiles, prints, and heirloom woodwork."}
+                  "Original art, ceramics, textiles, prints and woodwork — all in one place."}
             </p>
 
             {searchQuery && (

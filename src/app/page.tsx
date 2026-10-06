@@ -71,7 +71,7 @@ export default async function Home() {
             "name": "Kalaa Bhadra",
             "url": "https://kalaabhadra.vercel.app",
             "logo": "https://kalaabhadra.vercel.app/KaalaBhadraLogoTransparent.png",
-            "description": "Museum-grade fine art & artisanal marketplace for original art, stoneware, fiber creations, and limited prints direct from master independent artisans.",
+            "description": "Marketplace for original art and handmade craft, sold directly by independent artists across India.",
             "sameAs": [],
           }),
         }}
@@ -89,7 +89,7 @@ export default async function Home() {
                 Meant to be kept.
               </h1>
               <p className={styles.subline}>
-                Discover museum-grade original art, stoneware ceramics, fiber creations, and limited prints direct from master independent artisans.
+                Original paintings, ceramics, textiles and prints — bought directly from the artists who made them.
               </p>
               <div className={styles.ctas}>
                 <Link href="/explore" className={styles.btnPrimary}>
@@ -123,7 +123,7 @@ export default async function Home() {
             </div>
             <div className={styles.statItem}>
               <span className={styles.statNum}>100%</span>
-              <span className={styles.statLabel}>Provenance</span>
+              <span className={styles.statLabel}>Authentic</span>
             </div>
           </div>
         </section>
@@ -136,7 +136,7 @@ export default async function Home() {
                 <span className={styles.sectionBadge}>Curated Mediums</span>
                 <h2 className={styles.sectionTitle}>Browse Archives</h2>
                 <p className={styles.sectionSubtitle}>
-                  Explore curated collections across traditional fine art, modern ceramics, printmaking, and woodwork.
+                  Browse paintings, ceramics, prints and woodwork — organized by craft.
                 </p>
               </div>
 
@@ -173,7 +173,7 @@ export default async function Home() {
                 <span className={styles.sectionBadge}>Acquisitions Spotlight</span>
                 <h2 className={styles.sectionTitle}>Featured Artworks</h2>
                 <p className={styles.sectionSubtitle}>
-                  Hand-selected original pieces available for private collection and immediate acquisition.
+                  One-of-a-kind pieces, ready to buy today.
                 </p>
               </div>
 
@@ -228,7 +228,7 @@ export default async function Home() {
                 <span className={styles.sectionBadge}>Master Artisans</span>
                 <h2 className={styles.sectionTitle}>Meet the Creators</h2>
                 <p className={styles.sectionSubtitle}>
-                  Discover independent artists crafting heirloom pieces with dedication to provenance and quality.
+                  Meet the artists behind the work — and buy pieces made to last.
                 </p>
               </div>
 
@@ -272,7 +272,7 @@ export default async function Home() {
             <div className={styles.propsGrid}>
               <div className={styles.propCard}>
                 <span className={styles.propIcon}>🏛️</span>
-                <h3 className={styles.propTitle}>Verified Provenance</h3>
+                <h3 className={styles.propTitle}>Certified Authentic</h3>
                 <p className={styles.propDesc}>
                   Every physical artwork includes a signed Certificate of Authenticity directly from the artist.
                 </p>
@@ -281,14 +281,14 @@ export default async function Home() {
                 <span className={styles.propIcon}>🤝</span>
                 <h3 className={styles.propTitle}>Direct Artist Support</h3>
                 <p className={styles.propDesc}>
-                  90% of every transaction goes directly to the creator — only a 10% platform fee supports curation and operations.
+                  90% of every sale goes directly to the artist — our 10% keeps the platform running.
                 </p>
               </div>
               <div className={styles.propCard}>
                 <span className={styles.propIcon}>📦</span>
                 <h3 className={styles.propTitle}>Insured Shipping</h3>
                 <p className={styles.propDesc}>
-                  Archival-grade packaging and fully insured white-glove courier delivery across India.
+                  Carefully packed and fully insured, delivered anywhere in India.
                 </p>
               </div>
             </div>

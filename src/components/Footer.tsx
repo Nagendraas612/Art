@@ -12,7 +12,7 @@ export function Footer() {
               Kalaa Bhadra
             </Link>
             <p className={styles.tagline}>
-              A curated sanctuary for exceptional original art, artisanal craft, and limited edition creations by independent artists worldwide.
+              Original art and handmade craft, sold directly by independent artists.
             </p>
             <div className={styles.badge}>
               <span>Est. 2026</span>

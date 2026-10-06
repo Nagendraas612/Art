@@ -44,8 +44,7 @@ export default async function BecomeACreatorPage({
               </div>
             )}
             <p className={styles.subtitle}>
-              Share your craft, set your studio identity, and connect directly with collectors looking
-              for authentic original art and handcrafted objects.
+              Open your own studio storefront and sell your work directly to buyers across India.
             </p>
           </div>
 
