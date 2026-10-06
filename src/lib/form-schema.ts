@@ -58,9 +58,9 @@ export async function getArtworkFormConfig(): Promise<ArtworkFormConfig> {
       .findMany({
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },
-        select: { id: true, name: true },
+        select: { id: true, name: true, parentId: true, parent: { select: { name: true } } },
       })
-      .catch(() => [] as { id: string; name: string }[]),
+      .catch(() => [] as { id: string; name: string; parentId: string | null; parent: { name: string } | null }[]),
   ]);
 
   const dbFieldMap = new Map((dbFields as DbFieldRow[]).map((f) => [f.key, f]));
@@ -74,7 +74,7 @@ export async function getArtworkFormConfig(): Promise<ArtworkFormConfig> {
       if (def.optionsSource === "category") {
         options = categories.map((c) => ({
           id: c.id,
-          label: c.name,
+          label: c.parent?.name ? `${c.parent.name} › ${c.name}` : c.name,
           value: c.id,
           isSystem: false,
         }));

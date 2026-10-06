@@ -53,7 +53,24 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   };
 
   if (currentCategorySlug) {
-    where.category = { slug: currentCategorySlug };
+    const selected = categories.find((c) => c.slug === currentCategorySlug);
+    if (selected) {
+      // Include artworks in nested subcategories when a parent is selected.
+      const ids = new Set<string>([selected.id]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const c of categories) {
+          if (c.parentId && ids.has(c.parentId) && !ids.has(c.id)) {
+            ids.add(c.id);
+            grew = true;
+          }
+        }
+      }
+      where.categoryId = { in: [...ids] };
+    } else {
+      where.category = { slug: currentCategorySlug };
+    }
   }
 
   if (currentType && Object.values(ArtworkProductType).includes(currentType)) {

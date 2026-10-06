@@ -47,6 +47,7 @@ interface Category {
   sortOrder: number;
   artworksCount: number;
   childrenCount: number;
+  parentId: string | null;
 }
 
 const SECTION_TITLES: Record<string, string> = {
@@ -71,8 +72,10 @@ export function ArtworkFormManager() {
   const [editingOption, setEditingOption] = useState<string | null>(null);
   const [optionDraft, setOptionDraft] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryParent, setNewCategoryParent] = useState("");
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [categoryDraft, setCategoryDraft] = useState("");
+  const [categoryParentDraft, setCategoryParentDraft] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [reassignTo, setReassignTo] = useState("");
 
@@ -111,6 +114,47 @@ export function ArtworkFormManager() {
   };
 
   if (loading) return <div className={styles.container}><p>Loading form schema…</p></div>;
+
+  // ── Category tree helpers ──────────────────────────────────────────
+  const parentName = (id: string | null) => categories.find((c) => c.id === id)?.name ?? "—";
+
+  /** Ids of the category itself plus everything nested under it (cycle guard for the parent picker). */
+  const selfAndDescendants = (id: string): Set<string> => {
+    const out = new Set<string>([id]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const c of categories) {
+        if (c.parentId && out.has(c.parentId) && !out.has(c.id)) {
+          out.add(c.id);
+          grew = true;
+        }
+      }
+    }
+    return out;
+  };
+
+  /** Flat list ordered as a tree: each parent followed by its children. */
+  const treeOrdered: Category[] = [];
+  {
+    const byParent = new Map<string | null, Category[]>();
+    for (const c of categories) {
+      const key = c.parentId ?? null;
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key)!.push(c);
+    }
+    const walk = (parentId: string | null) => {
+      for (const c of byParent.get(parentId) ?? []) {
+        treeOrdered.push(c);
+        walk(c.id);
+      }
+    };
+    walk(null);
+    // Orphaned rows (parent deleted out-of-band) still show up at the end.
+    for (const c of categories) {
+      if (!treeOrdered.includes(c)) treeOrdered.push(c);
+    }
+  }
 
   const fieldsBySection: Record<string, FormField[]> = {};
   for (const f of fields) {
@@ -347,10 +391,20 @@ export function ArtworkFormManager() {
             onChange={(e) => setNewCategoryName(e.target.value)}
             maxLength={80}
           />
+          <select
+            value={newCategoryParent}
+            onChange={(e) => setNewCategoryParent(e.target.value)}
+            title="Parent category (optional)"
+          >
+            <option value="">No parent — top level</option>
+            {categories.filter((c) => !c.parentId).map((c) => (
+              <option key={c.id} value={c.id}>Under “{c.name}”</option>
+            ))}
+          </select>
           <button
             className={styles.miniBtn}
             disabled={isPending || !newCategoryName.trim()}
-            onClick={() => { run(() => createCategoryAction({ name: newCategoryName.trim() }), `Category “${newCategoryName.trim()}” created.`); setNewCategoryName(""); }}
+            onClick={() => { run(() => createCategoryAction({ name: newCategoryName.trim(), parentId: newCategoryParent || null }), `Category “${newCategoryName.trim()}” created.`); setNewCategoryName(""); setNewCategoryParent(""); }}
           >
             + Add Category
           </button>
@@ -360,6 +414,7 @@ export function ArtworkFormManager() {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Parent</th>
                 <th>Artworks</th>
                 <th>Active</th>
                 <th>Order</th>
@@ -367,16 +422,28 @@ export function ArtworkFormManager() {
               </tr>
             </thead>
             <tbody>
-              {categories.map((c) => (
+              {treeOrdered.map((c) => (
                 <tr key={c.id} className={c.isActive ? "" : styles.hiddenRow}>
                   <td>
                     {editingCategory === c.id ? (
                       <span className={styles.inlineEdit}>
                         <input value={categoryDraft} onChange={(e) => setCategoryDraft(e.target.value)} maxLength={80} autoFocus />
+                        <select
+                          value={categoryParentDraft}
+                          onChange={(e) => setCategoryParentDraft(e.target.value)}
+                          title="Parent category"
+                        >
+                          <option value="">No parent — top level</option>
+                          {categories
+                            .filter((x) => !selfAndDescendants(c.id).has(x.id))
+                            .map((x) => (
+                              <option key={x.id} value={x.id}>Under “{x.name}”</option>
+                            ))}
+                        </select>
                         <button
                           className={styles.miniBtn}
                           disabled={isPending}
-                          onClick={() => { run(() => updateCategoryAction({ id: c.id, name: categoryDraft })); setEditingCategory(null); }}
+                          onClick={() => { run(() => updateCategoryAction({ id: c.id, name: categoryDraft, parentId: categoryParentDraft || null })); setEditingCategory(null); }}
                         >
                           Save
                         </button>
@@ -384,12 +451,13 @@ export function ArtworkFormManager() {
                       </span>
                     ) : (
                       <span className={styles.labelCell}>
-                        <strong>{c.name}</strong>
+                        <strong>{c.parentId ? "↳ " : ""}{c.name}</strong>
                         <span className={styles.keyHint}>/{c.slug}</span>
-                        <button className={styles.miniBtnGhost} title="Rename" onClick={() => { setEditingCategory(c.id); setCategoryDraft(c.name); }}>✎</button>
+                        <button className={styles.miniBtnGhost} title="Rename / reparent" onClick={() => { setEditingCategory(c.id); setCategoryDraft(c.name); setCategoryParentDraft(c.parentId ?? ""); }}>✎</button>
                       </span>
                     )}
                   </td>
+                  <td>{parentName(c.parentId)}</td>
                   <td><span className={styles.countBadge}>{c.artworksCount}</span></td>
                   <td>
                     <button

@@ -364,7 +364,22 @@ export async function reorderFieldOptionAction(input: z.infer<typeof reorderOpti
 const categoryInputSchema = z.object({
   name: z.string().trim().min(1).max(80),
   description: z.string().trim().max(500).optional(),
+  parentId: cuidSchema.nullable().optional(),
 });
+
+/** Returns true if assigning newParentId as parent of categoryId would create a cycle. */
+async function wouldCreateCycle(categoryId: string, newParentId: string): Promise<boolean> {
+  let current: string | null = newParentId;
+  while (current) {
+    if (current === categoryId) return true;
+    const row: { parentId: string | null } | null = await prisma.artworkCategory.findUnique({
+      where: { id: current },
+      select: { parentId: true },
+    });
+    current = row?.parentId ?? null;
+  }
+  return false;
+}
 
 export async function createCategoryAction(input: z.infer<typeof categoryInputSchema>) {
   try {
@@ -376,12 +391,20 @@ export async function createCategoryAction(input: z.infer<typeof categoryInputSc
     const existing = await prisma.artworkCategory.findUnique({ where: { slug } });
     if (existing) return { error: "A category with a similar name already exists." };
 
+    let parentId: string | null = null;
+    if (parsed.data.parentId) {
+      const parent = await prisma.artworkCategory.findUnique({ where: { id: parsed.data.parentId } });
+      if (!parent) return { error: "The chosen parent category no longer exists." };
+      parentId = parent.id;
+    }
+
     const maxPos = await prisma.artworkCategory.aggregate({ _max: { sortOrder: true } });
     await prisma.artworkCategory.create({
       data: {
         name: parsed.data.name.trim(),
         slug,
         description: parsed.data.description?.trim() || null,
+        parentId,
         sortOrder: (maxPos._max.sortOrder ?? -1) + 1,
         isActive: true,
       },
@@ -400,6 +423,7 @@ const updateCategorySchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   description: z.string().trim().max(500).nullable().optional(),
   isActive: z.boolean().optional(),
+  parentId: cuidSchema.nullable().optional(),
 });
 
 export async function updateCategoryAction(input: z.infer<typeof updateCategorySchema>) {
@@ -407,7 +431,7 @@ export async function updateCategoryAction(input: z.infer<typeof updateCategoryS
     await requireAdmin();
     const parsed = updateCategorySchema.safeParse(input);
     if (!parsed.success) return { error: firstIssue(parsed.error) };
-    const { id, name, description, isActive } = parsed.data;
+    const { id, name, description, isActive, parentId } = parsed.data;
 
     const data: Record<string, unknown> = {};
     if (name !== undefined) {
@@ -419,6 +443,19 @@ export async function updateCategoryAction(input: z.infer<typeof updateCategoryS
     }
     if (description !== undefined) data.description = description?.trim() || null;
     if (isActive !== undefined) data.isActive = isActive;
+    if (parentId !== undefined) {
+      if (parentId === null) {
+        data.parentId = null;
+      } else {
+        if (parentId === id) return { error: "A category cannot be its own parent." };
+        const parent = await prisma.artworkCategory.findUnique({ where: { id: parentId } });
+        if (!parent) return { error: "The chosen parent category no longer exists." };
+        if (await wouldCreateCycle(id, parentId)) {
+          return { error: "That would create a loop — a category cannot sit under one of its own subcategories." };
+        }
+        data.parentId = parentId;
+      }
+    }
 
     await prisma.artworkCategory.update({ where: { id }, data });
     refresh();
