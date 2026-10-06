@@ -50,7 +50,7 @@ export default function ShippingReturnsPage() {
 
           <h2>International Shipping</h2>
           <p>
-            International shipping is expanding soon. For urgent international inquiries, please contact <a href="mailto:support@kalaabhadra.com" style={{ textDecoration: "underline" }}>support@kalaabhadra.com</a>.
+            International shipping is expanding soon. For urgent international inquiries, please contact <a href="mailto:nagias612@gmail.com" style={{ textDecoration: "underline" }}>nagias612@gmail.com</a>.
           </p>
 
           <h2>Returns Policy</h2>
@@ -65,7 +65,7 @@ export default function ShippingReturnsPage() {
 
           <h2>How to Report an Issue</h2>
           <p>
-            Email <a href="mailto:support@kalaabhadra.com" style={{ textDecoration: "underline" }}>support@kalaabhadra.com</a> with your order number and photographs. Our team responds within 24 hours.
+            Email <a href="mailto:nagias612@gmail.com" style={{ textDecoration: "underline" }}>nagias612@gmail.com</a> with your order number and photographs. Our team responds within 24 hours.
           </p>
 
           <Link href="/" className={styles.backLink}>

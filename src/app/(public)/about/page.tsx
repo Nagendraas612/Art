@@ -29,7 +29,7 @@ export default function AboutPage() {
           <h2>How It Works</h2>
           <ul>
             <li><strong>For Collectors:</strong> Browse originals, limited editions, and custom commissions. Every piece comes with a Certificate of Authenticity and insured shipping.</li>
-            <li><strong>For Creators:</strong> Apply to open your studio storefront. Approved artists get direct messaging with buyers and keep 90% of every sale.</li>
+            <li><strong>For Creators:</strong> Apply to open your studio storefront. Approved artists get direct messaging with buyers and keep most of every sale.</li>
           </ul>
 
           <h2>Our Curation Standard</h2>
@@ -39,12 +39,12 @@ export default function AboutPage() {
 
           <h2>Fair Creator Economics</h2>
           <p>
-            Creators keep 90% of every sale. Our 10% platform fee covers payment processing, customer support, and platform infrastructure. No hidden fees, no listing charges, no subscription traps.
+            Creators keep most of every sale. Our small platform fee covers payment processing, customer support, and running the site. No hidden fees, no listing charges, no subscription traps.
           </p>
 
           <h2>Get in Touch</h2>
           <p>
-            Questions? Collaboration proposals? Reach us at <a href="mailto:support@kalaabhadra.com" style={{ textDecoration: "underline" }}>support@kalaabhadra.com</a>.
+            Questions? Collaboration proposals? Reach us at <a href="mailto:nagias612@gmail.com" style={{ textDecoration: "underline" }}>nagias612@gmail.com</a>.
           </p>
 
           <Link href="/" className={styles.backLink}>

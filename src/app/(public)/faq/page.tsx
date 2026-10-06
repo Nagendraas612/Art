@@ -48,7 +48,7 @@ export default function FAQPage() {
 
           <p><strong>Do you ship internationally?</strong></p>
           <p>
-            Currently, we primarily serve India. International shipping availability is expanding — check back soon or contact us at <a href="mailto:support@kalaabhadra.com" style={{ textDecoration: "underline" }}>support@kalaabhadra.com</a>.
+            Currently, we primarily serve India. International shipping availability is expanding — check back soon or contact us at <a href="mailto:nagias612@gmail.com" style={{ textDecoration: "underline" }}>nagias612@gmail.com</a>.
           </p>
 
           <h2>Returns & Refunds</h2>
@@ -60,7 +60,7 @@ export default function FAQPage() {
 
           <p><strong>What if my order arrives damaged?</strong></p>
           <p>
-            All shipments are insured. Report damage within 48 hours via <a href="mailto:support@kalaabhadra.com" style={{ textDecoration: "underline" }}>support@kalaabhadra.com</a> with photographs. We&apos;ll initiate a replacement or full refund immediately.
+            All shipments are insured. Report damage within 48 hours via <a href="mailto:nagias612@gmail.com" style={{ textDecoration: "underline" }}>nagias612@gmail.com</a> with photographs. We&apos;ll initiate a replacement or full refund immediately.
           </p>
 
           <h2>Creator Accounts</h2>
@@ -82,7 +82,7 @@ export default function FAQPage() {
 
           <h2>Still Have Questions?</h2>
           <p>
-            Reach out to our collector support team at <a href="mailto:support@kalaabhadra.com" style={{ textDecoration: "underline" }}>support@kalaabhadra.com</a>. We typically respond within 24 hours.
+            Reach out to our collector support team at <a href="mailto:nagias612@gmail.com" style={{ textDecoration: "underline" }}>nagias612@gmail.com</a>. We typically respond within 24 hours.
           </p>
 
           <Link href="/" className={styles.backLink}>

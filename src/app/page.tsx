@@ -281,7 +281,7 @@ export default async function Home() {
                 <span className={styles.propIcon}>🤝</span>
                 <h3 className={styles.propTitle}>Direct Artist Support</h3>
                 <p className={styles.propDesc}>
-                  90% of every sale goes directly to the artist — our 10% keeps the platform running.
+                  Most of every sale goes directly to the artist — we take a small fee to keep the platform running.
                 </p>
               </div>
               <div className={styles.propCard}>
