@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentCreator } from "@/lib/studio-auth";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 import { ChatView, ConversationSummary } from "@/components/messaging/ChatView";
 import styles from "./studio-messages.module.css";
 
@@ -25,7 +26,7 @@ export default async function StudioMessagesPage({ searchParams }: StudioMessage
   const conversationsData = await prisma.conversation.findMany({
     where: { creatorId: creator.id },
     include: {
-      creator: { include: { user: true } },
+      creator: { include: { user: { select: SAFE_USER_SELECT } } },
       customer: true,
       messages: {
         include: { attachments: true },

@@ -15,8 +15,11 @@ const IMAGE_HOSTS = [
 const CHECKOUT_ASSET_HOSTS = ["checkout.razorpay.com", "api.razorpay.com"];
 const REMOTE_IMAGE_HOSTS = [...IMAGE_HOSTS, ...CHECKOUT_ASSET_HOSTS];
 
-// P8: Content-Security-Policy. `unsafe-inline`/`unsafe-eval` are required by
-// Next.js itself (inline scripts/styles); everything else is locked down:
+// P8: Content-Security-Policy. `unsafe-inline` is required by Next.js
+// itself (inlined scripts/styles in production). `unsafe-eval` was removed:
+// Razorpay's checkout.js only uses `new Function` inside a guarded
+// globalThis fallback that never executes in modern browsers, and
+// production Next.js builds do not eval. Everything else is locked down:
 // - scripts/styles: self + inline (Next) + Razorpay checkout.js
 // - images: self, data:, blob:, our image hosts
 // - connects (fetch/XHR/beacon): self + Razorpay API + Cloudinary upload
@@ -24,7 +27,7 @@ const REMOTE_IMAGE_HOSTS = [...IMAGE_HOSTS, ...CHECKOUT_ASSET_HOSTS];
 // - no object/embed, no base-uri hijack, no form-action exfil
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com",
+  "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: " + IMAGE_HOSTS.map((h) => `https://${h}`).join(" "),
   "font-src 'self' data:",

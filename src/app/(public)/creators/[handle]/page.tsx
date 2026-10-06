@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/modules/auth/guards";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 import { Nav } from "@/components/Nav";
 import { ArtworkCard } from "@/components/ui/ArtworkCard";
 import Link from "next/link";
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: CreatorProfilePageProps) {
   const { handle } = await params;
   const creator = await prisma.creatorProfile.findUnique({
     where: { handle },
-    include: { user: true },
+    include: { user: { select: SAFE_USER_SELECT } },
   });
 
   if (!creator) return { title: "Creator Not Found" };
@@ -53,7 +54,7 @@ export default async function CreatorProfilePage({ params }: CreatorProfilePageP
   const creator = await prisma.creatorProfile.findUnique({
     where: { handle },
     include: {
-      user: true,
+      user: { select: SAFE_USER_SELECT },
       artworks: {
         where: { status: ArtworkStatus.PUBLISHED },
         include: {
