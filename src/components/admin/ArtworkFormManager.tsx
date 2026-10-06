@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import {
   getFormSchemaAdminAction,
   updateFormFieldAction,
@@ -73,9 +73,12 @@ export function ArtworkFormManager() {
   const [optionDraft, setOptionDraft] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryParent, setNewCategoryParent] = useState("");
+  const newCategoryInputRef = useRef<HTMLInputElement>(null);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [categoryDraft, setCategoryDraft] = useState("");
   const [categoryParentDraft, setCategoryParentDraft] = useState("");
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
+  const expandedInit = useRef(false);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [reassignTo, setReassignTo] = useState("");
 
@@ -86,6 +89,10 @@ export function ArtworkFormManager() {
         setFields(data.fields);
         setCategories(data.categories);
         setError(null);
+        if (!expandedInit.current) {
+          expandedInit.current = true;
+          setExpandedCats(new Set(data.categories.filter((c) => !c.parentId).map((c) => c.id)));
+        }
       } catch (e: any) {
         setError(e.message || "Failed to load form schema.");
       } finally {
@@ -134,27 +141,111 @@ export function ArtworkFormManager() {
     return out;
   };
 
-  /** Flat list ordered as a tree: each parent followed by its children. */
-  const treeOrdered: Category[] = [];
-  {
-    const byParent = new Map<string | null, Category[]>();
-    for (const c of categories) {
-      const key = c.parentId ?? null;
-      if (!byParent.has(key)) byParent.set(key, []);
-      byParent.get(key)!.push(c);
-    }
-    const walk = (parentId: string | null) => {
-      for (const c of byParent.get(parentId) ?? []) {
-        treeOrdered.push(c);
-        walk(c.id);
-      }
-    };
-    walk(null);
-    // Orphaned rows (parent deleted out-of-band) still show up at the end.
-    for (const c of categories) {
-      if (!treeOrdered.includes(c)) treeOrdered.push(c);
-    }
-  }
+  const childrenOf = (parentId: string): Category[] =>
+    categories.filter((c) => c.parentId === parentId);
+
+  const rootCategories = categories.filter((c) => !c.parentId);
+
+  const toggleExpanded = (id: string) => {
+    setExpandedCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  /** Jump the add-row to creating a sub-category under the given parent. */
+  const addSubUnder = (parentId: string) => {
+    setNewCategoryParent(parentId);
+    newCategoryInputRef.current?.focus();
+    newCategoryInputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
+
+  const renderCategoryRow = (c: Category, depth: number) => {
+    const kids = childrenOf(c.id);
+    const isOpen = expandedCats.has(c.id);
+    return (
+      <tr key={c.id} className={c.isActive ? "" : styles.hiddenRow}>
+        <td>
+          {editingCategory === c.id ? (
+            <span className={styles.inlineEdit}>
+              <input value={categoryDraft} onChange={(e) => setCategoryDraft(e.target.value)} maxLength={80} autoFocus />
+              <select
+                value={categoryParentDraft}
+                onChange={(e) => setCategoryParentDraft(e.target.value)}
+                title="Parent category"
+              >
+                <option value="">No parent — top level</option>
+                {categories
+                  .filter((x) => !selfAndDescendants(c.id).has(x.id))
+                  .map((x) => (
+                    <option key={x.id} value={x.id}>Under “{x.name}”</option>
+                  ))}
+              </select>
+              <button
+                className={styles.miniBtn}
+                disabled={isPending}
+                onClick={() => { run(() => updateCategoryAction({ id: c.id, name: categoryDraft, parentId: categoryParentDraft || null })); setEditingCategory(null); }}
+              >
+                Save
+              </button>
+              <button className={styles.miniBtnGhost} onClick={() => setEditingCategory(null)}>✕</button>
+            </span>
+          ) : (
+            <span className={styles.labelCell}>
+              {depth > 0 && <span style={{ display: "inline-block", width: depth * 22 }} />}
+              {kids.length > 0 ? (
+                <button
+                  className={styles.miniBtnGhost}
+                  title={isOpen ? "Collapse sub-categories" : "Expand sub-categories"}
+                  onClick={() => toggleExpanded(c.id)}
+                  style={{ marginRight: 4 }}
+                >
+                  {isOpen ? "▾" : "▸"}
+                </button>
+              ) : depth > 0 ? (
+                <span style={{ marginRight: 4, opacity: 0.6 }}>↳</span>
+              ) : null}
+              <strong>{c.name}</strong>
+              {kids.length > 0 && <span className={styles.countBadge} style={{ marginLeft: 6 }}>{kids.length}</span>}
+              <span className={styles.keyHint}>/{c.slug}</span>
+              <button className={styles.miniBtnGhost} title="Rename / reparent" onClick={() => { setEditingCategory(c.id); setCategoryDraft(c.name); setCategoryParentDraft(c.parentId ?? ""); }}>✎</button>
+              {depth === 0 && (
+                <button className={styles.miniBtnGhost} title={`Add a sub-category under “${c.name}”`} onClick={() => addSubUnder(c.id)}>+ Sub</button>
+              )}
+            </span>
+          )}
+        </td>
+        <td>{parentName(c.parentId)}</td>
+        <td><span className={styles.countBadge}>{c.artworksCount}</span></td>
+        <td>
+          <button
+            className={c.isActive ? styles.toggleOn : styles.toggleOff}
+            disabled={isPending}
+            onClick={() => run(() => updateCategoryAction({ id: c.id, isActive: !c.isActive }))}
+          >
+            {c.isActive ? "Active" : "Hidden"}
+          </button>
+        </td>
+        <td>
+          <span className={styles.orderBtns}>
+            <button className={styles.miniBtnGhost} disabled={isPending} onClick={() => run(() => reorderCategoryAction({ id: c.id, direction: "up" }))}>↑</button>
+            <button className={styles.miniBtnGhost} disabled={isPending} onClick={() => run(() => reorderCategoryAction({ id: c.id, direction: "down" }))}>↓</button>
+          </span>
+        </td>
+        <td>
+          <button
+            className={styles.miniBtnDanger}
+            disabled={isPending}
+            onClick={() => { setDeleteTarget(c); setReassignTo(categories.find((x) => x.id !== c.id && x.isActive)?.id || ""); }}
+          >
+            🗑 Delete
+          </button>
+        </td>
+      </tr>
+    );
+  };
 
   const fieldsBySection: Record<string, FormField[]> = {};
   for (const f of fields) {
@@ -386,6 +477,7 @@ export function ArtworkFormManager() {
         </p>
         <div className={styles.addRow}>
           <input
+            ref={newCategoryInputRef}
             placeholder="New category name… e.g. Mandala Art"
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
@@ -422,68 +514,11 @@ export function ArtworkFormManager() {
               </tr>
             </thead>
             <tbody>
-              {treeOrdered.map((c) => (
-                <tr key={c.id} className={c.isActive ? "" : styles.hiddenRow}>
-                  <td>
-                    {editingCategory === c.id ? (
-                      <span className={styles.inlineEdit}>
-                        <input value={categoryDraft} onChange={(e) => setCategoryDraft(e.target.value)} maxLength={80} autoFocus />
-                        <select
-                          value={categoryParentDraft}
-                          onChange={(e) => setCategoryParentDraft(e.target.value)}
-                          title="Parent category"
-                        >
-                          <option value="">No parent — top level</option>
-                          {categories
-                            .filter((x) => !selfAndDescendants(c.id).has(x.id))
-                            .map((x) => (
-                              <option key={x.id} value={x.id}>Under “{x.name}”</option>
-                            ))}
-                        </select>
-                        <button
-                          className={styles.miniBtn}
-                          disabled={isPending}
-                          onClick={() => { run(() => updateCategoryAction({ id: c.id, name: categoryDraft, parentId: categoryParentDraft || null })); setEditingCategory(null); }}
-                        >
-                          Save
-                        </button>
-                        <button className={styles.miniBtnGhost} onClick={() => setEditingCategory(null)}>✕</button>
-                      </span>
-                    ) : (
-                      <span className={styles.labelCell}>
-                        <strong>{c.parentId ? "↳ " : ""}{c.name}</strong>
-                        <span className={styles.keyHint}>/{c.slug}</span>
-                        <button className={styles.miniBtnGhost} title="Rename / reparent" onClick={() => { setEditingCategory(c.id); setCategoryDraft(c.name); setCategoryParentDraft(c.parentId ?? ""); }}>✎</button>
-                      </span>
-                    )}
-                  </td>
-                  <td>{parentName(c.parentId)}</td>
-                  <td><span className={styles.countBadge}>{c.artworksCount}</span></td>
-                  <td>
-                    <button
-                      className={c.isActive ? styles.toggleOn : styles.toggleOff}
-                      disabled={isPending}
-                      onClick={() => run(() => updateCategoryAction({ id: c.id, isActive: !c.isActive }))}
-                    >
-                      {c.isActive ? "Active" : "Hidden"}
-                    </button>
-                  </td>
-                  <td>
-                    <span className={styles.orderBtns}>
-                      <button className={styles.miniBtnGhost} disabled={isPending} onClick={() => run(() => reorderCategoryAction({ id: c.id, direction: "up" }))}>↑</button>
-                      <button className={styles.miniBtnGhost} disabled={isPending} onClick={() => run(() => reorderCategoryAction({ id: c.id, direction: "down" }))}>↓</button>
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      className={styles.miniBtnDanger}
-                      disabled={isPending}
-                      onClick={() => { setDeleteTarget(c); setReassignTo(categories.find((x) => x.id !== c.id && x.isActive)?.id || ""); }}
-                    >
-                      🗑 Delete
-                    </button>
-                  </td>
-                </tr>
+              {rootCategories.map((c) => (
+                <Fragment key={c.id}>
+                  {renderCategoryRow(c, 0)}
+                  {expandedCats.has(c.id) && childrenOf(c.id).map((kid) => renderCategoryRow(kid, 1))}
+                </Fragment>
               ))}
             </tbody>
           </table>

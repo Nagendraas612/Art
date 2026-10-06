@@ -533,7 +533,9 @@ export async function reorderCategoryAction(input: z.infer<typeof reorderCategor
     const category = await prisma.artworkCategory.findUnique({ where: { id: parsed.data.id } });
     if (!category) return { error: "Category not found." };
 
+    // Reorder within the same level (same parent) so tree structure stays intact.
     const siblings = await prisma.artworkCategory.findMany({
+      where: { parentId: category.parentId },
       orderBy: { sortOrder: "asc" },
     });
     const idx = siblings.findIndex((c) => c.id === category.id);
