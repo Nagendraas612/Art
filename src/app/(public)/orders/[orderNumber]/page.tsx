@@ -36,7 +36,7 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
     include: {
       address: true,
       payment: true,
-      customer: { select: { email: true, id: true } },
+      customer: { select: { email: true, id: true, isGuest: true } },
       items: {
         include: {
           artwork: {
@@ -73,14 +73,19 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
   // creator, or an admin. Guests prove ownership with the unguessable
   // per-order token issued at checkout (?t=...), delivered only to the
   // buyer's email. The order number alone grants nothing.
+  // Guest orders NEVER grant access on email match alone: a guest row has
+  // no verified owner, so only the token (or the row id itself) counts.
   const session = await getSession();
   const viewerId = session?.user?.id;
   const viewerEmail = session?.user?.email;
   const viewerRole = session?.user?.role;
 
+  const isGuestOrder = order.customer.isGuest === true;
   const isOwner =
     (!!viewerId && viewerId === order.customerId) ||
-    (!!viewerEmail && viewerEmail.toLowerCase() === order.customer.email.toLowerCase());
+    (!isGuestOrder &&
+      !!viewerEmail &&
+      viewerEmail.toLowerCase() === order.customer.email.toLowerCase());
   const isAdmin = viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN";
   const isOwningCreator =
     !!viewerId &&

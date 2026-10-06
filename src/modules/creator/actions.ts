@@ -104,6 +104,14 @@ export async function createCreatorProfile(data: CreateCreatorProfileInput) {
 
   try {
     if (existingProfile) {
+      // A suspended studio stays suspended: self-service resubmission must
+      // not launder a disciplinary sanction back into the review queue.
+      if (existingProfile.status === CreatorStatus.SUSPENDED) {
+        return {
+          success: false,
+          error: "Your creator studio has been suspended. Please contact platform support.",
+        };
+      }
       // Update existing
       const updatedProfile = await prisma.creatorProfile.update({
         where: { userId: session.user.id },

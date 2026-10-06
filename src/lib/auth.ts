@@ -52,12 +52,18 @@ export const auth = betterAuth({
     accountLinking: {
       enabled: true,
       trustedProviders: ["google"],
-      // Google cryptographically proves email ownership, so its verification
-      // is the trust anchor here. Requiring the *local* row to be verified
-      // would lock out every guest-checkout buyer (isGuest rows are never
-      // email-verified) the first time they use Google login — better-auth
-      // rejects the link with ?error=account_not_linked.
-      requireLocalEmailVerified: false,
+      // Secure default (true): a Google identity may only link to a local
+      // row whose email is verified. This closes account pre-hijacking:
+      // without it, an attacker could pre-register victim@email.com with
+      // their own password, and the victim's later "Continue with Google"
+      // would link into the attacker's row — leaving the attacker with
+      // working password access to the victim's account.
+      // Trade-off: a guest-checkout buyer (isGuest rows are never
+      // email-verified) gets rejected on their first Google attempt and
+      // must verify their email first (one click from their inbox, which
+      // they control — order emails already go there). Friction, not a
+      // lockout — and the safe direction to err in.
+      requireLocalEmailVerified: true,
     },
   },
 

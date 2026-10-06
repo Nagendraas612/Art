@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 import { getSession } from "@/modules/auth/guards";
 import { Nav } from "@/components/Nav";
 import { ArtworkCard } from "@/components/ui/ArtworkCard";
@@ -99,7 +100,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
       },
       creator: {
         include: {
-          user: true,
+          user: { select: SAFE_USER_SELECT },
         },
       },
       category: true,
