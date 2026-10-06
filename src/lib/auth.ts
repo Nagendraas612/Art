@@ -37,7 +37,7 @@ export const auth = betterAuth({
     revokeSessionsOnPasswordReset: true,
     async sendResetPassword({ user, url }) {
       const { sendEmail, generatePasswordResetEmail } = await import("@/lib/email");
-      await sendEmail({
+      const result = await sendEmail({
         to: user.email,
         subject: "Reset your Kalaa Bhadra password",
         html: generatePasswordResetEmail({
@@ -45,6 +45,12 @@ export const auth = betterAuth({
           resetUrl: url,
         }),
       });
+      // Never swallow send failures: a silent "success" here is how users
+      // end up staring at an empty inbox. Throw so the failure surfaces in
+      // server logs and the caller reports it honestly.
+      if (!result.success) {
+        throw new Error(result.error || "Failed to send password reset email.");
+      }
     },
   },
 
@@ -78,7 +84,7 @@ export const auth = betterAuth({
       const { sendEmail, generateVerificationEmail } = await import(
         "@/lib/email"
       );
-      await sendEmail({
+      const result = await sendEmail({
         to: user.email,
         subject: "Verify your Kalaa Bhadra email",
         html: generateVerificationEmail({
@@ -87,6 +93,14 @@ export const auth = betterAuth({
         }),
         templateType: "EMAIL_VERIFICATION",
       });
+      // Never swallow send failures: a silent "success" here is how users
+      // end up staring at an empty inbox while the UI claims the mail was
+      // sent. Throw so the failure surfaces in server logs and the caller
+      // reports it honestly. (The resend endpoint still answers success to
+      // the client for anti-enumeration; the real error lands in logs.)
+      if (!result.success) {
+        throw new Error(result.error || "Failed to send verification email.");
+      }
     },
   },
 
