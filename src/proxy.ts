@@ -37,10 +37,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Stash the request path for studio routes so the studio layout (which
-  // cannot read the pathname directly) can build accurate post-sign-in
-  // callback URLs, e.g. /studio/orders instead of a hardcoded /studio.
-  if (pathname.startsWith("/studio")) {
+  // Stash the request path for studio and admin routes so their layouts
+  // (which cannot read the pathname directly) can build accurate
+  // post-sign-in callback URLs, e.g. /studio/orders or /admin/creators
+  // instead of a hardcoded fallback.
+  if (pathname.startsWith("/studio") || pathname.startsWith("/admin")) {
     const headers = new Headers(request.headers);
     headers.set("x-request-path", pathname + request.nextUrl.search);
     return NextResponse.next({ request: { headers } });
@@ -50,5 +51,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/auth/:path*", "/checkout", "/api/checkout/:path*", "/studio/:path*"],
+  matcher: ["/api/auth/:path*", "/checkout", "/api/checkout/:path*", "/studio/:path*", "/admin/:path*"],
 };

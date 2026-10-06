@@ -109,6 +109,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 1b. Origin check (defense in depth): this is a Route Handler, not a
+  // Server Action, so Next.js does not enforce Origin for us. SameSite
+  // cookies already block CSRF in modern browsers; this closes the gap
+  // if cookie handling is ever degraded.
+  const origin = req.headers.get("origin");
+  const host = req.headers.get("host");
+  if (origin && host && new URL(origin).host !== host) {
+    return NextResponse.json({ error: "Invalid origin." }, { status: 403 });
+  }
+
   // 2. Authorization — any authenticated user may upload (the become-a-creator
   // onboarding form requires uploads before a creator profile exists).
   // Abuse is mitigated by rate limiting (step 3) + magic-byte validation (step 4).

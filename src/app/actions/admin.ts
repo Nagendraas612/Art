@@ -266,7 +266,7 @@ export async function updateOrderStatusAction(params: {
         orderNumber: order.orderNumber,
         status: status.replace(/_/g, " "),
         message: note,
-        trackingUrl: `${domain}/orders/${order.orderNumber}`,
+        trackingUrl: `${domain}/orders/${order.orderNumber}${order.guestAccessToken ? `?t=${order.guestAccessToken}` : ""}`,
       });
 
       sendEmail({
@@ -407,7 +407,7 @@ async function cancelOrderAsAdmin(
           orderNumber,
           status: "Cancelled",
           message: note || `Your order has been cancelled by our team. Your payment of ₹${Number(order.grandTotal).toLocaleString("en-IN")} will be refunded in full within 5-7 business days.`,
-          trackingUrl: `${domain}/orders/${orderNumber}`,
+          trackingUrl: `${domain}/orders/${orderNumber}${order.guestAccessToken ? `?t=${order.guestAccessToken}` : ""}`,
         }),
       }).catch((err) => console.error("[cancelOrderAsAdmin] email failed:", err));
     }
@@ -606,7 +606,7 @@ export async function resolveDisputedOrderAction(params: {
           orderNumber: order.orderNumber,
           status: resolution === "CONFIRM" ? "Order Confirmed" : "Refund Requested",
           message: note,
-          trackingUrl: `${domain}/orders/${order.orderNumber}`,
+          trackingUrl: `${domain}/orders/${order.orderNumber}${order.guestAccessToken ? `?t=${order.guestAccessToken}` : ""}`,
         }),
       }).catch((err) => console.error("[resolveDisputedOrderAction] email failed:", err));
     }

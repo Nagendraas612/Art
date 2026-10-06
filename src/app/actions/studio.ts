@@ -677,7 +677,7 @@ export async function updateStudioOrderStatusAction({
           : status === OrderStatus.CANCELLED
             ? `The studio has cancelled this order. Your payment of ₹${Number(order.grandTotal).toLocaleString("en-IN")} will be refunded in full within 5-7 business days.`
             : undefined,
-        trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}`,
+        trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}${order.guestAccessToken ? `?t=${order.guestAccessToken}` : ""}`,
       });
       const result = await sendEmail({
         to: order.customer.email,
@@ -705,7 +705,7 @@ export async function updateStudioOrderStatusAction({
           customerName: order.customer.name || "Collector",
           orderNumber: order.orderNumber,
           artworkTitles: order.items.map((i) => i.artwork.title),
-          reviewUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}`,
+          reviewUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/orders/${order.orderNumber}${order.guestAccessToken ? `?t=${order.guestAccessToken}` : ""}`,
         });
         const reviewResult = await sendEmail({
           to: order.customer.email,
