@@ -98,14 +98,14 @@ export default function FAQPage() {
 
           <p><strong>How do I access, correct, or delete my data?</strong></p>
           <p>
-            Email <strong>[GRIEVANCE EMAIL]</strong> with the subject &quot;Data Request&quot; and tell us
+            Email <strong>nagias612@gmail.com</strong> with the subject &quot;Data Request&quot; and tell us
             what you need. We will respond within a reasonable time.
           </p>
 
           <p><strong>How do I raise a complaint?</strong></p>
           <p>
-            Contact our grievance officer — <strong>[GRIEVANCE OFFICER NAME]</strong>,{" "}
-            <strong>[GRIEVANCE EMAIL]</strong>, <strong>[GRIEVANCE PHONE]</strong>. We acknowledge every
+            Contact our grievance officer — <strong>Nagendra A.S</strong>,{" "}
+            <strong>nagias612@gmail.com</strong>, <strong>+91 63609 75772</strong>. We acknowledge every
             complaint within 48 hours, resolve it within one month, and give you a ticket number to track it.
           </p>
 

@@ -43,7 +43,7 @@ export default function ConsentNoticePage() {
 
           <h2>Your rights</h2>
           <ul>
-            <li><strong>Withdraw consent</strong> at any time by emailing <strong>[GRIEVANCE EMAIL]</strong> — though withdrawing consent for essential processing (like order fulfilment) means we can no longer provide the service.</li>
+            <li><strong>Withdraw consent</strong> at any time by emailing <strong>nagias612@gmail.com</strong> — though withdrawing consent for essential processing (like order fulfilment) means we can no longer provide the service.</li>
             <li><strong>Access, correct, or delete</strong> your personal data by emailing the same address with the subject &quot;Data Request&quot;.</li>
             <li><strong>Complain</strong> to the Data Protection Board of India if you are unhappy with how we handled your request.</li>
           </ul>

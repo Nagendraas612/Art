@@ -86,8 +86,8 @@ export default function ShippingReturnsPage() {
 
           <h2>Grievance Officer</h2>
           <p>
-            For unresolved complaints, contact our grievance officer: <strong>[GRIEVANCE OFFICER NAME]</strong> —{" "}
-            <strong>[GRIEVANCE EMAIL]</strong>, <strong>[GRIEVANCE PHONE]</strong>. We acknowledge every
+            For unresolved complaints, contact our grievance officer: <strong>Nagendra A.S</strong> —{" "}
+            <strong>nagias612@gmail.com</strong>, <strong>+91 63609 75772</strong>. We acknowledge every
             complaint within <strong>48 hours</strong> and resolve it within <strong>one month</strong>,
             with a ticket number for tracking.
           </p>

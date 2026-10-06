@@ -29,10 +29,10 @@ export default function PrivacyPage() {
             independent creators and studios.
           </p>
           <ul>
-            <li><strong>Business name:</strong> [BUSINESS / PROPRIETOR NAME]</li>
-            <li><strong>Address:</strong> [BUSINESS ADDRESS]</li>
-            <li><strong>Contact email:</strong> [SUPPORT EMAIL]</li>
-            <li><strong>Contact phone:</strong> [SUPPORT PHONE]</li>
+            <li><strong>Business name:</strong> Kalaa Bhadra (proprietor: Nagendra A.S)</li>
+            <li><strong>Address:</strong> #4057, KHB Colony, Near Ooty Road, Nanjangud, Karnataka 571301</li>
+            <li><strong>Contact email:</strong> nagias612@gmail.com</li>
+            <li><strong>Contact phone:</strong> +91 63609 75772</li>
           </ul>
           <p>
             For any privacy question, complaint, or request about your data, contact our grievance officer
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
             <li><strong>Nomination</strong> — you may nominate someone to exercise these rights on your behalf in case of your death or incapacity.</li>
           </ul>
           <p>
-            To exercise any of these rights, email <strong>[GRIEVANCE EMAIL]</strong> with the subject
+            To exercise any of these rights, email <strong>nagias612@gmail.com</strong> with the subject
             line &quot;Data Request&quot;. We will respond within a reasonable time. If you are not satisfied
             with our response, you may complain to the Data Protection Board of India once it is operational.
           </p>
@@ -134,9 +134,9 @@ export default function PrivacyPage() {
             grievance officer:
           </p>
           <ul>
-            <li><strong>Name:</strong> [GRIEVANCE OFFICER NAME]</li>
-            <li><strong>Email:</strong> [GRIEVANCE EMAIL]</li>
-            <li><strong>Phone:</strong> [GRIEVANCE PHONE]</li>
+            <li><strong>Name:</strong> Nagendra A.S</li>
+            <li><strong>Email:</strong> nagias612@gmail.com</li>
+            <li><strong>Phone:</strong> +91 63609 75772</li>
           </ul>
           <p>
             We acknowledge every complaint within <strong>48 hours</strong> and resolve it within
@@ -159,8 +159,8 @@ export default function PrivacyPage() {
 
           <h2>12. Contact us</h2>
           <p>
-            For anything about this policy or your data: <strong>[SUPPORT EMAIL]</strong>,{" "}
-            <strong>[SUPPORT PHONE]</strong>, or write to <strong>[BUSINESS ADDRESS]</strong>.
+            For anything about this policy or your data: <strong>nagias612@gmail.com</strong>,{" "}
+            <strong>+91 63609 75772</strong>, or write to <strong>#4057, KHB Colony, Near Ooty Road, Nanjangud, Karnataka 571301</strong>.
           </p>
 
           <p>

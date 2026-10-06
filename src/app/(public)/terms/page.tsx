@@ -19,7 +19,8 @@ export default function TermsPage() {
         <div className={styles.content}>
           <p>
             These Terms of Use (&quot;Terms&quot;) are a legal agreement between you and{" "}
-            <strong>Kalaa Bhadra</strong> ([BUSINESS / PROPRIETOR NAME], [BUSINESS ADDRESS]).
+            <strong>Kalaa Bhadra</strong> (proprietor: Nagendra A.S, #4057, KHB Colony,
+            Near Ooty Road, Nanjangud, Karnataka 571301).
             By creating an account, placing an order, or listing artwork on Kalaa Bhadra, you agree to
             these Terms and to our <Link href="/privacy" style={{ textDecoration: "underline" }}>Privacy Policy</Link>.
             If you do not agree, please do not use the platform.
@@ -104,9 +105,9 @@ export default function TermsPage() {
 
           <h2>10. Complaints and dispute resolution</h2>
           <ul>
-            <li><strong>Talk to us first:</strong> Most issues are resolved quickly through our grievance officer — [GRIEVANCE OFFICER NAME], <strong>[GRIEVANCE EMAIL]</strong>, <strong>[GRIEVANCE PHONE]</strong>. We acknowledge complaints within 48 hours and resolve them within one month, with a ticket number for tracking.</li>
+            <li><strong>Talk to us first:</strong> Most issues are resolved quickly through our grievance officer — Nagendra A.S, <strong>nagias612@gmail.com</strong>, <strong>+91 63609 75772</strong>. We acknowledge complaints within 48 hours and resolve them within one month, with a ticket number for tracking.</li>
             <li><strong>Governing law:</strong> These Terms are governed by the laws of India.</li>
-            <li><strong>Jurisdiction:</strong> Subject to applicable consumer-protection law, disputes will be subject to the exclusive jurisdiction of the courts at [CITY, STATE].</li>
+            <li><strong>Jurisdiction:</strong> Subject to applicable consumer-protection law, disputes will be subject to the exclusive jurisdiction of the courts at Mysuru, Karnataka.</li>
           </ul>
 
           <h2>11. Changes to these Terms</h2>
@@ -118,8 +119,8 @@ export default function TermsPage() {
 
           <h2>12. Contact</h2>
           <p>
-            Questions about these Terms: <strong>[SUPPORT EMAIL]</strong>, <strong>[SUPPORT PHONE]</strong>,{" "}
-            [BUSINESS ADDRESS].
+            Questions about these Terms: <strong>nagias612@gmail.com</strong>, <strong>+91 63609 75772</strong>,{" "}
+            #4057, KHB Colony, Near Ooty Road, Nanjangud, Karnataka 571301.
           </p>
 
           <Link href="/" className={styles.backLink}>
