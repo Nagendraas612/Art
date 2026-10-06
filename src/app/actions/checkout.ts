@@ -65,7 +65,9 @@ export async function processCheckout(input: CheckoutInput) {
       include: {
         creator: {
           include: {
-            user: true,
+            // Server-side only: creator sale-notification email. Never
+            // serialized to the client (see return values below).
+            user: { select: { id: true, email: true, name: true } },
           },
         },
         images: { orderBy: { sortOrder: "asc" } },

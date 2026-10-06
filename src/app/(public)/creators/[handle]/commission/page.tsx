@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 import { Nav } from "@/components/Nav";
 import { CommissionForm } from "@/components/commission/CommissionForm";
 import styles from "./commission-page.module.css";
@@ -31,7 +32,7 @@ export default async function CommissionPage({ params }: CommissionPageProps) {
   const creator = await prisma.creatorProfile.findUnique({
     where: { handle },
     include: {
-      user: true,
+      user: { select: SAFE_USER_SELECT },
     },
   });
 

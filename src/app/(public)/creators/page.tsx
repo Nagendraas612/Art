@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SAFE_USER_SELECT } from "@/lib/safe-select";
 import { Nav } from "@/components/Nav";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import styles from "./creators.module.css";
@@ -21,7 +22,7 @@ export default async function CreatorsPage() {
       status: CreatorStatus.APPROVED,
     },
     include: {
-      user: true,
+      user: { select: SAFE_USER_SELECT },
       _count: {
         select: {
           artworks: {
