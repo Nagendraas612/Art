@@ -63,9 +63,33 @@ export default function ShippingReturnsPage() {
             <li><strong>Custom commissions:</strong> Returns for bespoke pieces follow the terms agreed between you and the creator before production began.</li>
           </ul>
 
+          <h2>Refund Timelines</h2>
+          <p>
+            Approved refunds are initiated within <strong>2 business days</strong> and typically reach
+            your original payment method within <strong>5–7 business days</strong>, depending on your bank.
+            If a refund has not arrived after 7 business days, contact us with your order number and we will
+            trace it with our payment partner.
+          </p>
+
+          <h2>Order Cancellation</h2>
+          <p>
+            You may cancel any order <strong>before it is dispatched</strong> for a full refund at no charge —
+            no cancellation fees, ever. Once an order has been handed to the courier, the returns policy above applies.
+            To cancel, go to your <Link href="/orders" style={{ textDecoration: "underline" }}>Order History</Link>{" "}
+            page or email us with your order number.
+          </p>
+
           <h2>How to Report an Issue</h2>
           <p>
             Email <a href="mailto:nagias612@gmail.com" style={{ textDecoration: "underline" }}>nagias612@gmail.com</a> with your order number and photographs. Our team responds within 24 hours.
+          </p>
+
+          <h2>Grievance Officer</h2>
+          <p>
+            For unresolved complaints, contact our grievance officer: <strong>[GRIEVANCE OFFICER NAME]</strong> —{" "}
+            <strong>[GRIEVANCE EMAIL]</strong>, <strong>[GRIEVANCE PHONE]</strong>. We acknowledge every
+            complaint within <strong>48 hours</strong> and resolve it within <strong>one month</strong>,
+            with a ticket number for tracking.
           </p>
 
           <Link href="/" className={styles.backLink}>

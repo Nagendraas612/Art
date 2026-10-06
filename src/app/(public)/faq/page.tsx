@@ -80,6 +80,35 @@ export default function FAQPage() {
             Yes. Approved creators have full access to a Studio Dashboard with real-time sales analytics, order tracking, and payout history.
           </p>
 
+          <h2>Privacy &amp; Your Rights</h2>
+
+          <p><strong>What personal data do you collect about me?</strong></p>
+          <p>
+            Only what we need to run the marketplace: your name, email, phone, delivery addresses,
+            order history, and — if you are a creator — your studio profile and artwork. We never see
+            or store your card or UPI details; payments go directly through Razorpay. The full list is
+            in our <Link href="/privacy" style={{ textDecoration: "underline" }}>Privacy Policy</Link>.
+          </p>
+
+          <p><strong>Do you sell my data?</strong></p>
+          <p>
+            No. We share data only with the providers needed to fulfil your order — Razorpay (payments),
+            Shiprocket and couriers (delivery), and Cloudinary (image hosting) — and never for advertising.
+          </p>
+
+          <p><strong>How do I access, correct, or delete my data?</strong></p>
+          <p>
+            Email <strong>[GRIEVANCE EMAIL]</strong> with the subject &quot;Data Request&quot; and tell us
+            what you need. We will respond within a reasonable time.
+          </p>
+
+          <p><strong>How do I raise a complaint?</strong></p>
+          <p>
+            Contact our grievance officer — <strong>[GRIEVANCE OFFICER NAME]</strong>,{" "}
+            <strong>[GRIEVANCE EMAIL]</strong>, <strong>[GRIEVANCE PHONE]</strong>. We acknowledge every
+            complaint within 48 hours, resolve it within one month, and give you a ticket number to track it.
+          </p>
+
           <h2>Still Have Questions?</h2>
           <p>
             Reach out to our collector support team at <a href="mailto:nagias612@gmail.com" style={{ textDecoration: "underline" }}>nagias612@gmail.com</a>. We typically respond within 24 hours.

@@ -49,6 +49,7 @@ export function Footer() {
               <li><Link href="/shipping-returns">Shipping & Returns</Link></li>
               <li><Link href="/terms">Terms of Use</Link></li>
               <li><Link href="/privacy">Privacy Policy</Link></li>
+              <li><Link href="/consent-notice">Consent Notice</Link></li>
               <li><a href="mailto:nagias612@gmail.com">Collector Support</a></li>
             </ul>
           </div>

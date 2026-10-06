@@ -129,8 +129,9 @@ function SignUpForm() {
 
         <p className={styles.termsNotice}>
           By registering, you agree to Kalaa Bhadra&apos;s{" "}
-          <Link href="/terms">Terms of Use</Link> and{" "}
-          <Link href="/privacy">Privacy Policy</Link>.
+          <Link href="/terms">Terms of Use</Link>,{" "}
+          <Link href="/privacy">Privacy Policy</Link>, and{" "}
+          <Link href="/consent-notice">Consent Notice</Link>.
         </p>
 
         <p className={styles.footer}>
