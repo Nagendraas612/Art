@@ -217,17 +217,42 @@ export default async function AdminOrderPage({
                   <th>Status</th>
                   <th>Reason</th>
                   <th>Requested</th>
+                  <th>Waiting</th>
                 </tr>
               </thead>
               <tbody>
-                {order.refunds.map((r) => (
-                  <tr key={r.id}>
-                    <td>{fmt(r.amount.toString())}</td>
-                    <td>{r.status}</td>
-                    <td>{r.reason || "—"}</td>
-                    <td>{new Date(r.requestedAt).toLocaleString("en-IN")}</td>
-                  </tr>
-                ))}
+                {order.refunds.map((r) => {
+                  // Refunds are manual (dashboard) and the buyer is promised
+                  // 5-7 business days — surface anything waiting past 5 days
+                  // so a forgotten refund can't sit silently.
+                  const daysWaiting = Math.floor(
+                    (Date.now() - new Date(r.requestedAt).getTime()) / 86400000
+                  );
+                  const overdue = r.status === "REQUESTED" && daysWaiting > 5;
+                  return (
+                    <tr key={r.id}>
+                      <td>{fmt(r.amount.toString())}</td>
+                      <td>{r.status}</td>
+                      <td>{r.reason || "—"}</td>
+                      <td>{new Date(r.requestedAt).toLocaleString("en-IN")}</td>
+                      <td>
+                        {r.status === "REQUESTED" ? (
+                          <span
+                            style={
+                              overdue
+                                ? { color: "#b91c1c", fontWeight: 700 }
+                                : undefined
+                            }
+                          >
+                            {daysWaiting}d{overdue ? " — overdue" : ""}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (

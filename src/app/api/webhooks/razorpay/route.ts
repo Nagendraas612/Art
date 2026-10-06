@@ -134,15 +134,46 @@ async function handleRefundEvent(event: any) {
         ? openRefunds.find((r) => Math.abs(Number(r.amount) - refundAmount) < 0.01)
         : null) || openRefunds[0];
     if (match) {
-      await prisma.refund.update({
-        where: { id: match.id },
-        data: {
-          status: RefundStatus.COMPLETED,
-          gatewayRefundId,
-          processedAt: new Date(),
-        },
+      // Settle the refund and close the order's lifecycle with it. An order
+      // stuck at REFUND_REQUESTED after the money is back is a dead-end
+      // state — but only transition from REFUND_REQUESTED: a duplicate-capture
+      // refund settles against an otherwise healthy CONFIRMED order and must
+      // not flip the order status.
+      const domain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const settled = await prisma.$transaction(async (tx) => {
+        const updated = await tx.refund.update({
+          where: { id: match.id },
+          data: {
+            status: RefundStatus.COMPLETED,
+            gatewayRefundId,
+            processedAt: new Date(),
+          },
+        });
+        const order = await tx.order.findUnique({
+          where: { id: orderId },
+          select: { status: true },
+        });
+        let orderRefunded = false;
+        if (order?.status === OrderStatus.REFUND_REQUESTED) {
+          await tx.order.update({
+            where: { id: orderId },
+            data: { status: OrderStatus.REFUNDED },
+          });
+          await tx.orderStatusEvent.create({
+            data: {
+              orderId,
+              status: OrderStatus.REFUNDED,
+              note: `Refund of \u20B9${Number(match.amount).toLocaleString("en-IN")} processed by Razorpay.`,
+            },
+          });
+          orderRefunded = true;
+        }
+        return { updated, orderRefunded };
       });
       console.log("[razorpay webhook] refund settled:", match.id, "for order:", orderId);
+      // The buyer was promised "5-7 business days" — tell them when it lands.
+      // Best-effort: the helper never throws.
+      await notifyBuyerOfRefundProcessed(orderId, settled.updated, settled.orderRefunded, domain);
     } else {
       console.warn("[razorpay webhook] no open refund row for order:", orderId);
     }
@@ -223,6 +254,18 @@ async function handlePaymentSuccess(
           gatewayEventId,
           status: PaymentStatus.PAID,
           rawPayload: paymentEntity as any,
+        },
+      });
+      // Real money moved with no ledger row is how refunds get lost: booking
+      // the Refund row now means the dashboard refund later reconciles
+      // against it in handleRefundEvent instead of logging "no open refund
+      // row". Exact event replays never reach here (gatewayEventId unique).
+      await tx.refund.create({
+        data: {
+          orderId: order.id,
+          amount: paidAmount,
+          reason: "Duplicate payment captured — refund via Razorpay dashboard",
+          status: RefundStatus.REQUESTED,
         },
       });
       return { kind: "duplicate-payment", orderId: order.id, paidAmount } as const;
@@ -643,6 +686,60 @@ async function notifyBuyerOfHeldPayment(
     });
   } catch (e) {
     console.error("[webhook] held-payment notification failed:", e);
+  }
+}
+
+/**
+ * A refund the buyer was promised ("5-7 business days") has actually settled.
+ * Tell them — silent refunds erode trust and generate support tickets.
+ * Best-effort: never throws.
+ */
+async function notifyBuyerOfRefundProcessed(
+  orderId: string,
+  refund: { amount: unknown; reason: string | null },
+  orderRefunded: boolean,
+  domain: string
+) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { customer: true, address: true },
+  });
+  if (!order) return;
+  const trackingUrl = order.guestAccessToken
+    ? `${domain}/orders/${order.orderNumber}?t=${order.guestAccessToken}`
+    : `${domain}/orders/${order.orderNumber}`;
+  const amountStr = `\u20B9${Number(refund.amount).toLocaleString("en-IN")}`;
+  const message = orderRefunded
+    ? `Your refund of ${amountStr} for order #${order.orderNumber} has been processed by our payment partner. It should reach your original payment method within 5-7 business days.`
+    : `The duplicate charge of ${amountStr} on order #${order.orderNumber} has been refunded. It should reach your original payment method within 5-7 business days. Your order itself is unaffected.`;
+  try {
+    await sendEmail({
+      to: order.customer.email,
+      subject: `Refund processed for order #${order.orderNumber} \u2014 Kalaa Bhadra`,
+      html: generateOrderStatusEmail({
+        customerName: order.customer.name || order.address.fullName,
+        orderNumber: order.orderNumber,
+        status: "Refund Processed",
+        message: `${message} You can follow your order here:`,
+        trackingUrl,
+      }),
+    });
+  } catch (e) {
+    console.error("[webhook] refund-processed email failed:", e);
+  }
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: order.customerId,
+        type: "REFUND_PROCESSED",
+        title: `Refund processed for order #${order.orderNumber}`,
+        body: message,
+        refType: "ORDER",
+        refId: order.id,
+      },
+    });
+  } catch (e) {
+    console.error("[webhook] refund-processed notification failed:", e);
   }
 }
 

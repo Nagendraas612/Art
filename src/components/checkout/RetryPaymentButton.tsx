@@ -64,7 +64,10 @@ export function RetryPaymentButton({ orderNumber, guestToken }: RetryPaymentButt
           const data = await verifyRes.json();
           if (data.verified) {
             const tokenParam = guestToken ? `?t=${guestToken}&` : "?";
-            window.location.href = `/orders/${orderNum}${tokenParam}success=true`;
+            // The order page gates its "payment received — confirming" banner on
+            // verified=1. success=true never matched, so the banner was dead
+            // on the retry path — the exact double-click window it guards.
+            window.location.href = `/orders/${orderNum}${tokenParam}verified=1`;
           } else {
             setError(data.error || "Payment verification failed. Please try again.");
             setLoading(false);
