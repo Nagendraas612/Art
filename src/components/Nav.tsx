@@ -10,7 +10,7 @@ import { AvatarDropdown } from "@/components/ui/AvatarDropdown";
 import styles from "./Nav.module.css";
 
 export function Nav() {
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const user = session?.user as { id: string; name: string; email: string; image?: string | null; role?: string } | undefined;
 
@@ -46,7 +46,7 @@ export function Nav() {
             <li>
               <Link href="/orders">Orders</Link>
             </li>
-            {!user && (
+            {!isPending && !user && (
               <li>
                 <Link href="/become-a-creator">Become a Creator</Link>
               </li>
@@ -57,7 +57,12 @@ export function Nav() {
         <div className={styles.actions}>
           <SearchBar />
 
-          {user ? (
+          {isPending ? (
+            /* Session still resolving: render a neutral shimmer, never the
+               signed-out "Get Started" UI. Flashing the wrong state for a
+               split second on refresh is what looks cheap. */
+            <span className={styles.authSkeleton} aria-hidden="true" />
+          ) : user ? (
             <>
               <Link
                 href="/wishlist"
@@ -144,7 +149,8 @@ export function Nav() {
                 Order History
               </Link>
             </li>
-            {user ? (
+            {!isPending &&
+              (user ? (
               <>
                 <li>
                   <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)}>
@@ -181,7 +187,7 @@ export function Nav() {
                   </Link>
                 </li>
               </>
-            )}
+              ))}
           </ul>
         </div>
       )}
