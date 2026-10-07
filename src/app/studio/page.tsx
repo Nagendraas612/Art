@@ -10,10 +10,10 @@ export default async function StudioOverviewPage() {
   if (!creator) {
     return (
       <div className={styles.emptyState}>
-        <h2>No Creator Studio Found</h2>
+        <h2>No Artist Studio Found</h2>
         <p>Please register your studio to access the artisan workspace.</p>
         <Link href="/become-a-creator" className={styles.btnPrimary}>
-          Apply as a Creator &rarr;
+          Apply as an Artist &rarr;
         </Link>
       </div>
     );

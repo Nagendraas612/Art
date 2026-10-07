@@ -332,7 +332,7 @@ export default async function ArtworkDetailPage({ params }: ArtworkDetailPagePro
                   </div>
                   <div className={styles.specItem}>
                     <dt>Dispatch Time</dt>
-                    <dd>Ships in {dispatchDays} business day{dispatchDays === 1 ? "" : "s"} directly from creator studio</dd>
+                    <dd>Ships in {dispatchDays} business day{dispatchDays === 1 ? "" : "s"} directly from the artist's studio</dd>
                   </div>
                 </dl>
               </div>

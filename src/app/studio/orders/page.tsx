@@ -44,9 +44,9 @@ export default async function StudioOrdersPage() {
       {orderItems.length === 0 ? (
         <div className={styles.emptyCard}>
           <h2>No Orders Received Yet</h2>
-          <p>When collectors acquire your artworks, your dispatch queue will appear here.</p>
+          <p>When buyers order your artworks, they will show up here.</p>
           <Link href="/explore" className={styles.btnExplore}>
-            View Marketplace Showcase &rarr;
+            View Marketplace &rarr;
           </Link>
         </div>
       ) : (

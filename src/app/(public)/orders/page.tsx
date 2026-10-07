@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "My Orders",
-  description: "View and track your acquired art pieces, limited editions, and bespoke commissions.",
+  description: "View and track your art, limited editions, and custom orders.",
 };
 
 export default async function CustomerOrdersPage() {
@@ -62,7 +62,7 @@ export default async function CustomerOrdersPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Your Acquisitions & Orders</h1>
         <p className={styles.subtitle}>
-          Track original artworks, limited editions, and custom bespoke commissions crafted for you.
+          Track your artworks, limited editions, and custom orders.
         </p>
       </header>
 

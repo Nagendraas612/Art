@@ -117,7 +117,7 @@ export default async function StudioEarningsPage() {
       {/* Ledger Table */}
       <div className={styles.ledgerCard}>
         <div className={styles.cardHeader}>
-          <h2 className={styles.cardTitle}>Artisanal Sales Ledger</h2>
+          <h2 className={styles.cardTitle}>Sales History</h2>
           <span className={styles.ledgerCount}>{earnings.length} Transactions</span>
         </div>
 

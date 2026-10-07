@@ -5,8 +5,8 @@ import { CreatorOnboardingForm } from "./CreatorOnboardingForm";
 import styles from "./become-a-creator.module.css";
 
 export const metadata = {
-  title: "Join as a Creator",
-  description: "Set up your independent artisan studio and showcase original artworks directly to collectors.",
+  title: "Join as an Artist",
+  description: "Open your own online studio and sell original artworks directly to buyers.",
 };
 
 export default async function BecomeACreatorPage({
@@ -32,11 +32,11 @@ export default async function BecomeACreatorPage({
           <div className={styles.header}>
             <span className={styles.kicker}>Artisan Onboarding</span>
             <h1 className={styles.title}>
-              {existingProfile ? "Your Creator Studio Profile" : "Launch Your Kalaa Bhadra Studio"}
+              {existingProfile ? "Your Artist Studio Profile" : "Launch Your Kalaa Bhadra Studio"}
             </h1>
             {notice === "studio_access_required" && (
               <div className={styles.noticeBanner} role="status">
-                <strong>Studio access requires an approved creator profile.</strong>
+                <strong>Studio access requires an approved artist profile.</strong>
                 <span>
                   {" "}
                   Complete the application below — once approved, your studio dashboard unlocks.

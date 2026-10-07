@@ -265,7 +265,7 @@ export function CreatorOnboardingForm({ user, existingProfile }: CreatorOnboardi
               onChange={(e) => setAcceptsCustomOrders(e.target.checked)}
               className={styles.checkbox}
             />
-            <span>Open to custom commissions &amp; bespoke architectural requests</span>
+            <span>Open to custom orders</span>
           </label>
         </div>
       </div>

@@ -462,7 +462,7 @@ export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
                 >
                   <strong>⚠️ Unverified External / Stock Photo URL Detected</strong>
                   <p style={{ margin: "4px 0 0" }}>
-                    This artwork is currently referencing an external stock photo. For maximum collector trust and provenance, please upload a direct, authentic photo of your physical piece.
+                    This artwork is currently referencing an external stock photo. Buyers trust real photos — please upload an actual photo of your piece.
                   </p>
                 </div>
               )}
@@ -539,7 +539,7 @@ export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
             />
             <div>
               <strong>Certificate of Authenticity</strong>
-              <p>Generate serial-numbered COA for collector provenance</p>
+              <p>Generate a numbered certificate of authenticity</p>
             </div>
           </label>
 
@@ -572,7 +572,7 @@ export function ArtworkForm({ formConfig, initialData }: ArtworkFormProps) {
           </div>
 
           <div>
-            <label htmlFor="provenanceNote">Provenance &amp; Studio Notes</label>
+            <label htmlFor="provenanceNote">History &amp; Studio Notes</label>
             <input
               type="text"
               id="provenanceNote"

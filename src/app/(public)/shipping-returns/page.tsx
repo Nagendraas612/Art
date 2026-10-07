@@ -18,17 +18,17 @@ export default function ShippingReturnsPage() {
 
         <div className={styles.content}>
           <p>
-            Every artwork on <strong>Kalaa Bhadra</strong> is shipped directly from the creator&apos;s studio with the care and precision that fine art demands.
+            Every artwork on <strong>Kalaa Bhadra</strong> is shipped directly from the artist&apos;s studio with the care and precision that fine art demands.
           </p>
 
           <h2>Packaging Standards</h2>
           <p>
-            All pieces are wrapped in archival-grade, acid-free materials. Paintings ship in custom-built rigid mailers or wooden crates. Sculptures and ceramics are cushioned with museum-standard foam inserts. Every parcel is sealed against moisture and impact.
+            All pieces are wrapped in archival-grade, acid-free materials. Paintings ship in custom-built rigid mailers or wooden crates. Sculptures and ceramics are cushioned with thick protective foam. Every parcel is sealed against moisture and impact.
           </p>
 
           <h2>Insured Delivery</h2>
           <p>
-            Every shipment is fully insured from the moment it leaves the creator&apos;s studio until it reaches your doorstep. In the rare event of transit damage, you&apos;re fully covered — no questions asked.
+            Every shipment is fully insured from the moment it leaves the artist&apos;s studio until it reaches your doorstep. In the rare event of transit damage, you&apos;re fully covered — no questions asked.
           </p>
 
           <h2>Processing & Dispatch</h2>
@@ -59,8 +59,8 @@ export default function ShippingReturnsPage() {
           </p>
           <ul>
             <li><strong>Damaged in transit:</strong> Report within 48 hours of delivery with photos. Full refund or replacement guaranteed.</li>
-            <li><strong>Significantly not as described:</strong> If the received piece materially differs from the listing (wrong artwork, wrong dimensions, etc.), contact us within 48 hours. We&apos;ll mediate with the creator and issue a refund if warranted.</li>
-            <li><strong>Custom commissions:</strong> Returns for bespoke pieces follow the terms agreed between you and the creator before production began.</li>
+            <li><strong>Significantly not as described:</strong> If the received piece materially differs from the listing (wrong artwork, wrong dimensions, etc.), contact us within 48 hours. We&apos;ll mediate with the artist and issue a refund if warranted.</li>
+            <li><strong>Custom commissions:</strong> Returns for custom pieces follow the terms agreed between you and the artist before production began.</li>
           </ul>
 
           <h2>Refund Timelines</h2>

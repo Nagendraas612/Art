@@ -119,7 +119,7 @@ export default async function Home() {
             </div>
             <div className={styles.statItem}>
               <span className={styles.statNum}>{totalCreators}+</span>
-              <span className={styles.statLabel}>Verified Artisans</span>
+              <span className={styles.statLabel}>Verified Artists</span>
             </div>
             <div className={styles.statItem}>
               <span className={styles.statNum}>100%</span>

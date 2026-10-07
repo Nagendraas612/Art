@@ -79,7 +79,7 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
     <section className={styles.section} id="reviews">
       <div className={styles.header}>
         <div>
-          <h3 className={styles.title}>Collector Reviews &amp; Provenance</h3>
+          <h3 className={styles.title}>Collector Reviews</h3>
           <p className={styles.subtitle}>
             Verified appraisals and collector impressions from our patron community.
           </p>
@@ -129,7 +129,7 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
       {showForm &&
         (!isPending && !session ? (
           <div className={styles.formCard}>
-            <h4 className={styles.formTitle}>Leave an Artisanal Appraisal</h4>
+            <h4 className={styles.formTitle}>Write a Review</h4>
             <p>
               Please{" "}
               <Link href="/sign-in" className={styles.signInLink}>
@@ -140,7 +140,7 @@ export function ReviewsSection({ artworkId, initialReviews }: ReviewsSectionProp
           </div>
         ) : (
         <form onSubmit={handleSubmit} className={styles.formCard}>
-          <h4 className={styles.formTitle}>Leave an Artisanal Appraisal</h4>
+          <h4 className={styles.formTitle}>Write a Review</h4>
 
           {errorMessage && <div className={styles.errorAlert}>{errorMessage}</div>}
           {successMessage && <div className={styles.successAlert}>{successMessage}</div>}

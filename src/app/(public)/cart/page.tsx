@@ -56,10 +56,10 @@ export default function CartPage() {
               </div>
               <h1 className={styles.emptyTitle}>Your Bag is Empty</h1>
               <p className={styles.emptySubtitle}>
-                You haven&apos;t added any artisanal artworks or unique handmade creations yet.
+                You haven&apos;t added anything to your bag yet.
               </p>
               <Link href="/explore" className={styles.exploreBtn}>
-                Discover Curated Works &rarr;
+                Browse Artworks &rarr;
               </Link>
             </div>
           </div>

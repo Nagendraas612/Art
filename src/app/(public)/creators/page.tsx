@@ -9,7 +9,7 @@ import Link from "next/link";
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "Artisans & Creators",
+  title: "Artists",
   description: "Meet the painters, potters, weavers, printmakers and woodworkers selling their work on Kalaa Bhadra.",
   alternates: {
     canonical: "https://kalaabhadra.vercel.app/creators",
@@ -44,7 +44,7 @@ export default async function CreatorsPage() {
         <section className={styles.header}>
           <div className="wrap">
             <span className={styles.kicker}>The Artisans</span>
-            <h1 className={styles.title}>Meet Our Creators</h1>
+            <h1 className={styles.title}>Meet Our Artists</h1>
             <p className={styles.subtitle}>
               Independent artists and makers, selling their own work directly to you.
             </p>
@@ -74,10 +74,9 @@ export default async function CreatorsPage() {
           {/* Call to action for prospective creators */}
           <div className={styles.joinBanner}>
             <div className={styles.joinContent}>
-              <h2 className={styles.joinTitle}>Are you a master of your craft?</h2>
+              <h2 className={styles.joinTitle}>Are you an artist?</h2>
               <p className={styles.joinText}>
-                We provide a refined platform for independent artists, ceramists, printmakers, and
-                woodworkers to showcase and sell their works directly to discerning collectors.
+                Sell your work directly to buyers — paintings, ceramics, prints, woodwork, and more.
               </p>
             </div>
             <Link href="/become-a-creator" className={styles.joinBtn}>

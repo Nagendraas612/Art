@@ -114,7 +114,7 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
   }).format(parseFloat(order.subtotal.toString()));
 
   const shippingTotalNum = parseFloat(order.shippingTotal.toString());
-  const formattedShipping = shippingTotalNum === 0 ? "Complimentary" : new Intl.NumberFormat("en-IN", {
+  const formattedShipping = shippingTotalNum === 0 ? "Free" : new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: order.currency,
     maximumFractionDigits: 0,
@@ -167,7 +167,7 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
             <h1 className={styles.heading}>{isPaid ? "Order Confirmed" : "Order Received"}</h1>
             <p className={styles.subheading}>
               {isPaid
-                ? "Thank you for supporting independent artisans. Your order has been registered with the creators\u2019 studios."
+                ? "Thank you for supporting independent artisans. Your order has been registered with the artists\u2019 studios."
                 : "Your order is registered, but payment hasn't cleared yet. The studio starts work only after payment is confirmed — please complete your payment."}
             </p>
             <div className={styles.orderNumberBadge}>
@@ -354,7 +354,7 @@ export default async function OrderConfirmationPage({ params, searchParams }: Or
                   Explore More Artworks &rarr;
                 </Link>
                 <Link href="/creators" className={styles.secondaryBtn}>
-                  Browse Creator Studios
+                  Browse Artist Studios
                 </Link>
               </div>
             </div>

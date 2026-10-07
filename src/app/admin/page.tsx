@@ -147,7 +147,7 @@ export default async function AdminOverviewPage() {
               </svg>
             </div>
           </div>
-          <div className={styles.kpiValue}>{data.approvedCreatorsCount} <span style={{ fontSize: "16px", color: "#8c867a", fontWeight: 400 }}>Creators</span></div>
+          <div className={styles.kpiValue}>{data.approvedCreatorsCount} <span style={{ fontSize: "16px", color: "#8c867a", fontWeight: 400 }}>Artists</span></div>
           <div className={styles.kpiFooter}>
             <span>{data.publishedArtworksCount} Artworks published live</span>
           </div>
@@ -168,7 +168,7 @@ export default async function AdminOverviewPage() {
           <div className={styles.actionList}>
             <div className={styles.actionItem}>
               <div className={styles.actionItemLeft}>
-                <span className={styles.itemTitle}>Creator Studio Applications</span>
+                <span className={styles.itemTitle}>Artist Studio Applications</span>
                 <span className={styles.itemMeta}>
                   {data.pendingCreatorsCount} applicants awaiting portfolio &amp; background verification
                 </span>

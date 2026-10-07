@@ -3,7 +3,7 @@ import styles from "../legal.module.css";
 
 export const metadata = {
   title: "Frequently Asked Questions",
-  description: "Find answers to common questions about ordering, shipping, returns, creator applications, and more on Kalaa Bhadra.",
+  description: "Find answers to common questions about ordering, shipping, returns, artist applications, and more on Kalaa Bhadra.",
 };
 
 export default function FAQPage() {
@@ -31,19 +31,19 @@ export default function FAQPage() {
 
           <p><strong>Can I commission a custom piece?</strong></p>
           <p>
-            Yes! Use the &quot;Send Inquiry&quot; button on any creator&apos;s profile or artwork page to discuss bespoke commissions directly. Custom pricing and timelines are agreed between you and the artisan.
+            Yes! Use the &quot;Send Inquiry&quot; button on any artist&apos;s profile or artwork page to discuss custom orders directly. Custom pricing and timelines are agreed between you and the artisan.
           </p>
 
           <h2>Shipping & Delivery</h2>
 
           <p><strong>How are artworks shipped?</strong></p>
           <p>
-            Every piece is carefully wrapped in archival-grade, acid-free packaging by the creator&apos;s studio. Shipments are fully insured and tracked via trusted courier partners.
+            Every piece is carefully wrapped in archival-grade, acid-free packaging by the artist&apos;s studio. Shipments are fully insured and tracked via trusted courier partners.
           </p>
 
           <p><strong>How long does delivery take?</strong></p>
           <p>
-            Most pieces ship within 3–7 business days of order confirmation. Delivery times depend on the creator&apos;s studio location and your shipping address. Estimated delivery is shown on each artwork page.
+            Most pieces ship within 3–7 business days of order confirmation. Delivery times depend on the artist&apos;s studio location and your shipping address. Estimated delivery is shown on each artwork page.
           </p>
 
           <p><strong>Do you ship internationally?</strong></p>
@@ -55,7 +55,7 @@ export default function FAQPage() {
 
           <p><strong>What is your return policy?</strong></p>
           <p>
-            Original artworks are unique and generally non-returnable. If you receive a damaged or incorrectly described item, contact us within 48 hours of delivery with photos. We will work with the creator to resolve the issue — including a full refund if warranted.
+            Original artworks are unique and generally non-returnable. If you receive a damaged or incorrectly described item, contact us within 48 hours of delivery with photos. We will work with the artist to resolve the issue — including a full refund if warranted.
           </p>
 
           <p><strong>What if my order arrives damaged?</strong></p>
@@ -63,21 +63,21 @@ export default function FAQPage() {
             All shipments are insured. Report damage within 48 hours via <a href="mailto:nagias612@gmail.com" style={{ textDecoration: "underline" }}>nagias612@gmail.com</a> with photographs. We&apos;ll initiate a replacement or full refund immediately.
           </p>
 
-          <h2>Creator Accounts</h2>
+          <h2>Artist Accounts</h2>
 
-          <p><strong>How do I become a creator on Kalaa Bhadra?</strong></p>
+          <p><strong>How do I become an artist on Kalaa Bhadra?</strong></p>
           <p>
             Sign up for a free account, then visit the <Link href="/become-a-creator" style={{ textDecoration: "underline" }}>Become a Creator</Link> page. Submit your application with portfolio links and a brief bio. Our curation board reviews every application.
           </p>
 
-          <p><strong>How much do creators earn?</strong></p>
+          <p><strong>How much do artists earn?</strong></p>
           <p>
-            Creators receive 90% of every sale. We charge only a 10% platform fee — no listing fees, no subscription charges, no hidden costs.
+            Artists receive 90% of every sale. We charge only a 10% platform fee — no listing fees, no subscription charges, no hidden costs.
           </p>
 
           <p><strong>Can I track my earnings?</strong></p>
           <p>
-            Yes. Approved creators have full access to a Studio Dashboard with real-time sales analytics, order tracking, and payout history.
+            Yes. Approved artists have full access to a Studio Dashboard with real-time sales analytics, order tracking, and payout history.
           </p>
 
           <h2>Privacy &amp; Your Rights</h2>
@@ -85,7 +85,7 @@ export default function FAQPage() {
           <p><strong>What personal data do you collect about me?</strong></p>
           <p>
             Only what we need to run the marketplace: your name, email, phone, delivery addresses,
-            order history, and — if you are a creator — your studio profile and artwork. We never see
+            order history, and — if you are an artist — your studio profile and artwork. We never see
             or store your card or UPI details; payments go directly through Razorpay. The full list is
             in our <Link href="/privacy" style={{ textDecoration: "underline" }}>Privacy Policy</Link>.
           </p>

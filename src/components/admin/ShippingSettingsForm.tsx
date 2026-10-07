@@ -122,7 +122,7 @@ export function ShippingSettingsForm({
         </div>
         <p className={styles.hint}>
           Orders with an artwork subtotal <em>above</em> this amount show
-          “Complimentary” instead of the flat fee.
+          “Free” instead of the flat fee.
         </p>
       </div>
 
@@ -178,11 +178,11 @@ export function ShippingSettingsForm({
         <div className={styles.preview}>
           Preview: a <strong>{formatINR(5000)}</strong> order ships for{" "}
           <strong>
-            {5000 > thresholdNum ? "Complimentary" : formatINR(flatFeeNum)}
+            {5000 > thresholdNum ? "Free" : formatINR(flatFeeNum)}
           </strong>
           , a <strong>{formatINR(25000)}</strong> order ships for{" "}
           <strong>
-            {25000 > thresholdNum ? "Complimentary" : formatINR(flatFeeNum)}
+            {25000 > thresholdNum ? "Free" : formatINR(flatFeeNum)}
           </strong>
           .
         </div>

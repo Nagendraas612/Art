@@ -133,7 +133,7 @@ export function MessageArtistModal({
                   required
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Ask about dimensions, framing options, provenance, or custom requests..."
+                  placeholder="Ask about size, framing, history, or custom requests..."
                 />
               </div>
 

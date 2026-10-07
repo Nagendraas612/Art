@@ -26,7 +26,7 @@ export default function PrivacyPage() {
           <h2>1. Who we are</h2>
           <p>
             Kalaa Bhadra is an online marketplace for original Indian artworks, connecting buyers with
-            independent creators and studios.
+            independent artists and studios.
           </p>
           <ul>
             <li><strong>Business name:</strong> Kalaa Bhadra (proprietor: Nagendra A.S)</li>
@@ -46,8 +46,8 @@ export default function PrivacyPage() {
             <li><strong>Login credentials:</strong> your password is stored only as a one-way hash — we can never read it. If you sign in with Google, we receive your name and email address from Google, nothing else.</li>
             <li><strong>Delivery addresses:</strong> the name, phone number, and address you give us at checkout so the artwork can reach you.</li>
             <li><strong>Order information:</strong> what you bought, when, for how much, and its delivery status. We store payment <em>references</em> (such as Razorpay order and payment IDs) — <strong>we never see, store, or touch your card numbers, UPI IDs, or bank details.</strong> Payments are processed directly by Razorpay on their secure pages.</li>
-            <li><strong>Creator information:</strong> if you apply as a creator — your studio name, bio, portfolio links, and profile details, plus the artwork images and descriptions you upload.</li>
-            <li><strong>Messages and support:</strong> messages you exchange with creators or with us, commission requests, reviews, and wishlist items.</li>
+            <li><strong>Artist information:</strong> if you apply as an artist — your studio name, bio, portfolio links, and profile details, plus the artwork images and descriptions you upload.</li>
+            <li><strong>Messages and support:</strong> messages you exchange with artists or with us, commission requests, reviews, and wishlist items.</li>
             <li><strong>Technical information:</strong> basic device and usage data (such as IP address and pages visited) used for security, fraud prevention, and rate limiting.</li>
           </ul>
 
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
             <li><strong>Account details and credentials</strong> — to create and secure your account and let you sign in.</li>
             <li><strong>Delivery addresses</strong> — to ship your orders and arrange courier pickup.</li>
             <li><strong>Order and payment information</strong> — to process payments, confirm orders, handle refunds and disputes, and keep tax and accounting records the law requires.</li>
-            <li><strong>Creator information and artwork</strong> — to display your storefront and listings to buyers.</li>
+            <li><strong>Artist information and artwork</strong> — to display your storefront and listings to buyers.</li>
             <li><strong>Messages and support history</strong> — to run the marketplace, resolve disputes, and answer your questions.</li>
             <li><strong>Technical information</strong> — to keep the site secure and prevent abuse.</li>
           </ul>

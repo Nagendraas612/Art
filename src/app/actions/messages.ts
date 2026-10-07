@@ -31,7 +31,7 @@ export async function startConversationAction(input: {
 
     if (!customerId) {
       return {
-        error: "Please sign in to message creators.",
+        error: "Please sign in to message artists.",
         code: "UNAUTHENTICATED",
       };
     }

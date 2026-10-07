@@ -3,7 +3,7 @@ import styles from "../legal.module.css";
 
 export const metadata = {
   title: "About Us",
-  description: "Kalaa Bhadra is a curated marketplace connecting discerning collectors with independent master artisans worldwide.",
+  description: "Kalaa Bhadra is a marketplace where independent Indian artists sell original art directly to buyers.",
 };
 
 export default function AboutPage() {
@@ -29,17 +29,17 @@ export default function AboutPage() {
           <h2>How It Works</h2>
           <ul>
             <li><strong>For Collectors:</strong> Browse originals, limited editions, and custom commissions. Every piece comes with a Certificate of Authenticity and insured shipping.</li>
-            <li><strong>For Creators:</strong> Apply to open your studio storefront. Approved artists get direct messaging with buyers and keep most of every sale.</li>
+            <li><strong>For Artists:</strong> Apply to open your studio storefront. Approved artists get direct messaging with buyers and keep most of every sale.</li>
           </ul>
 
           <h2>Our Curation Standard</h2>
           <p>
-            We review every creator application by hand. We look for original work and genuine craftsmanship — so everything you find here meets a standard mass marketplaces can&apos;t match.
+            We review every artist application by hand. We look for original work and genuine craftsmanship — so everything you find here meets a standard mass marketplaces can&apos;t match.
           </p>
 
-          <h2>Fair Creator Economics</h2>
+          <h2>Fair Artist Economics</h2>
           <p>
-            Creators keep most of every sale. Our small platform fee covers payment processing, customer support, and running the site. No hidden fees, no listing charges, no subscription traps.
+            Artists keep most of every sale. Our small platform fee covers payment processing, customer support, and running the site. No hidden fees, no listing charges, no subscription traps.
           </p>
 
           <h2>Get in Touch</h2>

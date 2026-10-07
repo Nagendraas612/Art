@@ -28,11 +28,11 @@ export default function TermsPage() {
 
           <h2>1. What Kalaa Bhadra is</h2>
           <p>
-            Kalaa Bhadra is an online marketplace that connects buyers with independent creators and
-            studios selling original artworks and related pieces. Creators list and sell their own work;
+            Kalaa Bhadra is an online marketplace that connects buyers with independent artists and
+            studios selling original artworks and related pieces. Artists list and sell their own work;
             Kalaa Bhadra provides the platform — listings, checkout, payments, and logistics support —
-            but each artwork is sold by the creator named on its listing page. Where a creator&apos;s
-            business name, address, and contact details are shown, that creator is the seller of record
+            but each artwork is sold by the artist named on its listing page. Where an artist&apos;s
+            business name, address, and contact details are shown, that artist is the seller of record
             for the piece.
           </p>
 
@@ -55,7 +55,7 @@ export default function TermsPage() {
 
           <h2>4. Shipping, delivery, and risk</h2>
           <ul>
-            <li>Artworks ship directly from the creator&apos;s studio. Dispatch timelines are shown on each artwork page and in our <Link href="/shipping-returns" style={{ textDecoration: "underline" }}>Shipping &amp; Returns</Link> page.</li>
+            <li>Artworks ship directly from the artist&apos;s studio. Dispatch timelines are shown on each artwork page and in our <Link href="/shipping-returns" style={{ textDecoration: "underline" }}>Shipping &amp; Returns</Link> page.</li>
             <li>Every shipment is insured and tracked. Risk of loss or damage in transit is covered by that insurance.</li>
             <li>Please provide a complete and accurate delivery address and phone number — couriers need both to deliver successfully.</li>
           </ul>
@@ -65,16 +65,16 @@ export default function TermsPage() {
             <li><strong>Before dispatch:</strong> You may cancel your order for a full refund, at no charge to you.</li>
             <li><strong>After dispatch:</strong> Because artworks are unique and handmade, we do not accept returns for change of mind. If your piece arrives damaged or is significantly not as described, report it within 48 hours of delivery (see <Link href="/shipping-returns" style={{ textDecoration: "underline" }}>Shipping &amp; Returns</Link>) — we will arrange a replacement or a full refund.</li>
             <li><strong>Refund timelines:</strong> Approved refunds are initiated within 2 business days and typically reach your original payment method within 5–7 business days, depending on your bank.</li>
-            <li><strong>Custom commissions:</strong> Cancellations and refunds for bespoke pieces follow the terms you agreed with the creator before production began.</li>
+            <li><strong>Custom commissions:</strong> Cancellations and refunds for custom pieces follow the terms you agreed with the artist before production began.</li>
           </ul>
 
-          <h2>6. For creators</h2>
+          <h2>6. For artists</h2>
           <ul>
             <li><strong>Accurate listings:</strong> Describe your work honestly — correct images, dimensions, medium, and condition. Misleading listings may be removed, and repeated violations can lead to suspension.</li>
             <li><strong>Your work, your rights:</strong> You retain full copyright in your artworks unless you explicitly agree otherwise with a buyer in writing. By listing on Kalaa Bhadra, you grant us a limited licence to display your images and descriptions to operate the marketplace.</li>
-            <li><strong>Commission and payouts:</strong> Creators receive 90% of each sale; Kalaa Bhadra retains a 10% platform fee. Your share is credited to your creator balance and paid out per the payout schedule in your studio dashboard. No listing fees, no subscriptions.</li>
+            <li><strong>Commission and payouts:</strong> Artists receive 90% of each sale; Kalaa Bhadra retains a 10% platform fee. Your share is credited to your artist balance and paid out per the payout schedule in your studio dashboard. No listing fees, no subscriptions.</li>
             <li><strong>Fulfilment:</strong> Dispatch orders within the timeline stated on your listing, pack to the standards in our <Link href="/shipping-returns" style={{ textDecoration: "underline" }}>Shipping &amp; Returns</Link> page, and provide tracking details promptly.</li>
-            <li><strong>Conduct:</strong> Communicate with buyers respectfully and honour agreed commission milestones. We may suspend creators who fail to fulfil orders, misrepresent work, or abuse the platform.</li>
+            <li><strong>Conduct:</strong> Communicate with buyers respectfully and honour agreed commission milestones. We may suspend artists who fail to fulfil orders, misrepresent work, or abuse the platform.</li>
             <li><strong>Your obligations as a seller:</strong> As the seller of record, you are responsible for the accuracy of your listings and for resolving buyer issues in line with these Terms and applicable consumer-protection law.</li>
           </ul>
 
@@ -91,7 +91,7 @@ export default function TermsPage() {
           <h2>8. Intellectual property</h2>
           <p>
             The Kalaa Bhadra name, logo, and site design belong to us. Artwork images and descriptions
-            belong to the creators who uploaded them. Nothing in these Terms transfers ownership of
+            belong to the artists who uploaded them. Nothing in these Terms transfers ownership of
             anyone&apos;s intellectual property. Do not copy, reproduce, or use content from the site
             without permission.
           </p>

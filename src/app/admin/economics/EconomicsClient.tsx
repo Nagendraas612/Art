@@ -58,7 +58,7 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
     // deliberately, with the old and new values visible.
     if (
       !confirm(
-        `Change the global take rate from ${data.globalCommissionRate}% to ${rate}%?\n\nThis applies to all future marketplace transactions (per-creator overrides are unaffected).`
+        `Change the platform fee from ${data.globalCommissionRate}% to ${rate}%?\n\nThis applies to all future sales (per-creator rates are unaffected).`
       )
     ) {
       return;
@@ -86,7 +86,7 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
     );
     if (!reference || !reference.trim()) {
       alert(
-        "A settlement reference is required. Complete the bank transfer first, then record it here."
+        "A payment reference is required. Finish the bank transfer first, then record it here."
       );
       return;
     }
@@ -118,9 +118,9 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Economics, Commissions &amp; Payouts</h1>
+          <h1 className={styles.title}>Platform Fee &amp; Payouts</h1>
           <p className={styles.subtitle}>
-            Manage platform take rates, commission rules, and settle creator earnings payouts.
+            Set the platform fee and pay out creator earnings.
           </p>
         </div>
       </div>
@@ -129,9 +129,9 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div>
-            <h2 className={styles.sectionTitle}>Platform Commission Rate</h2>
+            <h2 className={styles.sectionTitle}>Platform Fee</h2>
             <p className={styles.sectionSubtitle}>
-              The percentage retained by the platform on each marketplace transaction.
+              The percentage Kalaa Bhadra keeps from each sale.
             </p>
           </div>
         </div>
@@ -139,8 +139,8 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
         <div className={styles.rateDisplay}>
           <span className={styles.rateValue}>{data.globalCommissionRate}%</span>
           <div className={styles.rateLabel}>
-            <span className={styles.rateLabelBold}>Current Global Take Rate</span>
-            <span>Applied to all marketplace transactions unless overridden per-creator.</span>
+            <span className={styles.rateLabelBold}>Current Fee</span>
+            <span>Applies to all sales unless a creator has their own rate.</span>
           </div>
         </div>
 
@@ -162,7 +162,7 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
             disabled={isPending}
             onClick={handleUpdateCommission}
           >
-            {isPending ? "Updating…" : "Update Global Rate"}
+            {isPending ? "Updating…" : "Update Fee"}
           </button>
         </div>
 
@@ -170,7 +170,7 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
         {data.commissionsList.length > 0 && (
           <div style={{ marginTop: 18 }}>
             <h3 className={styles.sectionTitle} style={{ fontSize: 15, marginBottom: 10 }}>
-              Per-Creator Commission Rules
+              Per-Creator Fee Rules
             </h3>
             <table className={styles.table}>
               <thead>
@@ -203,22 +203,22 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <div>
-            <h2 className={styles.sectionTitle}>Pending Creator Settlements</h2>
+            <h2 className={styles.sectionTitle}>Pending Payouts</h2>
             <p className={styles.sectionSubtitle}>
-              Creators with accrued, unpaid earnings ready for payout batch processing.
+              Creators with unpaid earnings, ready to be paid.
             </p>
           </div>
         </div>
 
         {data.pendingCreatorsPayouts.length === 0 ? (
           <div className={styles.emptyState}>
-            <p>No pending earnings to settle. All creators are up to date.</p>
+            <p>No pending earnings to settle. All artists are up to date.</p>
           </div>
         ) : (
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Creator Studio</th>
+                <th>Artist Studio</th>
                 <th>Handle</th>
                 <th>Email</th>
                 <th>Pending Earnings</th>
@@ -240,7 +240,7 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
                       disabled={isPending || payoutProcessingId === creator.creatorId}
                       onClick={() => handleProcessPayout(creator.creatorId)}
                     >
-                      {payoutProcessingId === creator.creatorId ? "Processing…" : "Settle Payout"}
+                      {payoutProcessingId === creator.creatorId ? "Processing…" : "Pay Now"}
                     </button>
                   </td>
                 </tr>
@@ -256,7 +256,7 @@ export function EconomicsClient({ initialData }: { initialData: EconomicsData })
           <div>
             <h2 className={styles.sectionTitle}>Recent Payout History</h2>
             <p className={styles.sectionSubtitle}>
-              Settled payout batches with settlement references and amounts.
+              Past payouts, with payment references and amounts.
             </p>
           </div>
         </div>

@@ -377,7 +377,7 @@ export function generateOrderConfirmationEmail(params: {
   `;
 }
 
-// 2. New Order Notification (To Artisan / Creator)
+// 2. New Order Notification (to artist)
 export function generateCreatorNewOrderEmail(params: {
   creatorName: string;
   orderNumber: string;
@@ -430,7 +430,7 @@ export function generateCreatorNewOrderEmail(params: {
         </div>
 
         <div style="${footerStyles}">
-          <p style="margin: 0;">© ${new Date().getFullYear()} Kalaa Bhadra Creator Desk</p>
+          <p style="margin: 0;">© ${new Date().getFullYear()} Kalaa Bhadra Artist Desk</p>
         </div>
       </div>
     </div>

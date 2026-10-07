@@ -49,7 +49,7 @@ export function CreatorCard({
             <div className={styles.coverPlaceholder} />
           )}
           {acceptsCustomOrders && (
-            <span className={styles.customBadge}>Custom Commissions Open</span>
+            <span className={styles.customBadge}>Accepts Custom Orders</span>
           )}
         </div>
       </Link>

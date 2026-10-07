@@ -76,7 +76,7 @@ export function CommissionForm({ creator }: CommissionFormProps) {
         <div className={styles.successIcon}>✓</div>
         <h2 className={styles.successTitle}>Commission Request Submitted</h2>
         <p className={styles.successDesc}>
-          Your bespoke proposal has been sent to <strong>{creator.storeName}</strong>. The artist will review your specifications and reply with a timeline and quote.
+          Your request has been sent to <strong>{creator.storeName}</strong>. The artist will review it and reply with a timeline and quote.
         </p>
         <div className={styles.successActions}>
           <Link href={`/creators/${creator.handle}`} className={styles.btnPrimary}>
@@ -92,7 +92,7 @@ export function CommissionForm({ creator }: CommissionFormProps) {
       {errorMessage && <div className={styles.errorAlert}>{errorMessage}</div>}
 
       <div className={styles.formGroup}>
-        <label htmlFor="description">Bespoke Vision &amp; Requirements *</label>
+        <label htmlFor="description">Describe What You Want *</label>
         <textarea
           id="description"
           name="description"

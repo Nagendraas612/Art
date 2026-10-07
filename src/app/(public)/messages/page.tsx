@@ -77,7 +77,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
           <div className={styles.header}>
             <h1 className={styles.title}>Messages</h1>
             <p className={styles.subtitle}>
-              Your conversations with creators and admins. Messages are transmitted securely over HTTPS and visible only to you and the other participant.
+              Your conversations with artists and admins. Messages are transmitted securely over HTTPS and visible only to you and the other participant.
             </p>
           </div>
 

@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: CommissionPageProps) {
 
   return {
     title: `Commission Custom Work — ${creator.storeName} | Kalaa Bhadra`,
-    description: `Request a bespoke handcrafted commission with ${creator.storeName}.`,
+    description: `Request a custom handmade piece from ${creator.storeName}.`,
   };
 }
 
@@ -49,9 +49,9 @@ export default async function CommissionPage({ params }: CommissionPageProps) {
             <Link href={`/creators/${creator.handle}`} className={styles.backLink}>
               &larr; Back to {creator.storeName}
             </Link>
-            <h1 className={styles.title}>Commission Bespoke Work</h1>
+            <h1 className={styles.title}>Request a Custom Piece</h1>
             <p className={styles.subtitle}>
-              Collaborate directly with <strong>{creator.storeName}</strong> ({creator.user.name}) to create a one-of-a-kind bespoke piece tailored to your spatial aesthetic and vision.
+              Collaborate directly with <strong>{creator.storeName}</strong> ({creator.user.name}) to create a custom piece made for your space and taste.
             </p>
           </div>
 

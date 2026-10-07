@@ -4,8 +4,8 @@ import { CommissionProposalForm } from "@/components/studio/CommissionProposalFo
 import styles from "./studio-commissions.module.css";
 
 export const metadata = {
-  title: "Bespoke Commissions — Creator Studio",
-  description: "Manage and quote bespoke handcrafted commission requests",
+  title: "Custom Orders — Creator Studio",
+  description: "Manage and quote custom order requests",
 };
 
 export default async function StudioCommissionsPage() {
@@ -27,9 +27,9 @@ export default async function StudioCommissionsPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Bespoke Commissions &amp; Projects</h1>
+          <h1 className={styles.title}>Custom Orders</h1>
           <p className={styles.subtitle}>
-            Review patron commission briefs, send custom quotations, and manage artisanal project milestones.
+            Review custom order requests, send quotes, and track your work.
           </p>
         </div>
       </div>

@@ -99,7 +99,7 @@ export function ChatView({
         <p className={styles.emptySubtitle}>
           {isStudioView
             ? "When collectors inquire about your creations or custom requests, inquiries will arrive here."
-            : "Connect directly with independent master artists, inquire about custom sizing, provenance, or studio visits."}
+            : "Chat directly with the artist — ask about sizes, history, or studio visits."}
         </p>
         {!isStudioView && (
           <Link href="/explore" className={styles.exploreBtn}>
@@ -193,7 +193,7 @@ export function ChatView({
                   href={`/creators/${activeConv.creatorHandle}/commission`}
                   className={styles.commissionBtn}
                 >
-                  Commission Bespoke Work
+                  Request a Custom Piece
                 </Link>
                 <Link
                   href={`/creators/${activeConv.creatorHandle}`}

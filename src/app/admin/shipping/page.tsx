@@ -15,7 +15,7 @@ export default async function AdminShippingPage() {
           Buyers now see <strong>live courier rates</strong> at checkout
           (cheapest Shiprocket rate per creator pickup location). The flat fee
           below is the emergency fallback when live rates are unavailable, and
-          the threshold still controls complimentary shipping. Changes apply
+          the threshold still controls free shipping. Changes apply
           instantly to the storefront — no code deploy needed.
         </p>
       </div>

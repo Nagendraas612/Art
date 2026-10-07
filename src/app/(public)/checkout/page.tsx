@@ -140,7 +140,7 @@ export default function CheckoutPage() {
         : shippingFee === null
           ? "Enter delivery pincode"
           : shippingFee === 0
-            ? "Complimentary"
+            ? "Free"
             : formatINR(shippingFee);
 
   const formattedGrandTotal =

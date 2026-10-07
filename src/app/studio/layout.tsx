@@ -7,8 +7,8 @@ import { getCurrentCreator } from "@/lib/studio-auth";
 import styles from "./studio.module.css";
 
 export const metadata = {
-  title: "Creator Studio",
-  description: "Artisan and Creator Studio Management Dashboard",
+  title: "Artist Studio",
+  description: "Artist Studio Management Dashboard",
 };
 
 export default async function StudioLayout({
@@ -38,7 +38,7 @@ export default async function StudioLayout({
           <Link href="/" className={styles.brandMark}>
             Kalaa Bhadra
           </Link>
-          <span className={styles.studioTag}>Creator Studio</span>
+          <span className={styles.studioTag}>Artist Studio</span>
         </div>
 
         {creator && (

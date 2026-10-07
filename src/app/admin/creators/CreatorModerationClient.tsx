@@ -99,7 +99,7 @@ export function CreatorModerationClient({ initialCreators }: { initialCreators: 
       {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Creator Studio Applications</h1>
+          <h1 className={styles.title}>Artist Studio Applications</h1>
           <p className={styles.subtitle}>
             Review applications from artisans and studios applying to join the marketplace.
           </p>
